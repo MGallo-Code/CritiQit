@@ -29,8 +29,6 @@ install_dependencies() {
 
     echo "Installing dependencies..."
     pip install -r requirements.txt
-
-    echo "Deactivating virtual environment..."
 }
 
 # Main script
