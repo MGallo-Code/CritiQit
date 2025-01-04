@@ -11,7 +11,7 @@ from gui.utils.load_stylesheet import load_stylesheet
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Master Rater")
+        self.setWindowTitle("CritiQit")
         self.setMinimumSize(800, 600)
         self.resize(800, 600)
 
@@ -123,6 +123,7 @@ class MainWindow(QMainWindow):
             w = item.widget()
             if w:
                 w.setParent(None)
+        widget.setStyleSheet("border: 0px;")
         self.content_layout.addWidget(widget)
 
         # Update navigation buttons
