@@ -6,8 +6,8 @@ from PySide6.QtGui import QPixmap, QIcon
 from PySide6.QtCore import QSize, QThread
 import requests
 
-from gui.MainContent.MovieDetailsPage import MovieDetailsPage
-from gui.MainContent.ShowDetailsPage import ShowDetailsPage
+from gui.Pages.MovieDetailsPage import MovieDetailsPage
+from gui.Pages.ShowDetailsPage import ShowDetailsPage
 from gui.utils.AsyncImageWorker import AsyncImageWorker
 
 class ResultsPage(QWidget):

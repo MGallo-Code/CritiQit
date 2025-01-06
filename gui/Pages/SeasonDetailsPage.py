@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from gui.CustomWidgets.MediaHeaderWidget import MediaHeaderWidget
-from gui.MainContent.EpisodeDetailsPage import EpisodeDetailsPage
+from gui.Pages.EpisodeDetailsPage import EpisodeDetailsPage
 from gui.CustomWidgets.RatingWidget import RatingWidget
 
 class SeasonDetailsPage(QWidget):

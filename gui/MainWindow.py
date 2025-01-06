@@ -2,8 +2,8 @@
 from PySide6.QtWidgets import QMainWindow, QComboBox, QLineEdit, QHBoxLayout, QVBoxLayout, QWidget, QPushButton, QSizePolicy
 from PySide6.QtCore import Qt
 from gui.CustomWidgets.NavigationController import NavigationController
-from gui.MainContent.HomePage import HomePage
-from gui.MainContent.ResultsPage import ResultsPage
+from gui.Pages.HomePage import HomePage
+from gui.Pages.ResultsPage import ResultsPage
 from ratings.RatingManager import RatingManager
 from utils.APIManager import APIManager
 from gui.utils.load_stylesheet import load_stylesheet
