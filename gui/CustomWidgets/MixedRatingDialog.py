@@ -10,10 +10,9 @@ class MixedRatingDialog(QDialog):
         self.setWindowTitle(f"Rate {content_type.title()}")
         self.rating_manager = rating_manager
         self.content_id = content_id
-        self.content_type = content_type
 
         # Create a strategy, pass the pre-formatted content_id
-        self.strategy = MixedRatingStrategy(content_id, content_type)
+        self.strategy = MixedRatingStrategy(content_id)
         self.strategy.load_rating(rating_manager)
 
         main_layout = QVBoxLayout()

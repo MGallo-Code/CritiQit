@@ -70,7 +70,7 @@ class EpisodeDetailsPage(QWidget):
 
         # Add the RatingWidget
         # Create a pre-formatted ID for the season, e.g. "tv:12345-S2"
-        content_id = f"tv:{show.get('id')}-S{season_num}"
+        content_id = f"tv:{show.get('id')}-S{season_num}-E{ep_num}"
         season_rating_widget = RatingWidget(
             parent=self,
             rating_manager=self.rating_manager,

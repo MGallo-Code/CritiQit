@@ -18,13 +18,11 @@ class RatingWidget(QWidget):
         parent,
         rating_manager,
         content_id,
-        content_type="movie",
         title_text="Rate this Content"
     ):
         super().__init__(parent)
         self.rating_manager = rating_manager
         self.content_id = content_id
-        self.content_type = content_type
         self.title_text = title_text
 
         layout = QVBoxLayout(self)
@@ -50,28 +48,23 @@ class RatingWidget(QWidget):
         """
         Load the MixedRatingStrategy from rating_manager, then update the label.
         """
-        strategy = MixedRatingStrategy(self.content_id, self.content_type)
-        strategy.load_rating(self.rating_manager)
+        rating = MixedRatingStrategy(self.content_id)
+        rating.load_rating(self.rating_manager)
 
-        overall = strategy.get_overall_rating()
-        # Check if no single rating and no categories => not rated
-        if (overall is None and 
-            not any(info[1] is not None for info in strategy.categories.values())):
+        overall = rating.get_overall_rating()
+        # Check if no  rating
+        if overall is None:
             self.user_rating_label.setText("You haven't rated this content yet.")
             self.remove_rating_button.setVisible(False)
         else:
             lines = []
-            if strategy.one_score is not None:
-                lines.append(f"Overall Rating: {strategy.one_score} (Single Score)")
-            else:
-                if strategy.total_rating is not None:
-                    lines.append(f"Overall Rating: {strategy.total_rating} (Calculated from categories)")
-                else:
-                    lines.append("Overall Rating: None (Calculated from categories)")
+            lines.append(f"Aggregated Rating: {rating.aggregate_rating} (Calculated from seasons/episodes)")
+            lines.append(f"Overall Rating: {rating.one_score} (Single Score)")
+            lines.append(f"Overall Rating: {rating.category_aggregate} (Calculated from categories)")
 
             # Category breakdown
             any_category = False
-            for cat_key, info in strategy.categories.items():
+            for cat_key, info in rating.categories.items():
                 name, value, weight = info
                 if value is not None:
                     any_category = True
@@ -88,7 +81,6 @@ class RatingWidget(QWidget):
             parent=self,
             rating_manager=self.rating_manager,
             content_id=self.content_id,
-            content_type=self.content_type
         )
         if dialog.exec():
             self.refresh_content()
@@ -101,6 +93,6 @@ class RatingWidget(QWidget):
             QMessageBox.Yes | QMessageBox.No
         )
         if confirm == QMessageBox.Yes:
-            strategy = MixedRatingStrategy(self.content_id, self.content_type)
-            strategy.remove_rating(self.rating_manager)
+            rating = MixedRatingStrategy(self.content_id)
+            rating.remove_rating(self.rating_manager)
             self.refresh_content()
