@@ -57,18 +57,17 @@ class RatingWidget(QWidget):
             self.user_rating_label.setText("You haven't rated this content yet.")
             self.remove_rating_button.setVisible(False)
         else:
-            print(self.content_id)
             lines = []
             parsed = parse_content_id(self.content_id)
             # Only show aggregated rating if it's a TV Show or TV season
-            print(parsed.get("content_type"), parsed.get("episode_number"))
             if parsed.get("content_type") == "tv" and parsed.get("episode_number") is None:
                 lines.append(f"Aggregated Rating: {rating.aggregate_rating} (Calculated from seasons/episodes)")
-            lines.append(f"Overall Rating: {rating.one_score} (Single Score)")
-
+            if rating.one_score:
+                lines.append(f"Solo Rating: {rating.one_score} (Single Score)")
             # Category breakdown
             if rating.categories:
-                lines.append(f"Overall Rating: {rating.category_aggregate} (Calculated from categories)")
+                if rating.category_aggregate:
+                    lines.append(f"Overall Rating: {rating.category_aggregate} (Calculated from categories)")
                 any_category = False
                 for cat_key, info in rating.categories.items():
                     name, value, weight = info
