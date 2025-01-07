@@ -4,8 +4,9 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QSizePo
 from PySide6.QtCore import Qt
 from gui.CustomWidgets.MediaHeaderWidget import MediaHeaderWidget
 from gui.CustomWidgets.RatingWidget import RatingWidget
+from gui.Pages.BasePage import BasePage
 
-class EpisodeDetailsPage(QWidget):
+class EpisodeDetailsPage(BasePage):
     def __init__(self, navigation_controller, api_manager, rating_manager, show, episode):
         super().__init__()
         self.nav = navigation_controller
@@ -71,10 +72,13 @@ class EpisodeDetailsPage(QWidget):
         # Add the RatingWidget
         # Create a pre-formatted ID for the season, e.g. "tv:12345-S2"
         content_id = f"tv:{show.get('id')}-S{season_num}-E{ep_num}"
-        season_rating_widget = RatingWidget(
+        self.rating_widget = RatingWidget(
             parent=self,
             rating_manager=self.rating_manager,
-            content_id=content_id, # "tv:12345-S2"
+            content_id=content_id, # "tv:12345-S2-E4"
             title_text="Rate this Episode"
         )
-        content_layout.addWidget(season_rating_widget)
+        content_layout.addWidget(self.rating_widget)
+    
+    def refresh_page(self):
+        self.rating_widget.refresh_content()

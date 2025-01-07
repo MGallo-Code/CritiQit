@@ -71,7 +71,7 @@ class MainWindow(QMainWindow):
 
         # Content Type Selector
         self.type_selector = QComboBox()
-        self.type_selector.addItems(["Movie", "TV Show"])
+        self.type_selector.addItems(["TV Show", "Movie"])
         nav_bar.addWidget(self.type_selector)
 
         # Search Field
@@ -125,6 +125,7 @@ class MainWindow(QMainWindow):
                 w.setParent(None)
         widget.setStyleSheet("border: 0px;")
         self.content_layout.addWidget(widget)
+        widget.refresh_page()
 
         # Update navigation buttons
         self.update_navigation_buttons()

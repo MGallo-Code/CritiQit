@@ -6,11 +6,12 @@ from PySide6.QtGui import QPixmap, QIcon
 from PySide6.QtCore import QSize, QThread
 import requests
 
+from gui.Pages.BasePage import BasePage
 from gui.Pages.MovieDetailsPage import MovieDetailsPage
 from gui.Pages.ShowDetailsPage import ShowDetailsPage
 from gui.utils.AsyncImageWorker import AsyncImageWorker
 
-class ResultsPage(QWidget):
+class ResultsPage(BasePage):
     def __init__(self, navigation_controller, api_manager, rating_manager, results, is_movie):
         super().__init__()
         self.nav = navigation_controller

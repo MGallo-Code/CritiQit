@@ -1,8 +1,9 @@
 # gui/MainContent/HomePage.py
 
-from PySide6.QtWidgets import QVBoxLayout, QWidget, QPushButton
+from PySide6.QtWidgets import QVBoxLayout, QPushButton
+from gui.Pages.BasePage import BasePage
 
-class HomePage(QWidget):
+class HomePage(BasePage):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout()

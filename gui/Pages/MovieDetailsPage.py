@@ -1,11 +1,11 @@
 # gui/MainContent/MovieDetailsPage.py
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea
-from PySide6.QtCore import Qt
 from gui.CustomWidgets.RatingWidget import RatingWidget
 from gui.CustomWidgets.MediaHeaderWidget import MediaHeaderWidget
+from gui.Pages.BasePage import BasePage
 
-class MovieDetailsPage(QWidget):
+class MovieDetailsPage(BasePage):
     def __init__(self, navigation_controller, api_manager, rating_manager, movie):
         super().__init__()
         self.nav = navigation_controller
@@ -54,10 +54,10 @@ class MovieDetailsPage(QWidget):
 
         # Add rating widget
         content_id = f"movie:{movie.get('id')}"
-        rating_widget = RatingWidget(
+        self.rating_widget = RatingWidget(
             parent=self,
             rating_manager=rating_manager,
             content_id=content_id,
             title_text="Rate this Movie"
         )
-        content_layout.addWidget(rating_widget)
+        content_layout.addWidget(self.rating_widget)
