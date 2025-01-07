@@ -67,6 +67,16 @@ def parse_content_id(content_id):
             "episode_number": int(episode_number_str) if episode_number_str else None
         }
 
+    elif content_id.startswith("set:"):
+        # e.g. "set:12345"
+        raw_id = content_id[len("set:"):]
+        if not raw_id:
+            raise ValueError(f"Malformed set content_id: {content_id}")
+        return {
+            "type": "set",
+            "set_id": raw_id
+        }
+
     else:
         raise ValueError(f"Unknown content prefix in content_id: {content_id}")
     
