@@ -80,6 +80,31 @@ class RatingManager:
             data["categories"] = json.loads(data["categories"])
         return data
     
+    def get_all_ratings_for_pattern(self, like_pattern):
+        """
+        Return a dict of content_id: numeric_rating for all ratings matching the pattern,
+        where numeric_rating is the 'preferred' numeric rating or None if not rated.
+        """
+        # The episodes for a season have content_id like "tv:{show_id}-S{season_num}-E%"
+        cur = self.conn.cursor()
+        cur.execute("""
+            SELECT content_id, preferred_strategy, one_score, category_aggregate, aggregate_rating
+            FROM ratings
+            WHERE content_id LIKE ?
+        """, (like_pattern,))
+        rows = cur.fetchall()
+
+        results = {}
+        for row in rows:
+            numeric_val = self._pick_preferred_value(
+                row["preferred_strategy"],
+                row["one_score"],
+                row["category_aggregate"],
+                row["aggregate_rating"]
+            )
+            results[row["content_id"]] = numeric_val
+        return results
+    
     def save_rating_data(self, data_dict):
         # Serialize categories
         categories_text = None
