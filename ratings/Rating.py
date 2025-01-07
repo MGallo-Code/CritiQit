@@ -1,15 +1,19 @@
-# ratings/MixedRatingStrategy.py
+# ratings/Rating.py
 
-from ratings.BaseRatingStrategy import BaseRatingStrategy
-
-class MixedRatingStrategy(BaseRatingStrategy):
+class Rating():
     """
     Stores either a single numeric rating (self.one_score) or category-based ratings (self.categories).
     If one_score is not None, that "wins" as the overall rating. Otherwise, we compute from categories.
     """
 
-    def __init__(self, content_id, content_type=None):
-        super().__init__(content_id, content_type)
+    def __init__(self, content_id):
+        """
+        content_id: a pre-formatted unique string like "tv:12345-S2-E2" or "movie:200"
+        content_type: optional string if you want to store the type (movie, tv, etc.)
+        """
+        # Parse content type
+        self.content_id = content_id
+        self.content_type = content_id.split(":")[0]
         self.preferred_strategy = None
         # Single numeric rating
         self.one_score = None
@@ -24,6 +28,9 @@ class MixedRatingStrategy(BaseRatingStrategy):
         self.aggregate_rating = None
 
     def load_rating(self, rating_manager):
+        """
+        Load rating data from the rating_manager into this instance.
+        """
         data = rating_manager.get_rating_data(self.content_id)
         if data:
             self.preferred_strategy = data.get("preferred_strategy")
@@ -33,17 +40,18 @@ class MixedRatingStrategy(BaseRatingStrategy):
             self.aggregate_rating = data.get("aggregate_rating")
 
     def save_rating(self, rating_manager):
-        # Recompute category_aggregate from categories if one_score is None
+        # Recompute category_aggregate from categories
         self._calculate_category_aggregate()
 
         rating_data = {
+            "content_id": self.content_id,
             "preferred_strategy": self.preferred_strategy,
             "one_score": self.one_score,
             "categories": self.categories,
             "category_aggregate": self.category_aggregate,
             "aggregate_rating": self.aggregate_rating
         }
-        rating_manager.save_rating_data(self.content_id, rating_data)
+        rating_manager.save_rating_data(rating_data)
 
     def get_overall_rating(self):
         if not self.preferred_strategy:
@@ -54,19 +62,6 @@ class MixedRatingStrategy(BaseRatingStrategy):
             return self.category_aggregate
         elif self.preferred_strategy == "aggregate_rating":
             return self.aggregate_rating
-    
-    def get_preferred_rating(self):
-        if not self.preferred_strategy:
-            return None
-        else:
-            return self.__getattribute__(self.preferred_strategy)
-
-    def remove_rating(self, rating_manager):
-        rating_manager.delete_rating_data(self.content_id)
-        self.one_score = None
-        self.categories = {}
-        self.category_aggregate = None
-        self.aggregate_rating = None
 
     def _calculate_category_aggregate(self):
         weighted_sum = 0

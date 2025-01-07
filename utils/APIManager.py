@@ -61,7 +61,7 @@ def parse_content_id(content_id):
                 episode_number_str = ep_parts[1]
 
         return {
-            "type": "tv",
+            "content_type": "tv",
             "show_id": show_id_str,
             "season_number": int(season_number_str) if season_number_str else None,
             "episode_number": int(episode_number_str) if episode_number_str else None
@@ -73,7 +73,7 @@ def parse_content_id(content_id):
         if not raw_id:
             raise ValueError(f"Malformed set content_id: {content_id}")
         return {
-            "type": "set",
+            "content_type": "set",
             "set_id": raw_id
         }
 
@@ -101,7 +101,7 @@ class APIManager:
         by parsing the content_id string.
         """
         parsed = parse_content_id(content_id)
-        content_type = parsed["type"]  # "movie" or "tv"
+        content_type = parsed["content_type"]  # "movie" or "tv"
         show_id = parsed["show_id"]
         season_num = parsed["season_number"]
         episode_num = parsed["episode_number"]

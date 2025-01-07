@@ -2,10 +2,10 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton, QMessageBox
 )
-from PySide6.QtCore import Qt
 
 from gui.CustomWidgets.MixedRatingDialog import MixedRatingDialog
-from ratings.MixedRatingStrategy import MixedRatingStrategy
+from ratings.Rating import Rating
+from utils.APIManager import parse_content_id
 
 class RatingWidget(QWidget):
     """
@@ -48,7 +48,7 @@ class RatingWidget(QWidget):
         """
         Load the MixedRatingStrategy from rating_manager, then update the label.
         """
-        rating = MixedRatingStrategy(self.content_id)
+        rating = Rating(self.content_id)
         rating.load_rating(self.rating_manager)
 
         overall = rating.get_overall_rating()
@@ -57,21 +57,26 @@ class RatingWidget(QWidget):
             self.user_rating_label.setText("You haven't rated this content yet.")
             self.remove_rating_button.setVisible(False)
         else:
+            print(self.content_id)
             lines = []
-            lines.append(f"Aggregated Rating: {rating.aggregate_rating} (Calculated from seasons/episodes)")
+            parsed = parse_content_id(self.content_id)
+            # Only show aggregated rating if it's a TV Show or TV season
+            print(parsed.get("content_type"), parsed.get("episode_number"))
+            if parsed.get("content_type") == "tv" and parsed.get("episode_number") is None:
+                lines.append(f"Aggregated Rating: {rating.aggregate_rating} (Calculated from seasons/episodes)")
             lines.append(f"Overall Rating: {rating.one_score} (Single Score)")
-            lines.append(f"Overall Rating: {rating.category_aggregate} (Calculated from categories)")
 
             # Category breakdown
-            any_category = False
-            for cat_key, info in rating.categories.items():
-                name, value, weight = info
-                if value is not None:
-                    any_category = True
-                    lines.append(f"{name}: {value} (Weight {weight}x)")
-
-            if not any_category:
-                lines.append("No category scores have been entered yet.")
+            if rating.categories:
+                lines.append(f"Overall Rating: {rating.category_aggregate} (Calculated from categories)")
+                any_category = False
+                for cat_key, info in rating.categories.items():
+                    name, value, weight = info
+                    if value is not None:
+                        any_category = True
+                        lines.append(f"{name}: {value} (Weight {weight}x)")
+                if not any_category:
+                    lines.append("No category scores have been entered yet.")
 
             self.user_rating_label.setText("\n".join(lines))
             self.remove_rating_button.setVisible(True)
@@ -93,6 +98,6 @@ class RatingWidget(QWidget):
             QMessageBox.Yes | QMessageBox.No
         )
         if confirm == QMessageBox.Yes:
-            rating = MixedRatingStrategy(self.content_id)
+            rating = Rating(self.content_id)
             rating.remove_rating(self.rating_manager)
             self.refresh_content()

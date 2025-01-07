@@ -2,7 +2,7 @@
 
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout
 from PySide6.QtCore import Qt
-from ratings.MixedRatingStrategy import MixedRatingStrategy
+from ratings.Rating import Rating
 
 class MixedRatingDialog(QDialog):
     def __init__(self, parent, rating_manager, content_id, content_type="movie"):
@@ -12,7 +12,7 @@ class MixedRatingDialog(QDialog):
         self.content_id = content_id
 
         # Create a strategy, pass the pre-formatted content_id
-        self.strategy = MixedRatingStrategy(content_id)
+        self.strategy = Rating(content_id)
         self.strategy.load_rating(rating_manager)
 
         main_layout = QVBoxLayout()
