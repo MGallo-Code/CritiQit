@@ -6,3 +6,4 @@ __pycache__
 */.DS_Store
 # Don't include rating data in repo anymore
 data/saved_ratings.npy
+data/*
