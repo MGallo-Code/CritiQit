@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButt
 from PySide6.QtCore import Qt
 from ratings.Rating import Rating
 
-class MixedRatingDialog(QDialog):
+class RatingDialog(QDialog):
     def __init__(self, parent, rating_manager, content_id, content_type="movie"):
         super().__init__(parent)
         self.setWindowTitle(f"Rate {content_type.title()}")

@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton, QMessageBox
 )
 
-from gui.CustomWidgets.MixedRatingDialog import MixedRatingDialog
+from gui.CustomWidgets.RatingDialog import RatingDialog
 from ratings.Rating import Rating
 from utils.APIManager import parse_content_id
 
@@ -82,7 +82,7 @@ class RatingWidget(QWidget):
             self.remove_rating_button.setVisible(True)
 
     def open_rating_dialog(self):
-        dialog = MixedRatingDialog(
+        dialog = RatingDialog(
             parent=self,
             rating_manager=self.rating_manager,
             content_id=self.content_id,
