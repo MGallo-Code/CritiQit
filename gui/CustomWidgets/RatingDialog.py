@@ -27,17 +27,18 @@ class RatingDialog(QDialog):
 
         # Category fields
         main_layout.addWidget(QLabel("<h3>Category Ratings (Optional)</h3>"))
-        self.category_edits = {}
-        self.form_layout = QFormLayout()
-        for cat_key, info in self.strategy.categories.items():
-            label = info[0]
-            edit = QLineEdit()
-            if info[1] is not None:
-                edit.setText(str(info[1]))
-            edit.setPlaceholderText("Leave blank to skip")
-            self.category_edits[cat_key] = edit
-            self.form_layout.addRow(QLabel(label), edit)
-        main_layout.addLayout(self.form_layout)
+        # TODO make category entry nicer, had to temporarily remove
+        # self.category_edits = {}
+        # self.form_layout = QFormLayout()
+        # for cat_key, info in self.strategy.categories.items():
+        #     label = info[0]
+        #     edit = QLineEdit()
+        #     if info[1] is not None:
+        #         edit.setText(str(info[1]))
+        #     edit.setPlaceholderText("Leave blank to skip")
+        #     self.category_edits[cat_key] = edit
+        #     self.form_layout.addRow(QLabel(label), edit)
+        # main_layout.addLayout(self.form_layout)
 
         # Buttons
         save_button = QPushButton("Save")
@@ -62,15 +63,16 @@ class RatingDialog(QDialog):
             self.strategy.one_score = None
 
         # Categories
-        for cat_key, edit in self.category_edits.items():
-            val = edit.text().strip()
-            if val:
-                try:
-                    self.strategy.categories[cat_key][1] = float(val)
-                except ValueError:
-                    pass
-            else:
-                self.strategy.categories[cat_key][1] = None
+        #TODO ALSO TEMPORARILY HAD TO REMOVE
+        # for cat_key, edit in self.category_edits.items():
+        #     val = edit.text().strip()
+        #     if val:
+        #         try:
+        #             self.strategy.categories[cat_key][1] = float(val)
+        #         except ValueError:
+        #             pass
+        #     else:
+        #         self.strategy.categories[cat_key][1] = None
 
         self.strategy.save_rating(self.rating_manager)
         self.accept()
