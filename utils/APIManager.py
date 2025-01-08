@@ -98,10 +98,11 @@ class APIManager:
     def get_content_details(self, content_id):
         """
         A universal method to fetch either a movie or tv/season/episode details
-        by parsing the content_id string.
+        by parsing the content_id string. Assumes being called from media search,
+        where only possible content types are 'movie' or 'tv'.
         """
         parsed = parse_content_id(content_id)
-        content_type = parsed["content_type"]  # "movie" or "tv"
+        content_type = parsed["content_type"] # "movie" or "tv"
         show_id = parsed["show_id"]
         season_num = parsed["season_number"]
         episode_num = parsed["episode_number"]
