@@ -78,6 +78,9 @@ class RatingManager:
         # Deserialize categories
         if data["categories"]:
             data["categories"] = json.loads(data["categories"])
+        # Handle case where categories were empty and will therefore load as None
+        else:
+            data["categories"] = {}
         return data
     
     def get_all_ratings_for_pattern(self, like_pattern):
