@@ -153,7 +153,7 @@ class RatingManager:
         chain_ids = []
         parsed = parse_content_id(content_id)
         # If not tv-based, no parent
-        if parsed["content_type"] != "tv":
+        if parsed["type"] != "tv":
             chain_ids = [content_id]
         else:
             chain_ids = self._get_parent_chain(content_id)
@@ -234,7 +234,7 @@ class RatingManager:
         while current:
             chain.append(current)
             parsed = parse_content_id(current)
-            if parsed["content_type"] != "tv":
+            if parsed["type"] != "tv":
                 print("Not a tv-based content, skipping parent chain.")
                 return
 
@@ -259,7 +259,7 @@ class RatingManager:
         If it's not tv-based, do nothing.
         """
         parsed = parse_content_id(content_id)
-        if parsed["content_type"] != "tv":
+        if parsed["type"] != "tv":
             print("Not a tv-based content, skipping recompute.")
             return
 

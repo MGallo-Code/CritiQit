@@ -1,6 +1,10 @@
 # gui/MainWindow.py
-from PySide6.QtWidgets import QMainWindow, QComboBox, QLineEdit, QHBoxLayout, QVBoxLayout, QWidget, QPushButton, QSizePolicy
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QMainWindow, QComboBox, QLineEdit, QHBoxLayout,
+      QVBoxLayout, QWidget, QPushButton, QSizePolicy, 
+      QMenuBar, QMessageBox
+)
+from PySide6.QtGui import QAction
 from gui.CustomWidgets.NavigationController import NavigationController
 from gui.Pages.HomePage import HomePage
 from gui.Pages.ResultsPage import ResultsPage
@@ -24,6 +28,10 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
+
+        # Add a menu bar
+        self.menu_bar = self.create_menu_bar()
+        self.setMenuBar(self.menu_bar)
 
         # Create the navigation bar
         nav_widget = self.create_navigation_bar()
@@ -55,6 +63,48 @@ class MainWindow(QMainWindow):
         # Initially show home page
         self.base_page = HomePage()
         self.nav_controller.reset(self.base_page)
+
+    def create_menu_bar(self):
+        menu_bar = QMenuBar()
+
+        # File Menu
+        file_menu = menu_bar.addMenu("File")
+
+        # Button to Sync TMDB ratings
+        # Sync TMDB Ratings
+        sync_action = QAction("Sync TMDB Ratings", self)
+        sync_action.triggered.connect(self.sync_tmdb_ratings)
+        file_menu.addAction(sync_action)
+
+        # Exit Action
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
+        return menu_bar
+
+    def sync_tmdb_ratings(self):
+        """
+        Trigger the TMDB ratings sync process.
+        """
+        try:
+            # Call your sync method from APIManager
+            results = self.api_manager.import_all_tmdb_ratings(self.rating_manager)
+
+            # Build a summary message
+            summary = (
+                f"Movies Imported: {results['movies']}\n"
+                f"TV Shows Imported: {results['tv_shows']}\n"
+                f"TV Episodes Imported: {results['tv_episodes']}"
+            )
+            QMessageBox.information(
+                self, "Sync Complete", f"Successfully imported ratings:\n\n{summary}"
+            )
+            self.current_widget.refresh_page()
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Sync Failed", f"An error occurred during sync:\n{str(e)}"
+            )
 
     def create_navigation_bar(self):
         nav_bar = QHBoxLayout()
@@ -126,6 +176,7 @@ class MainWindow(QMainWindow):
         widget.setStyleSheet("border: 0px;")
         self.content_layout.addWidget(widget)
         widget.refresh_page()
+        self.current_widget = widget
 
         # Update navigation buttons
         self.update_navigation_buttons()

@@ -60,7 +60,7 @@ class RatingWidget(QWidget):
             lines = []
             parsed = parse_content_id(self.content_id)
             # Only show aggregated rating if it's a TV Show or TV season
-            if parsed.get("content_type") == "tv" and parsed.get("episode_number") is None:
+            if parsed.get("type") == "tv" and parsed.get("episode_number") is None:
                 lines.append(f"Aggregated Rating: {rating.aggregate_rating} (Calculated from seasons/episodes)")
             if rating.one_score:
                 lines.append(f"Solo Rating: {rating.one_score} (Single Score)")
