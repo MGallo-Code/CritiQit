@@ -221,7 +221,7 @@ class APIManager:
                         "one_score": float(user_rating),
                         "category_aggregate": None,
                         "aggregate_rating": None,
-                        "categories": None
+                        "categories": {}
                     }
                     rating_manager.save_rating_data(data_dict=rating_data)
                     added_records += 1
@@ -252,7 +252,7 @@ class APIManager:
                         "one_score": float(user_rating),
                         "category_aggregate": None,
                         "aggregate_rating": None,
-                        "categories": None
+                        "categories": {}
                     }
                     rating_manager.save_rating_data(data_dict=rating_data)
                     added_records += 1
@@ -284,7 +284,7 @@ class APIManager:
                         "one_score": float(user_rating),
                         "category_aggregate": None,
                         "aggregate_rating": None,
-                        "categories": None
+                        "categories": {}
                     }
                     rating_manager.save_rating_data(data_dict=rating_data)
                     added_records += 1

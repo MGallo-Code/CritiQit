@@ -1,4 +1,22 @@
-# ratings/Rating.py
+# ratings/Rating.py'
+
+PRESET_CATEGORIES = {
+    "Movie": [
+        ["Plot", None, 1],
+        ["Cinematography", None, 1],
+        ["Acting", None, 1],
+    ],
+    "TV Show": [
+        ["Plot", None, 1],
+        ["Characters", None, 1],
+        ["Production Value", None, 1],
+    ],
+    "Episode": [
+        ["Story Continuity", None, 1],
+        ["Performances", None, 1],
+        ["Enjoyment", None, 1],
+    ],
+}
 
 class Rating():
     """
@@ -17,11 +35,7 @@ class Rating():
         self.preferred_strategy = None
         # Single numeric rating
         self.one_score = None
-        self.categories = {
-            "plot_rating": ["Plot Rating", None, 1],
-            "aesthetic_rating": ["Aesthetic Rating", None, 1],
-            "immersion_rating": ["Immersion Rating", None, 1],
-        }
+        self.categories = {}
         # Computed rating from categories
         self.category_aggregate = None
         # Aggregate rating from seasons in a show / episodes in a season, etc.
