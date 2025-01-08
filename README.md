@@ -19,7 +19,36 @@ To simplify this process, we have included a `setup.sh` script. However, there a
 
 ---
 
-## **Supported Environments**
+## Step 1: Set Up TMDB API Key
+
+To access TMDB content, you need to create a .env file in the root of the project directory and include your custom TMDB API key.
+
+### **Steps to Get Your API Key:**
+1. Create a TMDB account at [TMDB Signup](https://www.themoviedb.org/signup?language=en-US) or log in at [TMDB Login](https://www.themoviedb.org/login?language=en-US).
+2. Once logged in, visit the [API Settings Page](https://www.themoviedb.org/settings/api).
+3. Under **API Read Access Token**, copy your API key.
+
+### **Steps to Create .env File:**
+1. In the root of your project directory, create a new file named `.env`.
+2. Add the following line to the file, replacing `your_api_key` with TMDB API key:
+```
+BEARER_TOKEN=your_api_key
+```
+
+### (Optional) Importing Rating Data from IMDB/TMDB:
+
+#### Importing from IMDB to TMDB
+
+If you want to transfer your ratings from IMDb to this application, you must first transfer these ratings to TMDB. Please refer to this guide on the TMDB website to do so:
+[How to Import IMDb Ratings to TMDB](https://www.themoviedb.org/talk/58a4180b92514165c5001533)
+
+#### Importing TMDB Ratings into CritiQit
+
+TODO!! IMPLEMENTATION NOT YET COMPLETE
+
+---
+
+## Step 2: Supported Environments
 
 ### macOS/Linux
 The `setup.sh` script is fully supported on macOS and Linux systems with a standard Bash shell.
