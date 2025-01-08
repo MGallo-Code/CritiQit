@@ -61,7 +61,7 @@ def parse_content_id(content_id):
                 episode_number_str = ep_parts[1]
 
         return {
-            "content_type": "tv",
+            "type": "tv",
             "show_id": show_id_str,
             "season_number": int(season_number_str) if season_number_str else None,
             "episode_number": int(episode_number_str) if episode_number_str else None
@@ -73,7 +73,7 @@ def parse_content_id(content_id):
         if not raw_id:
             raise ValueError(f"Malformed set content_id: {content_id}")
         return {
-            "content_type": "set",
+            "type": "set",
             "set_id": raw_id
         }
 
@@ -90,6 +90,7 @@ class APIManager:
             "accept": "application/json",
             "Authorization": "Bearer " + bearer_token
         }
+        self.account_id = self._get_account_id()
     
     def get_search(self, query, query_type="movie", page=1):
         url = f"{self.base_url}search/{query_type}?query={quote(query)}&include_adult=false&language={self.language}&page={page}"
@@ -102,7 +103,7 @@ class APIManager:
         where only possible content types are 'movie' or 'tv'.
         """
         parsed = parse_content_id(content_id)
-        content_type = parsed["content_type"] # "movie" or "tv"
+        content_type = parsed["type"] # "movie" or "tv"
         show_id = parsed["show_id"]
         season_num = parsed["season_number"]
         episode_num = parsed["episode_number"]
@@ -136,3 +137,159 @@ class APIManager:
                     response = requests.get(url, headers=self.headers)
                     response.raise_for_status()
                     return response.json()
+
+    #========= TMDB Account Information/Rating Retrieval ===========
+
+    def _get_account_id(self):
+        """
+        If using v3 session-based endpoints, we must first get the user's account ID.
+        """
+        url = f"{self.base_url}account"
+        r = requests.get(url, headers=self.headers)
+        r.raise_for_status()
+        return r.json()["id"]
+    
+    def _get_rated_movies(self, page=1):
+        """
+        GET /account/{account_id}/rated/movies?pages=...
+        Returns JSON with rated movies (including user’s rating).
+        """
+        url = f"{self.base_url}account/{self.account_id}/rated/movies"
+        params = {"page": page}
+        r = requests.get(url, headers=self.headers, params=params)
+        r.raise_for_status()
+        return r.json()  # returns "results" array, plus total_pages
+
+    def _get_rated_tv(self, page=1):
+        """
+        GET /account/{account_id}/rated/tv?page=...
+        Returns rated TV shows as a whole (not individual episodes).
+        """
+        url = f"{self.base_url}account/{self.account_id}/rated/tv"
+        params = {"page": page}
+        r = requests.get(url, headers=self.headers, params=params)
+        r.raise_for_status()
+        return r.json()
+    
+    def _get_rated_tv_episodes(self, page=1):
+        """
+        GET /account/{account_id}/rated/tv/episodes?pages=...
+        Returns rated episodes (with show_id, season_number, episode_number).
+        """
+        url = f"{self.base_url}account/{self.account_id}/rated/tv/episodes"
+        params = {"page": page}
+        r = requests.get(url, headers=self.headers, params=params)
+        r.raise_for_status()
+        return r.json()
+
+    def import_all_tmdb_ratings(self, rating_manager):
+        """
+        Main method: fetch your rated Movies, TV, and Episodes from TMDB
+        and import them into your local RatingManager database.
+        """
+        
+        added_movies = self._import_rated_movies(rating_manager)
+        added_tv = self._import_rated_tv(rating_manager)
+        added_episodes = self._import_rated_tv_episodes(rating_manager)
+
+        # Summary of added records
+        return {
+            "movies": added_movies,
+            "tv_shows": added_tv,
+            "tv_episodes": added_episodes
+        }
+    
+    def _import_rated_movies(self, rating_manager):
+        added_records = 0
+        page = 1
+        while True:
+            data = self._get_rated_movies(page=page)
+            results = data.get("results", [])
+            total_pages = data.get("total_pages", 1)
+
+            for item in results:
+                # item["id"] => TMDB movie ID
+                # item["rating"] => user’s rating (1..10 or 0 if not rated)
+                movie_id = item["id"]
+                user_rating = item["rating"]
+                if user_rating > 0:
+                    content_id = f"movie:{movie_id}"
+                    # Build a data_dict for rating_manager
+                    rating_data = {
+                        "content_id": content_id,
+                        "preferred_strategy": "one_score",
+                        "one_score": float(user_rating),
+                        "category_aggregate": None,
+                        "aggregate_rating": None,
+                        "categories": None
+                    }
+                    rating_manager.save_rating_data(data_dict=rating_data)
+                    added_records += 1
+
+            if page >= total_pages:
+                break
+            page += 1
+        return added_records
+    
+    def _import_rated_tv(self, rating_manager):
+        added_records = 0
+        page = 1
+        while True:
+            data = self._get_rated_tv(page=page)
+            results = data.get("results", [])
+            total_pages = data.get("total_pages", 1)
+
+            for item in results:
+                # item["id"] => TMDB show ID
+                # item["rating"] => user’s rating
+                show_id = item["id"]
+                user_rating = item["rating"]
+                if user_rating > 0:
+                    content_id = f"tv:{show_id}"
+                    rating_data = {
+                        "content_id": content_id,
+                        "preferred_strategy": "one_score",
+                        "one_score": float(user_rating),
+                        "category_aggregate": None,
+                        "aggregate_rating": None,
+                        "categories": None
+                    }
+                    rating_manager.save_rating_data(data_dict=rating_data)
+                    added_records += 1
+
+            if page >= total_pages:
+                break
+            page += 1
+        return added_records
+
+    def _import_rated_tv_episodes(self, rating_manager):
+        added_records = 0
+        page = 1
+        while True:
+            data = self._get_rated_tv_episodes(page=page)
+            results = data.get("results", [])
+            total_pages = data.get("total_pages", 1)
+
+            for item in results:
+                # item has "show_id", "season_number", "episode_number", "rating"
+                show_id = item["show_id"]
+                season_num = item["season_number"]
+                episode_num = item["episode_number"]
+                user_rating = item["rating"]
+                if user_rating > 0:
+                    content_id = f"tv:{show_id}-S{season_num}-E{episode_num}"
+                    rating_data = {
+                        "content_id": content_id,
+                        "preferred_strategy": "one_score",
+                        "one_score": float(user_rating),
+                        "category_aggregate": None,
+                        "aggregate_rating": None,
+                        "categories": None
+                    }
+                    rating_manager.save_rating_data(data_dict=rating_data)
+                    added_records += 1
+
+            if page >= total_pages:
+                break
+            page += 1
+        return added_records
