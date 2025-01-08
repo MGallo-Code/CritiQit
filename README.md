@@ -44,7 +44,7 @@ If you want to transfer your ratings from IMDb to this application, you must fir
 
 #### Importing TMDB Ratings into CritiQit
 
-TODO!! IMPLEMENTATION NOT YET COMPLETE
+When running the application, go to the toolbar menu and choose: **File - Sync TMDB Ratings**.
 
 ---
 
