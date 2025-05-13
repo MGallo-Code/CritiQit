@@ -373,7 +373,7 @@ class RatingManager:
             chain.append(current)
             parsed = parse_content_id(current)
             if parsed["type"] != "tv":
-                print("Not a tv-based content, skipping parent chain.")
+                # print("Not a tv-based content, skipping parent chain.")
                 return
 
             # If it's an episode, parent is the season
@@ -398,7 +398,7 @@ class RatingManager:
         """
         parsed = parse_content_id(content_id)
         if parsed["type"] != "tv":
-            print("Not a tv-based content, skipping recompute.")
+            # print("Not a tv-based content, skipping recompute.")
             return
 
         # If it's a season, gather all episodes
@@ -443,14 +443,125 @@ class RatingManager:
         # Compute the aggregate value
         agg_val = round(sum(ratings)/len(ratings), 3) if ratings else None
 
-        # Update the parent's aggregator
-        cur.execute("""
-            INSERT INTO ratings (content_id, aggregate_rating)
-            VALUES (?, ?)
-            ON CONFLICT(content_id) DO UPDATE SET
-                aggregate_rating=excluded.aggregate_rating
-        """, (parent_id, agg_val))
+        # Check if the parent record already exists
+        cur.execute("SELECT content_id, title FROM ratings WHERE content_id = ?", (parent_id,))
+        parent_row = cur.fetchone()
+        
+        if parent_row is None:
+            # Parent doesn't exist - create a new entry with proper fields
+            # First, try to get a proper title from the API
+            title = self._generate_title_from_content_id(parent_id)
+            
+            # Insert a complete new record
+            cur.execute("""
+                INSERT INTO ratings (
+                    content_id, 
+                    preferred_strategy, 
+                    one_score, 
+                    category_aggregate, 
+                    aggregate_rating,
+                    categories,
+                    title
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                parent_id, 
+                "aggregate_rating",  # Default to aggregate as preferred strategy
+                None,                # No direct score
+                None,                # No category aggregate
+                agg_val,             # The calculated aggregate value
+                None,                # No categories
+                title                # The generated title
+            ))
+        else:
+            # Parent exists - just update the aggregate_rating
+            cur.execute("""
+                UPDATE ratings
+                SET aggregate_rating = ?,
+                    preferred_strategy = COALESCE(preferred_strategy, 'aggregate_rating')
+                WHERE content_id = ?
+            """, (agg_val, parent_id))
+            
+            # If it doesn't have a title, try to set one
+            if not parent_row["title"]:
+                title = self._generate_title_from_content_id(parent_id)
+                if title:
+                    cur.execute("""
+                        UPDATE ratings
+                        SET title = ?
+                        WHERE content_id = ?
+                    """, (title, parent_id))
+        
         self.conn.commit()
+        
+    def _generate_title_from_content_id(self, content_id):
+        """
+        Generate a meaningful title from a content_id when one isn't available.
+        This is used when automatically creating parent ratings.
+        """
+        try:
+            # Import here to avoid circular import problems
+            from utils.APIManager import parse_content_id
+            
+            parsed = parse_content_id(content_id)
+            
+            # Default title as a fallback
+            default_title = content_id.replace("tv:", "").replace("movie:", "")
+            
+            if parsed["type"] == "tv":
+                show_id = parsed["show_id"]
+                season_num = parsed["season_number"]
+                
+                # It's a TV show
+                if season_num is None:
+                    # Just the show - try to find an episode or child that's already rated
+                    # and check if it has show info in its title
+                    cur = self.conn.cursor()
+                    cur.execute("""
+                        SELECT title FROM ratings 
+                        WHERE content_id LIKE ? 
+                        AND title IS NOT NULL LIMIT 1
+                    """, (f"tv:{show_id}-%",))
+                    child_row = cur.fetchone()
+                    
+                    if child_row and child_row["title"]:
+                        # Try to extract show name from child title
+                        # E.g. "Doctor Who S1E1: An Unearthly Child" -> "Doctor Who"
+                        title = child_row["title"]
+                        if "S" in title and "E" in title and ":" in title:
+                            show_name = title.split("S")[0].strip()
+                            return show_name
+                    
+                    # If no child with title found, just use a generic title
+                    return f"TV Show {show_id}"
+                    
+                # It's a season
+                elif season_num is not None and parsed["episode_number"] is None:
+                    # First check if any episodes in this season have titles
+                    cur = self.conn.cursor()
+                    cur.execute("""
+                        SELECT title FROM ratings 
+                        WHERE content_id LIKE ? 
+                        AND title IS NOT NULL LIMIT 1
+                    """, (f"tv:{show_id}-S{season_num}-E%",))
+                    episode_row = cur.fetchone()
+                    
+                    if episode_row and episode_row["title"]:
+                        # Try to extract show name from episode title
+                        title = episode_row["title"]
+                        if "S" in title and "E" in title and ":" in title:
+                            show_name = title.split("S")[0].strip()
+                            return f"{show_name}Season {season_num}"
+                    
+                    # If no episode with title found, use a generic title
+                    return f"Season {season_num}"
+            
+            # If we couldn't generate a title, return the default
+            return default_title
+            
+        except Exception as e:
+            print(f"Error generating title: {e}")
+            return None
     
     def _update_sets_for_item(self, content_id):
         """
