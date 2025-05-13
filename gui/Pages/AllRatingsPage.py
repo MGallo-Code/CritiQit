@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from gui.Pages.BasePage import BasePage
 from gui.CustomWidgets.RatingDialog import RatingDialog
-from utils.APIManager import parse_content_id
+from utils.content_helpers import parse_content_id
 import logging
 
 class AllRatingsPage(BasePage):

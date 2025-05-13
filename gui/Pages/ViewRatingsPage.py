@@ -9,7 +9,7 @@ from gui.Pages.BasePage import BasePage
 from gui.CustomWidgets.RatingDialog import RatingDialog
 from gui.CustomWidgets.RatingsCarousel import RatingsCarousel
 from gui.Pages.AllRatingsPage import AllRatingsPage
-from utils.APIManager import parse_content_id
+from utils.content_helpers import parse_content_id
 import logging
 import time
 

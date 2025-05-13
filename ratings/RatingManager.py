@@ -5,7 +5,7 @@ import sqlite3
 import json
 import os
 
-from utils.APIManager import parse_content_id
+from utils.content_helpers import parse_content_id
 
 class RatingManager:
     """
@@ -559,7 +559,7 @@ class RatingManager:
         """
         try:
             # Import here to avoid circular import problems
-            from utils.APIManager import parse_content_id
+            from utils.content_helpers import parse_content_id
             
             parsed = parse_content_id(content_id)
             
