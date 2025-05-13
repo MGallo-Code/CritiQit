@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 # Load env variables from .env
 load_dotenv()
-TMDB_BEARER_TOKEN = os.getenv("BEARER_TOKEN")
+TMDB_BEARER_TOKEN = os.getenv("TMDB_BEARER_TOKEN")
 TMDB_BASE_URL = "https://api.themoviedb.org/3/"
 
 class TMDBApi(BaseAPI):

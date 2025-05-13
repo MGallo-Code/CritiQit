@@ -1,28 +1,6 @@
 import re
 
-def clean_title(title):
-    """
-    Remove parenthesized numbers like (1), (2), etc. from titles
-    
-    Args:
-        title: The original title string
-        
-    Returns:
-        Cleaned title string with parenthesized numbers removed
-    """
-    if not title:
-        return title
-    
-    # Remove (1), (2), etc. from the end of the title
-    cleaned_title = re.sub(r'\s*\(\d+\)\s*$', '', title)
-    
-    # Also check for mid-title parenthesized numbers
-    cleaned_title = re.sub(r'\s*\(\d+\)\s*', ' ', cleaned_title)
-    
-    # Trim any extra whitespace
-    cleaned_title = cleaned_title.strip()
-    
-    return cleaned_title
+# clean_title function has been moved to utils.tmdb.helpers
 
 def parse_content_id(content_id):
     """
