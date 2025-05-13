@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QAction
 from gui.CustomWidgets.NavigationController import NavigationController
-from gui.Pages.HomePage import HomePage
+from gui.Pages.ViewRatingsPage import ViewRatingsPage
 from gui.Pages.ResultsPage import ResultsPage
 from ratings.RatingManager import RatingManager
 from utils.APIManager import APIManager
@@ -63,7 +63,7 @@ class MainWindow(QMainWindow):
         self.nav_controller.current_widget_changed.connect(self.set_current_widget)
 
         # Initially show home page
-        self.base_page = HomePage(self.nav_controller, self.api_manager, self.rating_manager)
+        self.base_page = ViewRatingsPage(self.nav_controller, self.api_manager, self.rating_manager)
         self.nav_controller.reset(self.base_page)
 
     def create_menu_bar(self):
