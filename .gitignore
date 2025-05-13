@@ -7,3 +7,6 @@ __pycache__
 # Don't include rating data in repo anymore
 data/saved_ratings.npy
 data/*
+# Log files
+logs/
+*.log
