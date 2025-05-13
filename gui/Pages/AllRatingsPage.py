@@ -79,37 +79,8 @@ class AllRatingsPage(BasePage):
                 parsed = parse_content_id(content_id)
                 
                 # Get content details from API manager
-                title = content_id  # Default if content details not available
-                content_details = self.api_manager.get_content_details(content_id)
-                
-                if content_details:
-                    if parsed["type"] == "movie":
-                        title = content_details.get("title", content_id)
-                    elif parsed["type"] == "tv":
-                        if parsed["episode_number"] is not None:
-                            # Episode
-                            show_details = self.api_manager.get_tv_details(parsed["show_id"])
-                            if show_details and content_details:
-                                # Use the API manager's formatter for consistent titles
-                                title = self.api_manager.format_episode_title(show_details, content_details)
-                            else:
-                                # Fallback if we couldn't get both details
-                                season_num = parsed["season_number"]
-                                episode_num = parsed["episode_number"]
-                                title = f"Episode S{season_num}E{episode_num}"
-                        elif parsed["season_number"] is not None:
-                            # Season
-                            show_details = self.api_manager.get_tv_details(parsed["show_id"])
-                            if show_details and content_details:
-                                # Use the API manager's formatter for consistent titles
-                                title = self.api_manager.format_season_title(show_details, content_details)
-                            else:
-                                # Fallback if we couldn't get both details
-                                season_num = parsed["season_number"]
-                                title = f"Season {season_num}"
-                        else:
-                            # Show
-                            title = content_details.get("name", content_id)
+                # Use stored title if available, or content_id as default
+                title = rating_data.get("title") or content_id
                 
                 self.ratings_table.insertRow(row_idx)
                 

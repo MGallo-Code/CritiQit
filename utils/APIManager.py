@@ -4,10 +4,35 @@ from dotenv import load_dotenv
 import os
 import requests
 from urllib.parse import quote
+import re
 
 # Load env variables from .env
 load_dotenv()
 bearer_token = os.getenv("BEARER_TOKEN")
+
+def clean_title(title):
+    """
+    Remove parenthesized numbers like (1), (2), etc. from titles
+    
+    Args:
+        title: The original title string
+        
+    Returns:
+        Cleaned title string with parenthesized numbers removed
+    """
+    if not title:
+        return title
+    
+    # Remove (1), (2), etc. from the end of the title
+    cleaned_title = re.sub(r'\s*\(\d+\)\s*$', '', title)
+    
+    # Also check for mid-title parenthesized numbers
+    cleaned_title = re.sub(r'\s*\(\d+\)\s*', ' ', cleaned_title)
+    
+    # Trim any extra whitespace
+    cleaned_title = cleaned_title.strip()
+    
+    return cleaned_title
 
 def parse_content_id(content_id):
     """
@@ -195,8 +220,8 @@ class APIManager:
         Returns:
             Formatted title string
         """
-        show_name = show_details.get('name', 'Unknown Show')
-        episode_name = episode_details.get('name', '')
+        show_name = clean_title(show_details.get('name', 'Unknown Show'))
+        episode_name = clean_title(episode_details.get('name', ''))
         season_num = episode_details.get('season_number', '?')
         episode_num = episode_details.get('episode_number', '?')
         
@@ -216,9 +241,9 @@ class APIManager:
         Returns:
             Formatted title string
         """
-        show_name = show_details.get('name', 'Unknown Show')
+        show_name = clean_title(show_details.get('name', 'Unknown Show'))
         season_num = season_details.get('season_number', '?')
-        season_name = season_details.get('name', '')
+        season_name = clean_title(season_details.get('name', ''))
         
         if season_name and season_name != f"Season {season_num}":
             return f"{show_name}: Season {season_num} - {season_name}"
@@ -278,13 +303,94 @@ class APIManager:
         added_movies = self._import_rated_movies(rating_manager)
         added_tv = self._import_rated_tv(rating_manager)
         added_episodes = self._import_rated_tv_episodes(rating_manager)
+        
+        # Also add seasons for shows where we have rated episodes
+        added_seasons = self._generate_season_ratings(rating_manager)
 
         # Summary of added records
         return {
             "movies": added_movies,
             "tv_shows": added_tv,
-            "tv_episodes": added_episodes
+            "tv_episodes": added_episodes,
+            "tv_seasons": added_seasons
         }
+        
+    def _generate_season_ratings(self, rating_manager):
+        """
+        Generate ratings for seasons based on episode ratings.
+        This ensures we have proper season entries with proper titles.
+        """
+        # Keep track of seasons we've processed
+        processed_seasons = set()
+        added_count = 0
+        
+        try:
+            # Get all episode ratings
+            all_ratings = rating_manager.get_all_ratings("tv")
+            
+            # Find all episodes
+            for rating in all_ratings:
+                content_id = rating.get("content_id", "")
+                
+                # Skip if not an episode
+                if "-E" not in content_id:
+                    continue
+                    
+                # Parse the content_id to get show_id and season_num
+                parsed = parse_content_id(content_id)
+                if not parsed or not parsed.get("show_id") or not parsed.get("season_number"):
+                    continue
+                
+                # Construct season content_id
+                show_id = parsed["show_id"]
+                season_num = parsed["season_number"]
+                season_id = f"tv:{show_id}-S{season_num}"
+                
+                # Skip if we've already processed this season
+                if season_id in processed_seasons:
+                    continue
+                
+                processed_seasons.add(season_id)
+                
+                # Get show details
+                show_details = self.get_tv_details(show_id)
+                if not show_details:
+                    continue
+                
+                # Get season details
+                season_details = self.get_season_details(show_id, season_num)
+                
+                # Format title
+                show_name = clean_title(show_details.get("name", "Unknown Show"))
+                
+                # Create a descriptive title for the season
+                if season_details and season_details.get("name"):
+                    season_name = clean_title(season_details.get("name"))
+                    # If season name is just "Season X", don't duplicate
+                    if season_name and not season_name.lower().startswith(f"season {season_num}"):
+                        title = f"{show_name}: {season_name}"
+                    else:
+                        title = f"{show_name}: Season {season_num}"
+                else:
+                    title = f"{show_name}: Season {season_num}"
+                
+                # Create a new season rating entry
+                rating_data = {
+                    "content_id": season_id,
+                    "preferred_strategy": "aggregate_rating",  # Use aggregate from episodes
+                    "one_score": None,
+                    "category_aggregate": None,
+                    "aggregate_rating": None,  # This will be calculated by RatingManager
+                    "categories": {},
+                    "title": title
+                }
+                rating_manager.save_rating_data(rating_data)
+                added_count += 1
+                
+            return added_count
+        except Exception as e:
+            print(f"Error generating season ratings: {e}")
+            return 0
     
     def _import_rated_movies(self, rating_manager):
         added_records = 0
@@ -301,6 +407,10 @@ class APIManager:
                 user_rating = item["rating"]
                 if user_rating > 0:
                     content_id = f"movie:{movie_id}"
+                    
+                    # Get and clean the title
+                    title = clean_title(item.get("title", ""))
+                    
                     # Build a data_dict for rating_manager
                     rating_data = {
                         "content_id": content_id,
@@ -308,7 +418,8 @@ class APIManager:
                         "one_score": float(user_rating),
                         "category_aggregate": None,
                         "aggregate_rating": None,
-                        "categories": {}
+                        "categories": {},
+                        "title": title
                     }
                     rating_manager.save_rating_data(data_dict=rating_data)
                     added_records += 1
@@ -333,13 +444,18 @@ class APIManager:
                 user_rating = item["rating"]
                 if user_rating > 0:
                     content_id = f"tv:{show_id}"
+                    
+                    # Get and clean the title
+                    title = clean_title(item.get("name", ""))
+                    
                     rating_data = {
                         "content_id": content_id,
                         "preferred_strategy": "one_score",
                         "one_score": float(user_rating),
                         "category_aggregate": None,
                         "aggregate_rating": None,
-                        "categories": {}
+                        "categories": {},
+                        "title": title
                     }
                     rating_manager.save_rating_data(data_dict=rating_data)
                     added_records += 1
@@ -365,13 +481,35 @@ class APIManager:
                 user_rating = item["rating"]
                 if user_rating > 0:
                     content_id = f"tv:{show_id}-S{season_num}-E{episode_num}"
+                    
+                    # Get and clean the episode title
+                    episode_title = clean_title(item.get("name", ""))
+                    
+                    # Try to get show name
+                    show_name = ""
+                    try:
+                        show_details = self.get_tv_details(show_id)
+                        if show_details:
+                            show_name = clean_title(show_details.get("name", ""))
+                    except:
+                        pass
+                    
+                    # Format a nice title
+                    if show_name and episode_title:
+                        title = f"{show_name} S{season_num}E{episode_num}: {episode_title}"
+                    elif show_name:
+                        title = f"{show_name} S{season_num}E{episode_num}"
+                    else:
+                        title = f"Episode S{season_num}E{episode_num}"
+                    
                     rating_data = {
                         "content_id": content_id,
                         "preferred_strategy": "one_score",
                         "one_score": float(user_rating),
                         "category_aggregate": None,
                         "aggregate_rating": None,
-                        "categories": {}
+                        "categories": {},
+                        "title": title
                     }
                     rating_manager.save_rating_data(data_dict=rating_data)
                     added_records += 1

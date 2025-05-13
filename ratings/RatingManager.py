@@ -36,7 +36,8 @@ class RatingManager:
                 one_score REAL,
                 category_aggregate REAL,
                 aggregate_rating REAL,
-                categories TEXT
+                categories TEXT,
+                title TEXT
             );
         """)
         # Create 'set' table
@@ -249,21 +250,23 @@ class RatingManager:
         # Insert or update the row
         cur = self.conn.cursor()
         cur.execute("""
-            INSERT INTO ratings (content_id, preferred_strategy, one_score, category_aggregate, aggregate_rating, categories)
-            VALUES (:content_id, :preferred_strategy, :one_score, :category_aggregate, :aggregate_rating, :categories)
+            INSERT INTO ratings (content_id, preferred_strategy, one_score, category_aggregate, aggregate_rating, categories, title)
+            VALUES (:content_id, :preferred_strategy, :one_score, :category_aggregate, :aggregate_rating, :categories, :title)
             ON CONFLICT(content_id) DO UPDATE SET
                 preferred_strategy=excluded.preferred_strategy,
                 one_score=excluded.one_score,
                 category_aggregate=excluded.category_aggregate,
                 aggregate_rating=excluded.aggregate_rating,
-                categories=excluded.categories
+                categories=excluded.categories,
+                title=excluded.title
         """, {
             "content_id": data_dict.get("content_id"),
             "preferred_strategy": data_dict.get("preferred_strategy"),
             "one_score": data_dict.get("one_score"),
             "category_aggregate": data_dict.get("category_aggregate"),
             "aggregate_rating": data_dict.get("aggregate_rating"),
-            "categories": categories_text
+            "categories": categories_text,
+            "title": data_dict.get("title")
         })
         self.conn.commit()
 

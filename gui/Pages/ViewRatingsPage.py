@@ -101,7 +101,10 @@ class ViewRatingsPage(BasePage):
                     if poster_path:
                         image_url = self.api_manager.get_image_url(poster_path, size="w185")
                     
-                    self.movies_carousel.add_item(content_id, title, rating_value, image_url)
+                    # Use stored title if available
+                    display_title = rating_data.get("title") or title
+                    
+                    self.movies_carousel.add_item(content_id, display_title, rating_value, image_url)
             
             # Load TV ratings
             tv_ratings = self.rating_manager.get_all_ratings("tv")
@@ -145,7 +148,10 @@ class ViewRatingsPage(BasePage):
                     if poster_path:
                         image_url = self.api_manager.get_image_url(poster_path, size="w185")
                     
-                    self.tv_carousel.add_item(content_id, title, rating_value, image_url)
+                    # Use stored title if available
+                    display_title = rating_data.get("title") or title
+                    
+                    self.tv_carousel.add_item(content_id, display_title, rating_value, image_url)
         except Exception as e:
             logging.error(f"Error refreshing ratings: {e}")
     

@@ -10,7 +10,9 @@ from gui.Pages.HomePage import HomePage
 from gui.Pages.ResultsPage import ResultsPage
 from ratings.RatingManager import RatingManager
 from utils.APIManager import APIManager
+from utils.APIManager import parse_content_id
 from gui.utils.load_stylesheet import load_stylesheet
+from PySide6.QtWidgets import QApplication
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -95,7 +97,8 @@ class MainWindow(QMainWindow):
             summary = (
                 f"Movies Imported: {results['movies']}\n"
                 f"TV Shows Imported: {results['tv_shows']}\n"
-                f"TV Episodes Imported: {results['tv_episodes']}"
+                f"TV Episodes Imported: {results['tv_episodes']}\n"
+                f"TV Seasons Added/Updated: {results.get('tv_seasons', 0)}"
             )
             QMessageBox.information(
                 self, "Sync Complete", f"Successfully imported ratings:\n\n{summary}"
