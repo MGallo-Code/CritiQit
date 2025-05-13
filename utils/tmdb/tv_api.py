@@ -1,18 +1,19 @@
 # utils/tmdb/tv_api.py
 
 import logging
-from urllib.parse import quote # For get_search_tv_shows
-from .tmdb_api import TMDBApi
+from urllib.parse import quote
 from .helpers import clean_title
 
 logger = logging.getLogger(__name__)
 
-class TvAPI(TMDBApi):
+class TvAPI:
     """
     Handles TMDB API interactions specific to TV shows, seasons, and episodes.
     """
-    def __init__(self, language="en-US"):
-        super().__init__(language=language)
+    def __init__(self, tmdb_api_client):
+        if not tmdb_api_client:
+            raise ValueError("A TMDB API client instance is required for TvAPI.")
+        self.client = tmdb_api_client
 
     def get_search_tv_shows(self, query, page=1):
         """
@@ -20,23 +21,23 @@ class TvAPI(TMDBApi):
         """
         endpoint = "search/tv"
         params = {"query": quote(query), "include_adult": "false", "page": page}
-        response = self._request("GET", endpoint, params=params)
+        response = self.client.get(endpoint, params=params)
         return response.get('results', []) if response else []
 
     def get_tv_details(self, show_id):
         """Get details for a TV show"""
         endpoint = f"tv/{show_id}"
-        return self._request("GET", endpoint)
+        return self.client.get(endpoint)
             
     def get_season_details(self, show_id, season_num):
         """Get details for a specific season of a TV show"""
         endpoint = f"tv/{show_id}/season/{season_num}"
-        return self._request("GET", endpoint)
+        return self.client.get(endpoint)
             
     def get_episode_details(self, show_id, season_num, episode_num):
         """Get details for a specific episode of a TV show"""
         endpoint = f"tv/{show_id}/season/{season_num}/episode/{episode_num}"
-        return self._request("GET", endpoint)
+        return self.client.get(endpoint)
             
     def format_episode_title(self, show_details, episode_details):
         """

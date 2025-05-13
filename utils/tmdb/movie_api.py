@@ -1,17 +1,18 @@
 # utils/tmdb/movie_api.py
 
 import logging
-from urllib.parse import quote # For get_search
-from .tmdb_api import TMDBApi # Inherit from the base TMDB API class
+from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
 
-class MovieAPI(TMDBApi):
+class MovieAPI:
     """
     Handles TMDB API interactions specific to movies.
     """
-    def __init__(self, language="en-US"):
-        super().__init__(language=language)
+    def __init__(self, tmdb_api_client):
+        if not tmdb_api_client:
+            raise ValueError("A TMDB API client instance is required for MovieAPI.")
+        self.client = tmdb_api_client
 
     def get_search_movies(self, query, page=1):
         """
@@ -26,7 +27,7 @@ class MovieAPI(TMDBApi):
         """
         endpoint = "search/movie"
         params = {"query": quote(query), "include_adult": "false", "page": page}
-        response = self._request("GET", endpoint, params=params)
+        response = self.client.get(endpoint, params=params)
         return response.get('results', []) if response else []
 
     def get_movie_details(self, movie_id):
@@ -40,5 +41,4 @@ class MovieAPI(TMDBApi):
             dict or None: Movie details as a dictionary, or None on error.
         """
         endpoint = f"movie/{movie_id}"
-        # Language parameter is handled by the overridden _request in TMDBApi
-        return self._request("GET", endpoint) 
+        return self.client.get(endpoint) 
