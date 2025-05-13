@@ -374,6 +374,21 @@ class APIManager:
                 else:
                     title = f"{show_name}: Season {season_num}"
                 
+                # Get poster and backdrop URLs
+                poster_url = None
+                backdrop_url = None
+                
+                # Try to get season-specific poster
+                if season_details and season_details.get("poster_path"):
+                    poster_url = self.get_image_url(season_details.get("poster_path"))
+                # Fallback to show poster
+                elif show_details and show_details.get("poster_path"):
+                    poster_url = self.get_image_url(show_details.get("poster_path"))
+                
+                # Usually use show backdrop (seasons don't typically have their own)
+                if show_details and show_details.get("backdrop_path"):
+                    backdrop_url = self.get_image_url(show_details.get("backdrop_path"))
+                
                 # Create a new season rating entry
                 rating_data = {
                     "content_id": season_id,
@@ -382,7 +397,9 @@ class APIManager:
                     "category_aggregate": None,
                     "aggregate_rating": None,  # This will be calculated by RatingManager
                     "categories": {},
-                    "title": title
+                    "title": title,
+                    "poster_url": poster_url,
+                    "backdrop_url": backdrop_url
                 }
                 rating_manager.save_rating_data(rating_data)
                 added_count += 1
@@ -411,6 +428,12 @@ class APIManager:
                     # Get and clean the title
                     title = clean_title(item.get("title", ""))
                     
+                    # Get poster and backdrop URLs
+                    poster_path = item.get("poster_path")
+                    backdrop_path = item.get("backdrop_path")
+                    poster_url = self.get_image_url(poster_path) if poster_path else None
+                    backdrop_url = self.get_image_url(backdrop_path) if backdrop_path else None
+                    
                     # Build a data_dict for rating_manager
                     rating_data = {
                         "content_id": content_id,
@@ -419,7 +442,9 @@ class APIManager:
                         "category_aggregate": None,
                         "aggregate_rating": None,
                         "categories": {},
-                        "title": title
+                        "title": title,
+                        "poster_url": poster_url,
+                        "backdrop_url": backdrop_url
                     }
                     rating_manager.save_rating_data(data_dict=rating_data)
                     added_records += 1
@@ -448,6 +473,12 @@ class APIManager:
                     # Get and clean the title
                     title = clean_title(item.get("name", ""))
                     
+                    # Get poster and backdrop URLs
+                    poster_path = item.get("poster_path")
+                    backdrop_path = item.get("backdrop_path")
+                    poster_url = self.get_image_url(poster_path) if poster_path else None
+                    backdrop_url = self.get_image_url(backdrop_path) if backdrop_path else None
+                    
                     rating_data = {
                         "content_id": content_id,
                         "preferred_strategy": "one_score",
@@ -455,7 +486,9 @@ class APIManager:
                         "category_aggregate": None,
                         "aggregate_rating": None,
                         "categories": {},
-                        "title": title
+                        "title": title,
+                        "poster_url": poster_url,
+                        "backdrop_url": backdrop_url
                     }
                     rating_manager.save_rating_data(data_dict=rating_data)
                     added_records += 1
@@ -485,12 +518,32 @@ class APIManager:
                     # Get and clean the episode title
                     episode_title = clean_title(item.get("name", ""))
                     
-                    # Try to get show name
+                    # Try to get show name and image URLs
                     show_name = ""
+                    poster_url = None
+                    backdrop_url = None
+                    
                     try:
+                        # Get the episode details for better images
+                        episode_details = self.get_episode_details(show_id, season_num, episode_num)
+                        if episode_details:
+                            # Episode-specific still image
+                            still_path = episode_details.get("still_path")
+                            if still_path:
+                                backdrop_url = self.get_image_url(still_path)
+                        
+                        # Get show details for the poster and show name
                         show_details = self.get_tv_details(show_id)
                         if show_details:
                             show_name = clean_title(show_details.get("name", ""))
+                            poster_path = show_details.get("poster_path")
+                            if poster_path:
+                                poster_url = self.get_image_url(poster_path)
+                            # Use show backdrop as fallback if episode has no still
+                            if not backdrop_url:
+                                backdrop_path = show_details.get("backdrop_path")
+                                if backdrop_path:
+                                    backdrop_url = self.get_image_url(backdrop_path)
                     except:
                         pass
                     
@@ -509,7 +562,9 @@ class APIManager:
                         "category_aggregate": None,
                         "aggregate_rating": None,
                         "categories": {},
-                        "title": title
+                        "title": title,
+                        "poster_url": poster_url,
+                        "backdrop_url": backdrop_url
                     }
                     rating_manager.save_rating_data(data_dict=rating_data)
                     added_records += 1

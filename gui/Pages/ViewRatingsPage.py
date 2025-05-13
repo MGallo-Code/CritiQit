@@ -11,6 +11,7 @@ from gui.CustomWidgets.RatingsCarousel import RatingsCarousel
 from gui.Pages.AllRatingsPage import AllRatingsPage
 from utils.APIManager import parse_content_id
 import logging
+import time
 
 class ViewRatingsPage(BasePage):
     """
@@ -73,6 +74,9 @@ class ViewRatingsPage(BasePage):
     def refresh_page(self):
         """Load and display ratings in the carousels"""
         try:
+            # Start timing
+            start_time = time.time()
+            
             # Clear carousels
             self.movies_carousel.clear()
             self.tv_carousel.clear()
@@ -89,22 +93,27 @@ class ViewRatingsPage(BasePage):
                 parsed = parse_content_id(content_id)
                 rating_value = rating_data["effective_rating"]
                 
-                # Get movie details from API
-                movie_details = self.api_manager.get_content_details(content_id)
-                if movie_details:
-                    # Format the title properly
-                    title = movie_details.get("title", "Unknown")
+                # Use cached image URLs if available
+                image_url = rating_data.get("poster_url")
+                display_title = rating_data.get("title", "Unknown")
+                
+                # Only fetch from API if we don't have image or title cached
+                if not image_url or not display_title:
+                    # Get movie details from API
+                    movie_details = self.api_manager.get_content_details(content_id)
                     
-                    # Get poster path for image
-                    poster_path = movie_details.get("poster_path")
-                    image_url = None
-                    if poster_path:
-                        image_url = self.api_manager.get_image_url(poster_path, size="w185")
-                    
-                    # Use stored title if available
-                    display_title = rating_data.get("title") or title
-                    
-                    self.movies_carousel.add_item(content_id, display_title, rating_value, image_url)
+                    if movie_details:
+                        # Format the title properly
+                        if not display_title:
+                            display_title = movie_details.get("title", "Unknown")
+                        
+                        # Get poster path for image if not already cached
+                        if not image_url:
+                            poster_path = movie_details.get("poster_path")
+                            if poster_path:
+                                image_url = self.api_manager.get_image_url(poster_path, size="w185")
+                
+                self.movies_carousel.add_item(content_id, display_title, rating_value, image_url)
             
             # Load TV ratings
             tv_ratings = self.rating_manager.get_all_ratings("tv")
@@ -126,32 +135,42 @@ class ViewRatingsPage(BasePage):
                 parsed = parse_content_id(content_id)
                 rating_value = rating_data["effective_rating"]
                 
-                # Get show details from API
-                show_details = self.api_manager.get_content_details(content_id)
-                if show_details:
-                    # Format the title properly
-                    show_name = show_details.get("name", "Unknown")
+                # Use cached image URLs if available
+                image_url = rating_data.get("poster_url")
+                display_title = rating_data.get("title", "Unknown")
+                
+                # Only fetch from API if we don't have image or title cached
+                if not image_url or not display_title:
+                    # Get show details from API
+                    show_details = self.api_manager.get_content_details(content_id)
                     
-                    # For top-level TV shows, we can add the year if available
-                    if "first_air_date" in show_details and show_details["first_air_date"]:
-                        try:
-                            year = show_details["first_air_date"][:4]
-                            title = f"{show_name} ({year})"
-                        except:
-                            title = show_name
-                    else:
-                        title = show_name
-                    
-                    # Get poster path for image
-                    poster_path = show_details.get("poster_path")
-                    image_url = None
-                    if poster_path:
-                        image_url = self.api_manager.get_image_url(poster_path, size="w185")
-                    
-                    # Use stored title if available
-                    display_title = rating_data.get("title") or title
-                    
-                    self.tv_carousel.add_item(content_id, display_title, rating_value, image_url)
+                    if show_details:
+                        # Format the title properly if needed
+                        if not display_title:
+                            show_name = show_details.get("name", "Unknown")
+                            
+                            # For top-level TV shows, we can add the year if available
+                            if "first_air_date" in show_details and show_details["first_air_date"]:
+                                try:
+                                    year = show_details["first_air_date"][:4]
+                                    display_title = f"{show_name} ({year})"
+                                except:
+                                    display_title = show_name
+                            else:
+                                display_title = show_name
+                        
+                        # Get poster path for image if not already cached
+                        if not image_url:
+                            poster_path = show_details.get("poster_path")
+                            if poster_path:
+                                image_url = self.api_manager.get_image_url(poster_path, size="w185")
+                
+                self.tv_carousel.add_item(content_id, display_title, rating_value, image_url)
+                
+            # Log total time
+            total_time = time.time() - start_time
+            logging.info(f"Ratings loaded in {total_time:.2f}s")
+            
         except Exception as e:
             logging.error(f"Error refreshing ratings: {e}")
     

@@ -2,6 +2,7 @@
 import logging
 import sys
 import os
+from logging.handlers import RotatingFileHandler
 
 # Create logs directory if it doesn't exist
 if not os.path.exists("logs"):
@@ -12,10 +13,21 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("logs/critiqit.log"),
+        # Use RotatingFileHandler instead of FileHandler
+        # This will create a new log file when the current one reaches 1MB
+        # and keep a maximum of 3 backup files
+        RotatingFileHandler(
+            "logs/critiqit.log", 
+            maxBytes=1024*1024,  # 1MB
+            backupCount=3,
+            encoding='utf-8'
+        ),
         logging.StreamHandler(sys.stdout)
     ]
 )
+
+# Log application startup
+logging.info("CritiQit starting")
 
 # Import application modules
 from PySide6.QtWidgets import QApplication

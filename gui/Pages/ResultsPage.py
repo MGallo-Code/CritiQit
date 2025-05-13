@@ -3,13 +3,12 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QScrollArea, QPushButton
 )
 from PySide6.QtGui import QPixmap, QIcon
-from PySide6.QtCore import QSize, QThread
-import requests
+from PySide6.QtCore import QSize
 
 from gui.Pages.BasePage import BasePage
 from gui.Pages.MovieDetailsPage import MovieDetailsPage
 from gui.Pages.ShowDetailsPage import ShowDetailsPage
-from gui.utils.AsyncImageWorker import AsyncImageWorker
+from gui.CustomWidgets.AsyncImageLoader import AsyncImageLoader
 
 class ResultsPage(BasePage):
     def __init__(self, navigation_controller, api_manager, rating_manager, results, is_movie):
@@ -76,44 +75,36 @@ class ResultsPage(BasePage):
 
     def load_poster_async(self, poster_path):
         """
-        Create a QThread + AsyncImageWorker to fetch a poster in the background.
+        Load a poster using AsyncImageLoader
         """
         base_url = "https://image.tmdb.org/t/p/w154"
         url = f"{base_url}{poster_path}"
 
-        # Worker in new thread
-        thread = QThread(self)
-        worker = AsyncImageWorker(url, poster_path)
-        worker.moveToThread(thread)
+        # Use AsyncImageLoader
+        loader = AsyncImageLoader.get_instance()
+        
+        # Icon size
+        target_size = (60, 90)
+        
+        # Load the image
+        loader.load_image(
+            url=url,
+            size=target_size,
+            on_finished=lambda url, pixmap, _: self._on_poster_loaded(pixmap, poster_path),
+            on_error=lambda url, error: self._on_poster_error(error, poster_path),
+            on_cache_hit=lambda url, pixmap, _, __: self._on_poster_loaded(pixmap, poster_path)
+        )
 
-        worker.finished.connect(self.on_async_poster_finished)
-        worker.error.connect(self.on_async_poster_error)
-        thread.started.connect(worker.run)
-        # When the worker finishes or errors, we quit and delete the thread
-        worker.finished.connect(lambda *_: thread.quit())
-        worker.finished.connect(lambda *_: worker.deleteLater())
-        worker.error.connect(lambda *_: thread.quit())
-        worker.error.connect(lambda *_: worker.deleteLater())
-
-        thread.finished.connect(thread.deleteLater)
-
-        thread.start()
-
-    def on_async_poster_finished(self, pixmap, poster_path):
-        """
-        Called when the worker has successfully fetched an image. 
-        Set it as an icon on the associated button.
-        """
+    def _on_poster_loaded(self, pixmap, poster_path):
+        """Set poster as icon on the associated button"""
         btn = self.poster_buttons.get(poster_path)
         if btn:
             btn.setIcon(QIcon(pixmap))
             btn.setIconSize(QSize(60, 90))
 
-    def on_async_poster_error(self, err_msg, poster_path):
-        """
-        Handle any error from the worker. Optionally show a placeholder or log it.
-        """
-        print(f"Async image error for {poster_path}: {err_msg}")
+    def _on_poster_error(self, error_msg, poster_path):
+        """Handle poster loading error"""
+        print(f"Poster error for {poster_path}: {error_msg}")
 
     def show_movie_details(self, movie):
         page = MovieDetailsPage(self.nav, self.api_manager, self.rating_manager, movie)

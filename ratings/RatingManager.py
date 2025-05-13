@@ -37,7 +37,9 @@ class RatingManager:
                 category_aggregate REAL,
                 aggregate_rating REAL,
                 categories TEXT,
-                title TEXT
+                title TEXT,
+                poster_url TEXT,
+                backdrop_url TEXT
             );
         """)
         # Create 'set' table
@@ -250,15 +252,37 @@ class RatingManager:
         # Insert or update the row
         cur = self.conn.cursor()
         cur.execute("""
-            INSERT INTO ratings (content_id, preferred_strategy, one_score, category_aggregate, aggregate_rating, categories, title)
-            VALUES (:content_id, :preferred_strategy, :one_score, :category_aggregate, :aggregate_rating, :categories, :title)
+            INSERT INTO ratings (
+                content_id, 
+                preferred_strategy, 
+                one_score, 
+                category_aggregate, 
+                aggregate_rating, 
+                categories, 
+                title,
+                poster_url,
+                backdrop_url
+            )
+            VALUES (
+                :content_id, 
+                :preferred_strategy, 
+                :one_score, 
+                :category_aggregate, 
+                :aggregate_rating, 
+                :categories, 
+                :title,
+                :poster_url,
+                :backdrop_url
+            )
             ON CONFLICT(content_id) DO UPDATE SET
                 preferred_strategy=excluded.preferred_strategy,
                 one_score=excluded.one_score,
                 category_aggregate=excluded.category_aggregate,
                 aggregate_rating=excluded.aggregate_rating,
                 categories=excluded.categories,
-                title=excluded.title
+                title=excluded.title,
+                poster_url=COALESCE(excluded.poster_url, poster_url),
+                backdrop_url=COALESCE(excluded.backdrop_url, backdrop_url)
         """, {
             "content_id": data_dict.get("content_id"),
             "preferred_strategy": data_dict.get("preferred_strategy"),
@@ -266,7 +290,9 @@ class RatingManager:
             "category_aggregate": data_dict.get("category_aggregate"),
             "aggregate_rating": data_dict.get("aggregate_rating"),
             "categories": categories_text,
-            "title": data_dict.get("title")
+            "title": data_dict.get("title"),
+            "poster_url": data_dict.get("poster_url"),
+            "backdrop_url": data_dict.get("backdrop_url")
         })
         self.conn.commit()
 
@@ -423,13 +449,17 @@ class RatingManager:
         # e.g. like_pattern = "tv:12345-S2-E%"
         cur = self.conn.cursor()
         cur.execute("""
-            SELECT preferred_strategy, one_score, category_aggregate, aggregate_rating
+            SELECT preferred_strategy, one_score, category_aggregate, aggregate_rating, poster_url, backdrop_url
             FROM ratings
             WHERE content_id LIKE ?
         """, (like_pattern,))
         rows = cur.fetchall()
 
         ratings = []
+        # Try to get image URLs from one of the children if available
+        sample_poster_url = None
+        sample_backdrop_url = None
+        
         for row in rows:
             # Pick the preferred numeric rating value for each child
             val = self._pick_preferred_value(row["preferred_strategy"],
@@ -440,11 +470,17 @@ class RatingManager:
             if val is not None:
                 ratings.append(val)
             
+            # Get the first non-empty image URLs we find
+            if not sample_poster_url and row["poster_url"]:
+                sample_poster_url = row["poster_url"]
+            if not sample_backdrop_url and row["backdrop_url"]:
+                sample_backdrop_url = row["backdrop_url"]
+            
         # Compute the aggregate value
         agg_val = round(sum(ratings)/len(ratings), 3) if ratings else None
 
         # Check if the parent record already exists
-        cur.execute("SELECT content_id, title FROM ratings WHERE content_id = ?", (parent_id,))
+        cur.execute("SELECT content_id, title, poster_url, backdrop_url FROM ratings WHERE content_id = ?", (parent_id,))
         parent_row = cur.fetchone()
         
         if parent_row is None:
@@ -461,9 +497,11 @@ class RatingManager:
                     category_aggregate, 
                     aggregate_rating,
                     categories,
-                    title
+                    title,
+                    poster_url,
+                    backdrop_url
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 parent_id, 
                 "aggregate_rating",  # Default to aggregate as preferred strategy
@@ -471,16 +509,36 @@ class RatingManager:
                 None,                # No category aggregate
                 agg_val,             # The calculated aggregate value
                 None,                # No categories
-                title                # The generated title
+                title,               # The generated title
+                sample_poster_url,   # Poster URL from a child if available
+                sample_backdrop_url  # Backdrop URL from a child if available
             ))
         else:
-            # Parent exists - just update the aggregate_rating
-            cur.execute("""
+            # Parent exists - update the aggregate_rating and image URLs if needed
+            update_fields = ["aggregate_rating = ?", 
+                            "preferred_strategy = COALESCE(preferred_strategy, 'aggregate_rating')"]
+            params = [agg_val]
+            
+            # Only update poster URL if parent doesn't already have one
+            if not parent_row["poster_url"] and sample_poster_url:
+                update_fields.append("poster_url = ?")
+                params.append(sample_poster_url)
+                
+            # Only update backdrop URL if parent doesn't already have one
+            if not parent_row["backdrop_url"] and sample_backdrop_url:
+                update_fields.append("backdrop_url = ?")
+                params.append(sample_backdrop_url)
+                
+            # Add the content_id as the final parameter
+            params.append(parent_id)
+            
+            # Build and execute the query
+            update_query = f"""
                 UPDATE ratings
-                SET aggregate_rating = ?,
-                    preferred_strategy = COALESCE(preferred_strategy, 'aggregate_rating')
+                SET {', '.join(update_fields)}
                 WHERE content_id = ?
-            """, (agg_val, parent_id))
+            """
+            cur.execute(update_query, params)
             
             # If it doesn't have a title, try to set one
             if not parent_row["title"]:

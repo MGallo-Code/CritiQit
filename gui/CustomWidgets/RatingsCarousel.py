@@ -6,8 +6,9 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap
 import os
 import logging
-import requests
-from io import BytesIO
+import time
+
+from gui.CustomWidgets.AsyncImageLoader import AsyncImageLoader
 
 class RatingItemWidget(QWidget):
     """
@@ -46,7 +47,15 @@ class RatingItemWidget(QWidget):
         self.image_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.image_label.setStyleSheet("background-color: #222;")
         
-        self._load_image(image_url)
+        # Set a "Loading..." placeholder text
+        self.image_label.setText("Loading...")
+        
+        # Start asynchronous image loading
+        if image_url:
+            self._load_image_async(image_url)
+        else:
+            self.image_label.setText("No Image")
+            
         layout.addWidget(self.image_label)
         
         # Title with elided text if too long
@@ -73,33 +82,40 @@ class RatingItemWidget(QWidget):
             }
         """)
     
-    def _load_image(self, image_url):
+    def _load_image_async(self, image_url):
         """
-        Load an image from a URL into the image label.
+        Load an image asynchronously using the AsyncImageLoader
         
         Args:
             image_url: URL to the image to load
         """
-        if image_url:
-            # If we have a URL, load it with requests
-            try:
-                response = requests.get(image_url)
-                image_data = BytesIO(response.content)
-                pixmap = QPixmap()
-                pixmap.loadFromData(image_data.getvalue())
-                
-                self.image_label.setPixmap(pixmap.scaled(
-                    170,  # Fixed width for image
-                    200,  # Fixed height for image
-                    Qt.KeepAspectRatio, 
-                    Qt.SmoothTransformation
-                ))
-            except Exception as e:
-                logging.error(f"Error loading image from URL {image_url}: {e}")
-                self.image_label.setText("No Image")
-        else:
-            # No image available
-            self.image_label.setText("No Image")
+        # Get the singleton instance
+        loader = AsyncImageLoader.get_instance()
+        
+        # Define target size (width, height)
+        target_size = (170, 200)
+        
+        # Load the image
+        loader.load_image(
+            url=image_url,
+            size=target_size,
+            on_finished=self._on_image_loaded,
+            on_error=self._on_image_error,
+            on_cache_hit=self._on_image_loaded  # Use same handler as finished for consistency
+        )
+    
+    def _on_image_loaded(self, url, pixmap, load_time):
+        """Callback when image is loaded"""
+        self.image_label.setPixmap(pixmap)
+    
+    def _on_image_error(self, url, error_message):
+        """Callback when image loading fails"""
+        self.image_label.setText("Error")
+        logging.error(f"Image error: {url} - {error_message}")
+    
+    def _on_cache_hit(self, url, pixmap, cache_type, load_time):
+        """Callback when image is loaded from cache"""
+        self.image_label.setPixmap(pixmap)
     
     def mousePressEvent(self, event):
         """Handle mouse press events to emit the clicked signal"""
