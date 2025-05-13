@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout,
-    QHBoxLayout, QComboBox, QFrame
+    QHBoxLayout, QComboBox, QFrame, QInputDialog, QMessageBox
 )
 from PySide6.QtCore import Qt
 from ratings.Rating import PRESET_CATEGORIES, Rating
@@ -33,12 +33,26 @@ class RatingDialog(QDialog):
         # Preset loader
         preset_layout = QHBoxLayout()
         self.preset_combo = QComboBox()
-        self.preset_combo.addItems(["Select Preset..."] + list(PRESET_CATEGORIES.keys()))
         preset_layout.addWidget(self.preset_combo)
+        
+        # Add the default option and built-in presets
+        preset_names = ["Select Preset..."] + list(PRESET_CATEGORIES.keys())
+        
+        # Add database presets
+        db_presets = self.rating_manager.list_category_presets()
+        preset_names.extend(db_presets)
 
-        load_preset_btn = QPushButton("Load Preset")
-        load_preset_btn.clicked.connect(self.load_preset_categories)
-        preset_layout.addWidget(load_preset_btn)
+        self.preset_combo.addItems(preset_names)
+        # Connect the signal to load categories when preset is selected
+        self.preset_combo.currentIndexChanged.connect(self.load_preset_categories)
+
+        save_preset_btn = QPushButton("Save Preset")
+        save_preset_btn.clicked.connect(self.save_as_preset)
+        preset_layout.addWidget(save_preset_btn)
+        
+        remove_preset_btn = QPushButton("Remove Preset")
+        remove_preset_btn.clicked.connect(self.remove_preset)
+        preset_layout.addWidget(remove_preset_btn)
 
         add_cat_btn = QPushButton("Add Category")
         add_cat_btn.clicked.connect(self.add_category_row)
@@ -51,7 +65,7 @@ class RatingDialog(QDialog):
         main_layout.addLayout(self.form_layout)
 
         # Build existing categories from the strategy (if any)
-        self.category_rows = [] # store references to each row’s widgets
+        self.category_rows = [] # store references to each row's widgets
         for cat_key, (label, val, weight) in self.strategy.categories.items():
             self.add_category_row(label, val, weight)
 
@@ -65,6 +79,62 @@ class RatingDialog(QDialog):
         main_layout.addWidget(cancel_button)
 
         self.setLayout(main_layout)
+
+    def save_as_preset(self):
+        from PySide6.QtWidgets import QInputDialog, QMessageBox
+
+        preset_name, ok = QInputDialog.getText(self, "Save Preset", "Enter a name for this preset:")
+        if not ok or not preset_name.strip():
+            return  # user canceled or empty
+        
+        # Remove "DB:" prefix if present
+        if preset_name.startswith("DB:"):
+            preset_name = preset_name[3:]
+
+        categories_data = []
+        category_labels = set()
+        has_duplicates = False
+        
+        for (row_widget, label_edit, val_edit, weight_edit, remove_btn) in self.category_rows:
+            cat_label = label_edit.text().strip() or "Untitled"
+            
+            # Check for duplicate category names
+            if cat_label in category_labels:
+                has_duplicates = True
+                label_edit.setStyleSheet("background-color: #ffcccc;")  # Highlight duplicates
+            else:
+                category_labels.add(cat_label)
+                label_edit.setStyleSheet("")
+            
+            cat_weight_str = weight_edit.text().strip()
+            try:
+                cat_weight = float(cat_weight_str) if cat_weight_str else 1.0
+            except ValueError:
+                cat_weight = 1.0
+            categories_data.append((cat_label, cat_weight))
+        
+        # Don't proceed if duplicates found
+        if has_duplicates:
+            QMessageBox.warning(self, "Duplicate Categories", 
+                               "Please ensure all category names are unique before saving.")
+            return
+
+        preset_name = self.rating_manager.save_category_preset(preset_name, categories_data)
+
+        # Add it to the combo if not already present
+        combo_texts = [self.preset_combo.itemText(i) for i in range(self.preset_combo.count())]
+        if preset_name not in combo_texts:
+            self.preset_combo.addItem(preset_name)
+            # Select the newly added preset
+            self.preset_combo.setCurrentText(preset_name)
+
+        QMessageBox.information(self, "Preset Saved", f"Category preset '{preset_name}' has been saved.")
+    
+    def _clear_category_rows(self):
+        for (w, _, _, _, _) in self.category_rows:
+            self.form_layout.removeWidget(w)
+            w.deleteLater()
+        self.category_rows.clear()
 
     def add_category_row(self, label=None, val=None, weight=None):
         """
@@ -108,7 +178,8 @@ class RatingDialog(QDialog):
         # Store references
         self.category_rows.append((row_widget, label_edit, val_edit, weight_edit, remove_btn))
 
-        remove_btn.clicked.connect(lambda: self.remove_category_row(row_widget))
+        # Fix the lambda closure issue by creating a proper closure with default parameter
+        remove_btn.clicked.connect(lambda checked=False, w=row_widget: self.remove_category_row(w))
 
     def remove_category_row(self, row_widget):
         """
@@ -124,29 +195,34 @@ class RatingDialog(QDialog):
             # remove from self.category_rows
             self.category_rows.pop(row_index)
 
-            # remove the row from the layout
-            row_layout_index = self.form_layout.indexOf(row_widget)
-            if row_layout_index != -1:
-                self.form_layout.removeRow(row_layout_index)
+            # remove the row from the layout - this will delete the widget automatically
+            self.form_layout.removeRow(row_widget)
 
     def load_preset_categories(self):
-        """
-        Load categories from a preset (selected in self.preset_combo).
-        Clears existing category rows, then populates from the chosen preset.
-        """
         preset_key = self.preset_combo.currentText()
-        if preset_key not in PRESET_CATEGORIES:
+        if preset_key == "Select Preset...":
             return
 
-        # Clear existing category rows
-        for (w, _, _, _, _) in self.category_rows:
-            self.form_layout.removeWidget(w)
-            w.deleteLater()
-        self.category_rows.clear()
+        # Check if it's a built-in preset
+        if preset_key in PRESET_CATEGORIES:
+            self._clear_category_rows()
+            for (cat_label, cat_val, cat_weight) in PRESET_CATEGORIES[preset_key]:
+                self.add_category_row(cat_label, cat_val, cat_weight)
+        else:
+            # It's a database preset
+            preset_data = self.rating_manager.get_category_preset_by_name(preset_key)
+            if not preset_data:
+                return
+                
+            # Clear existing categories
+            self._clear_category_rows()
 
-        # Load from preset
-        for (cat_label, cat_val, cat_weight) in PRESET_CATEGORIES[preset_key]:
-            self.add_category_row(cat_label, cat_val, cat_weight)
+            # preset_data["categories"] -> list of { "label": x, "weight": y, ...}
+            for cat in preset_data["categories"]:
+                cat_label = cat["label"]
+                cat_weight = cat["weight"]
+                # No numeric rating default => None
+                self.add_category_row(cat_label, None, cat_weight)
 
     def on_save(self):
         # Single rating
@@ -183,3 +259,41 @@ class RatingDialog(QDialog):
 
         self.strategy.save_rating(self.rating_manager)
         self.accept()
+
+    def remove_preset(self):
+        """
+        Remove the currently selected preset from the database.
+        """
+        preset_name = self.preset_combo.currentText()
+        
+        # Check if it's a valid preset to remove
+        if preset_name == "Select Preset...":
+            return
+            
+        # Confirm removal
+        confirm = QMessageBox.question(
+            self, 
+            "Confirm Removal",
+            f"Are you sure you want to remove the preset '{preset_name}'?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if confirm != QMessageBox.Yes:
+            return
+            
+        # Remove from database
+        self.rating_manager.delete_category_preset(preset_name)
+        
+        # Remove from combo box
+        current_index = self.preset_combo.currentIndex()
+        self.preset_combo.removeItem(current_index)
+        
+        # Clear the category rows in the UI
+        self._clear_category_rows()
+        
+        # Select first item ("Select Preset...")
+        self.preset_combo.setCurrentIndex(0)
+        
+        QMessageBox.information(self, "Preset Removed", 
+                               f"The preset '{preset_name}' has been removed.")

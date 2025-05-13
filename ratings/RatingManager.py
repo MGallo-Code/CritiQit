@@ -1,6 +1,6 @@
 # ratings/RatingManager.py
 
-import numpy as np
+import datetime
 import sqlite3
 import json
 import os
@@ -15,7 +15,7 @@ class RatingManager:
     def __init__(self, db_path="./data/ratings.db"):
         # Connect to database
         self.db_path = db_path
-        init_needed = not os.path.exists(db_path)
+        init_needed = True #not os.path.exists(db_path)
         self.conn = sqlite3.connect(db_path)
         # Allow foreign keys
         self.conn.execute("PRAGMA foreign_keys = ON;")
@@ -60,10 +60,142 @@ class RatingManager:
                 FOREIGN KEY (content_id) REFERENCES ratings(content_id) ON DELETE CASCADE
             );
         """)
+        # Create 'category_presets' table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS category_presets (
+                preset_name TEXT PRIMARY KEY,
+                date_created TEXT NOT NULL,
+                date_modified TEXT NOT NULL
+            );
+        """)
+        # Create 'category_preset_items' table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS category_preset_items (
+                preset_name INTEGER NOT NULL,
+                cat_label TEXT NOT NULL,
+                cat_weight REAL NOT NULL DEFAULT 1,
+                cat_order INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (preset_name, cat_label),
+                FOREIGN KEY(preset_name) REFERENCES category_presets(preset_name) ON DELETE CASCADE
+            );
+        """)
         self.conn.commit()
     
     def close(self):
         self.conn.close()
+    
+    def save_category_preset(self, preset_name, categories):
+        """
+        Create or update the preset with 'preset_name' 
+        so that it has exactly the categories provided in 'categories'.
+        categories: list of (cat_label, cat_weight)
+        
+        Return the preset_name of the inserted/updated row.
+        """
+        now_str = datetime.datetime.now().isoformat()
+        cur = self.conn.cursor()
+
+        # Check if preset already exists
+        cur.execute("""
+            SELECT preset_name FROM category_presets WHERE preset_name = ?
+        """, (preset_name,))
+        row = cur.fetchone()
+
+        if row is None:
+            # This is a new preset -> insert
+            cur.execute("""
+                INSERT INTO category_presets (preset_name, date_created, date_modified)
+                VALUES (?, ?, ?)
+            """, (preset_name, now_str, now_str))
+        else:
+            # Existing preset -> update
+            # Update date_modified
+            cur.execute("""
+                UPDATE category_presets
+                SET date_modified=?
+                WHERE preset_name=?
+            """, (now_str, preset_name))
+            # Remove old items
+            cur.execute("""
+                DELETE FROM category_preset_items
+                WHERE preset_name=?
+            """, (preset_name,))
+
+        # (In either case) Insert the new items
+        for index, (cat_label, cat_weight) in enumerate(categories):
+            cur.execute("""
+                INSERT INTO category_preset_items (preset_name, cat_label, cat_weight, cat_order)
+                VALUES (?, ?, ?, ?)
+            """, (preset_name, cat_label, cat_weight, index))
+
+        self.conn.commit()
+        return preset_name
+    
+    def get_category_preset_by_name(self, preset_name):
+        """
+        Return a dict like:
+          {
+            "preset_name": ...,
+            "categories": [
+               { "label": cat_label, "weight": 1.0, "order": cat_order },
+               ...
+            ]
+          }
+        or None if not found.
+        """
+        cur = self.conn.cursor()
+        # Find the preset_name
+        cur.execute("""
+            SELECT preset_name, date_created, date_modified
+            FROM category_presets
+            WHERE preset_name = ?
+        """, (preset_name,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        
+        # Load the items
+        cur.execute("""
+            SELECT cat_label, cat_weight, cat_order
+            FROM category_preset_items
+            WHERE preset_name = ?
+            ORDER BY cat_order
+        """, (preset_name,))
+        items_rows = cur.fetchall()
+
+        categories = []
+        for r in items_rows:
+            categories.append({
+                "label": r["cat_label"],
+                "weight": r["cat_weight"],
+                "order": r["cat_order"],
+            })
+
+        return {
+            "preset_name": preset_name,
+            "categories": categories
+        }
+    
+    def list_category_presets(self):
+        """
+        Return a list of preset_name for all known presets.
+        """
+        cur = self.conn.cursor()
+        cur.execute("""
+            SELECT preset_name
+            FROM category_presets
+            ORDER BY preset_name
+        """)
+        rows = cur.fetchall()
+        return [(r["preset_name"]) for r in rows]
+    
+    def delete_category_preset(self, preset_name):
+        """
+        Remove a preset by ID, also cascades to category_preset_items.
+        """
+        cur = self.conn.cursor()
+        cur.execute("DELETE FROM category_presets WHERE preset_name = ?", (preset_name,))
+        self.conn.commit()
 
     def get_rating_data(self, content_id):
         # Select the row with the given content_id
