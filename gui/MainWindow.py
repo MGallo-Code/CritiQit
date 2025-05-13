@@ -61,7 +61,7 @@ class MainWindow(QMainWindow):
         self.nav_controller.current_widget_changed.connect(self.set_current_widget)
 
         # Initially show home page
-        self.base_page = HomePage()
+        self.base_page = HomePage(self.nav_controller, self.api_manager, self.rating_manager)
         self.nav_controller.reset(self.base_page)
 
     def create_menu_bar(self):
@@ -137,7 +137,7 @@ class MainWindow(QMainWindow):
 
         # Ratings Button
         ratings_button = QPushButton("View Ratings")
-        # Hook up as needed
+        ratings_button.clicked.connect(self.view_ratings)
         nav_bar.addWidget(ratings_button)
 
         # Wrap QHBoxLayout in a QWidget
@@ -185,3 +185,11 @@ class MainWindow(QMainWindow):
         """Enable or disable Back/Forward buttons based on navigation state."""
         self.back_button.setEnabled(self.nav_controller.can_go_back())
         self.forward_button.setEnabled(self.nav_controller.can_go_forward())
+
+    def view_ratings(self):
+        """
+        Create and navigate to the ViewRatingsPage.
+        """
+        from gui.Pages.ViewRatingsPage import ViewRatingsPage
+        ratings_page = ViewRatingsPage(self.nav_controller, self.api_manager, self.rating_manager)
+        self.nav_controller.push(ratings_page)

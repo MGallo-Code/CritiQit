@@ -90,7 +90,27 @@ class APIManager:
             "accept": "application/json",
             "Authorization": "Bearer " + bearer_token
         }
+        # Base URL for images would be something like "https://image.tmdb.org/t/p/"
+        self.image_base_url = "https://image.tmdb.org/t/p/"
         self.account_id = self._get_account_id()
+    
+    def get_image_url(self, path, size="original"):
+        """
+        Convert a poster_path or backdrop_path to a full URL
+        
+        Args:
+            path: The poster_path or backdrop_path from TMDB API
+            size: The size of the image (e.g. "w185", "w500", "original")
+                  Common sizes: "w92", "w154", "w185", "w342", "w500", "w780", "original"
+        """
+        if not path:
+            return None
+            
+        # Ensure path starts with a slash
+        if not path.startswith('/'):
+            path = '/' + path
+            
+        return f"{self.image_base_url}{size}{path}"
     
     def get_search(self, query, query_type="movie", page=1):
         url = f"{self.base_url}search/{query_type}?query={quote(query)}&include_adult=false&language={self.language}&page={page}"
@@ -109,34 +129,60 @@ class APIManager:
         episode_num = parsed["episode_number"]
 
         if content_type == "movie":
-            # /movie/{show_id}
-            url = f"{self.base_url}movie/{show_id}?language={self.language}"
-            response = requests.get(url, headers=self.headers)
-            response.raise_for_status()
-            return response.json()
-
+            return self.get_movie_details(show_id)
         else:
             # It's tv-based. Check if we have season or episode:
             if season_num is None:
-                # Just the show details => /tv/{show_id}
-                url = f"{self.base_url}tv/{show_id}?language={self.language}"
-                response = requests.get(url, headers=self.headers)
-                response.raise_for_status()
-                return response.json()
+                # Just the show details
+                return self.get_tv_details(show_id)
             else:
                 # We have at least season
                 if episode_num is None:
-                    # /tv/{show_id}/season/{season_num}
-                    url = f"{self.base_url}tv/{show_id}/season/{season_num}?language={self.language}"
-                    response = requests.get(url, headers=self.headers)
-                    response.raise_for_status()
-                    return response.json()
+                    # Season details
+                    return self.get_season_details(show_id, season_num)
                 else:
-                    # We have both season + episode => /tv/{show_id}/season/{season_num}/episode/{episode_num}
-                    url = f"{self.base_url}tv/{show_id}/season/{season_num}/episode/{episode_num}?language={self.language}"
-                    response = requests.get(url, headers=self.headers)
-                    response.raise_for_status()
-                    return response.json()
+                    # Episode details
+                    return self.get_episode_details(show_id, season_num, episode_num)
+    
+    def get_movie_details(self, movie_id):
+        """Get details for a specific movie"""
+        url = f"{self.base_url}movie/{movie_id}?language={self.language}"
+        try:
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            return response.json()
+        except:
+            return None
+            
+    def get_tv_details(self, show_id):
+        """Get details for a TV show"""
+        url = f"{self.base_url}tv/{show_id}?language={self.language}"
+        try:
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            return response.json()
+        except:
+            return None
+            
+    def get_season_details(self, show_id, season_num):
+        """Get details for a specific season of a TV show"""
+        url = f"{self.base_url}tv/{show_id}/season/{season_num}?language={self.language}"
+        try:
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            return response.json()
+        except:
+            return None
+            
+    def get_episode_details(self, show_id, season_num, episode_num):
+        """Get details for a specific episode of a TV show"""
+        url = f"{self.base_url}tv/{show_id}/season/{season_num}/episode/{episode_num}?language={self.language}"
+        try:
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            return response.json()
+        except:
+            return None
 
     #========= TMDB Account Information/Rating Retrieval ===========
 
@@ -152,7 +198,7 @@ class APIManager:
     def _get_rated_movies(self, page=1):
         """
         GET /account/{account_id}/rated/movies?pages=...
-        Returns JSON with rated movies (including user’s rating).
+        Returns JSON with rated movies (including user's rating).
         """
         url = f"{self.base_url}account/{self.account_id}/rated/movies"
         params = {"page": page}
@@ -209,7 +255,7 @@ class APIManager:
 
             for item in results:
                 # item["id"] => TMDB movie ID
-                # item["rating"] => user’s rating (1..10 or 0 if not rated)
+                # item["rating"] => user's rating (1..10 or 0 if not rated)
                 movie_id = item["id"]
                 user_rating = item["rating"]
                 if user_rating > 0:
@@ -241,7 +287,7 @@ class APIManager:
 
             for item in results:
                 # item["id"] => TMDB show ID
-                # item["rating"] => user’s rating
+                # item["rating"] => user's rating
                 show_id = item["id"]
                 user_rating = item["rating"]
                 if user_rating > 0:

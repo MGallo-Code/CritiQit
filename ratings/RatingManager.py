@@ -460,3 +460,46 @@ class RatingManager:
         rows = cur.fetchall()
         for row in rows:
             self.recompute_set_aggregate(row["set_id"])
+            
+    def get_all_ratings(self, content_type=None):
+        """
+        Get all ratings, optionally filtered by content_type ('movie' or 'tv').
+        Returns list of dicts with rating data.
+        """
+        cur = self.conn.cursor()
+        
+        query = """
+            SELECT * FROM ratings
+            WHERE content_id NOT LIKE 'set:%'
+        """
+        params = []
+        
+        if content_type:
+            query += " AND content_id LIKE ?"
+            params.append(f"{content_type}:%")
+            
+        query += " ORDER BY content_id"
+        
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        
+        results = []
+        for row in rows:
+            data = dict(row)
+            # Deserialize categories
+            if data["categories"]:
+                data["categories"] = json.loads(data["categories"])
+            else:
+                data["categories"] = {}
+                
+            # Calculate the effective rating based on preferred strategy
+            data["effective_rating"] = self._pick_preferred_value(
+                data["preferred_strategy"],
+                data["one_score"],
+                data["category_aggregate"],
+                data["aggregate_rating"]
+            )
+            
+            results.append(data)
+            
+        return results
