@@ -5,11 +5,28 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap
 import os
+import logging
+import requests
+from io import BytesIO
 
 class RatingItemWidget(QWidget):
+    """
+    Widget representing a single content item in the ratings carousel.
+    Displays an image, title, and rating value.
+    """
     clicked = Signal(str)  # Signal emitting content_id when clicked
     
     def __init__(self, content_id, title, rating, image_url=None, parent=None):
+        """
+        Initialize a rating item widget.
+        
+        Args:
+            content_id: The unique identifier for the content
+            title: The title to display
+            rating: The numeric rating value
+            image_url: URL to the image to display (optional)
+            parent: Parent widget (optional)
+        """
         super().__init__(parent)
         self.content_id = content_id
         self.setFixedWidth(180)
@@ -29,30 +46,7 @@ class RatingItemWidget(QWidget):
         self.image_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.image_label.setStyleSheet("background-color: #222;")
         
-        if image_url:
-            # If we have a URL, load it with requests
-            try:
-                import requests
-                from io import BytesIO
-                
-                response = requests.get(image_url)
-                image_data = BytesIO(response.content)
-                pixmap = QPixmap()
-                pixmap.loadFromData(image_data.getvalue())
-                
-                self.image_label.setPixmap(pixmap.scaled(
-                    170,  # Fixed width for image
-                    200,  # Fixed height for image
-                    Qt.KeepAspectRatio, 
-                    Qt.SmoothTransformation
-                ))
-            except Exception as e:
-                print(f"Error loading image from URL: {e}")
-                self.image_label.setText("No Image")
-        else:
-            # No image available
-            self.image_label.setText("No Image")
-        
+        self._load_image(image_url)
         layout.addWidget(self.image_label)
         
         # Title with elided text if too long
@@ -79,16 +73,57 @@ class RatingItemWidget(QWidget):
             }
         """)
     
+    def _load_image(self, image_url):
+        """
+        Load an image from a URL into the image label.
+        
+        Args:
+            image_url: URL to the image to load
+        """
+        if image_url:
+            # If we have a URL, load it with requests
+            try:
+                response = requests.get(image_url)
+                image_data = BytesIO(response.content)
+                pixmap = QPixmap()
+                pixmap.loadFromData(image_data.getvalue())
+                
+                self.image_label.setPixmap(pixmap.scaled(
+                    170,  # Fixed width for image
+                    200,  # Fixed height for image
+                    Qt.KeepAspectRatio, 
+                    Qt.SmoothTransformation
+                ))
+            except Exception as e:
+                logging.error(f"Error loading image from URL {image_url}: {e}")
+                self.image_label.setText("No Image")
+        else:
+            # No image available
+            self.image_label.setText("No Image")
+    
     def mousePressEvent(self, event):
+        """Handle mouse press events to emit the clicked signal"""
         self.clicked.emit(self.content_id)
         super().mousePressEvent(event)
 
 
 class RatingsCarousel(QWidget):
+    """
+    Horizontal carousel widget for displaying ratings.
+    Includes left/right navigation buttons and a "View All" button.
+    """
     item_clicked = Signal(str)  # Signal emitting content_id when an item is clicked
     view_all_clicked = Signal(str)  # Signal emitting 'movie' or 'tv' when View All is clicked
     
     def __init__(self, title, content_type, parent=None):
+        """
+        Initialize a ratings carousel widget.
+        
+        Args:
+            title: The title to display above the carousel
+            content_type: The type of content ('movie' or 'tv')
+            parent: Parent widget (optional)
+        """
         super().__init__(parent)
         self.content_type = content_type  # 'movie' or 'tv'
         
@@ -151,23 +186,43 @@ class RatingsCarousel(QWidget):
     
     def scroll_left(self):
         """Scroll the carousel to the left"""
-        scroll_bar = self.scroll_area.horizontalScrollBar()
-        scroll_bar.setValue(scroll_bar.value() - 200)
+        try:
+            scroll_bar = self.scroll_area.horizontalScrollBar()
+            scroll_bar.setValue(scroll_bar.value() - 200)
+        except Exception as e:
+            logging.error(f"Error scrolling left: {e}")
     
     def scroll_right(self):
         """Scroll the carousel to the right"""
-        scroll_bar = self.scroll_area.horizontalScrollBar()
-        scroll_bar.setValue(scroll_bar.value() + 200)
+        try:
+            scroll_bar = self.scroll_area.horizontalScrollBar()
+            scroll_bar.setValue(scroll_bar.value() + 200)
+        except Exception as e:
+            logging.error(f"Error scrolling right: {e}")
     
     def add_item(self, content_id, title, rating, image_url=None):
-        """Add an item to the carousel"""
-        item = RatingItemWidget(content_id, title, rating, image_url)
-        item.clicked.connect(self.item_clicked.emit)
-        self.scroll_layout.addWidget(item)
+        """
+        Add an item to the carousel
+        
+        Args:
+            content_id: The unique identifier for the content
+            title: The title to display
+            rating: The numeric rating value
+            image_url: URL to the image to display (optional)
+        """
+        try:
+            item = RatingItemWidget(content_id, title, rating, image_url)
+            item.clicked.connect(self.item_clicked.emit)
+            self.scroll_layout.addWidget(item)
+        except Exception as e:
+            logging.error(f"Error adding item to carousel: {e}")
     
     def clear(self):
         """Clear all items in the carousel"""
-        while self.scroll_layout.count():
-            item = self.scroll_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater() 
+        try:
+            while self.scroll_layout.count():
+                item = self.scroll_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+        except Exception as e:
+            logging.error(f"Error clearing carousel: {e}") 

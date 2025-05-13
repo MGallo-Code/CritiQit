@@ -183,6 +183,47 @@ class APIManager:
             return response.json()
         except:
             return None
+            
+    def format_episode_title(self, show_details, episode_details):
+        """
+        Format a consistent episode title from show and episode details
+        
+        Args:
+            show_details: Show details from the API
+            episode_details: Episode details from the API
+            
+        Returns:
+            Formatted title string
+        """
+        show_name = show_details.get('name', 'Unknown Show')
+        episode_name = episode_details.get('name', '')
+        season_num = episode_details.get('season_number', '?')
+        episode_num = episode_details.get('episode_number', '?')
+        
+        if episode_name:
+            return f"{show_name} S{season_num}E{episode_num}: {episode_name}"
+        else:
+            return f"{show_name} S{season_num}E{episode_num}"
+    
+    def format_season_title(self, show_details, season_details):
+        """
+        Format a consistent season title from show and season details
+        
+        Args:
+            show_details: Show details from the API
+            season_details: Season details from the API
+            
+        Returns:
+            Formatted title string
+        """
+        show_name = show_details.get('name', 'Unknown Show')
+        season_num = season_details.get('season_number', '?')
+        season_name = season_details.get('name', '')
+        
+        if season_name and season_name != f"Season {season_num}":
+            return f"{show_name}: Season {season_num} - {season_name}"
+        else:
+            return f"{show_name}: Season {season_num}"
 
     #========= TMDB Account Information/Rating Retrieval ===========
 
