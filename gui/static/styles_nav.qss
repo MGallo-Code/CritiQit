@@ -35,7 +35,7 @@ QLineEdit {
     margin: 0 4px;
 }
 #NavBar QComboBox::down-arrow {
-    image: url(gui/static/dropdown-arrow.png);
+    image: url(gui/static/images/dropdown-arrow.png);
     width: 22px;
     height: 22px;
 	padding: 5px;
