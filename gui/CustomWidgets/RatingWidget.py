@@ -98,5 +98,5 @@ class RatingWidget(QWidget):
         )
         if confirm == QMessageBox.Yes:
             rating = Rating(self.content_id)
-            rating.remove_rating(self.rating_manager)
+            self.rating_manager.delete_rating_data(rating.content_id)
             self.refresh_content()

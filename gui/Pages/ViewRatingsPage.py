@@ -111,7 +111,7 @@ class ViewRatingsPage(BasePage):
                         if not image_url:
                             poster_path = movie_details.get("poster_path")
                             if poster_path:
-                                image_url = self.api_manager.get_image_url(poster_path, size="w185")
+                                image_url = self.api_manager.get_tmdb_image_url(poster_path, size="w185")
                 
                 self.movies_carousel.add_item(content_id, display_title, rating_value, image_url)
             
@@ -163,7 +163,7 @@ class ViewRatingsPage(BasePage):
                         if not image_url:
                             poster_path = show_details.get("poster_path")
                             if poster_path:
-                                image_url = self.api_manager.get_image_url(poster_path, size="w185")
+                                image_url = self.api_manager.get_tmdb_image_url(poster_path, size="w185")
                 
                 self.tv_carousel.add_item(content_id, display_title, rating_value, image_url)
                 
