@@ -164,5 +164,3 @@ class AsyncImageLoader:
         Cancel all pending image loading tasks
         """
         self.active_tasks.clear()
-        # Note: QThreadPool doesn't support direct cancellation,
-        # but future callbacks won't be processed once we clear references 
