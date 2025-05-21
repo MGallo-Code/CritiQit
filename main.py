@@ -29,6 +29,11 @@ logging.basicConfig(
 # Log application startup
 logging.info("CritiQit starting")
 
+# Clear image cache on startup
+from utils.clear_image_cache import clear_cache
+success, message = clear_cache()
+logging.info(f"Image cache status: {message}")
+
 # Import application modules
 from PySide6.QtWidgets import QApplication
 from gui.MainWindow import MainWindow
