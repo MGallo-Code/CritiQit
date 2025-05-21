@@ -3,12 +3,9 @@ from PySide6.QtWidgets import (
     QPushButton, QScrollArea, QSizePolicy
 )
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QPixmap
-import os
 import logging
-import time
 
-from gui.CustomWidgets.AsyncImageLoader import AsyncImageLoader
+from gui.CustomWidgets.ImageWidgets import ImageLabel
 
 class RatingItemWidget(QWidget):
     """
@@ -31,7 +28,6 @@ class RatingItemWidget(QWidget):
         super().__init__(parent)
         self.content_id = content_id
         self.setFixedWidth(180)
-        # Don't set a fixed height - let content determine it
         
         # Make the widget clickable
         self.setCursor(Qt.PointingHandCursor)
@@ -40,21 +36,15 @@ class RatingItemWidget(QWidget):
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(2)
         
-        # Image (poster)
-        self.image_label = QLabel()
-        self.image_label.setAlignment(Qt.AlignCenter)
+        # Image (poster) using ImageLabel
+        self.image_label = ImageLabel()
         self.image_label.setFixedHeight(200)
         self.image_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.image_label.setStyleSheet("background-color: #222;")
         
-        # Set a "Loading..." placeholder text
-        self.image_label.setText("Loading...")
-        
-        # Start asynchronous image loading
+        # Set the image if URL is provided
         if image_url:
-            self._load_image_async(image_url)
-        else:
-            self.image_label.setText("No Image")
+            self.image_label.set_image(image_url, size=(170, 200))
             
         layout.addWidget(self.image_label)
         
@@ -81,41 +71,6 @@ class RatingItemWidget(QWidget):
                 border: 1px solid #ccc;
             }
         """)
-    
-    def _load_image_async(self, image_url):
-        """
-        Load an image asynchronously using the AsyncImageLoader
-        
-        Args:
-            image_url: URL to the image to load
-        """
-        # Get the singleton instance
-        loader = AsyncImageLoader.get_instance()
-        
-        # Define target size (width, height)
-        target_size = (170, 200)
-        
-        # Load the image
-        loader.load_image(
-            url=image_url,
-            size=target_size,
-            on_finished=self._on_image_loaded,
-            on_error=self._on_image_error,
-            on_cache_hit=self._on_image_loaded  # Use same handler as finished for consistency
-        )
-    
-    def _on_image_loaded(self, url, pixmap, load_time):
-        """Callback when image is loaded"""
-        self.image_label.setPixmap(pixmap)
-    
-    def _on_image_error(self, url, error_message):
-        """Callback when image loading fails"""
-        self.image_label.setText("Error")
-        logging.error(f"Image error: {url} - {error_message}")
-    
-    def _on_cache_hit(self, url, pixmap, cache_type, load_time):
-        """Callback when image is loaded from cache"""
-        self.image_label.setPixmap(pixmap)
     
     def mousePressEvent(self, event):
         """Handle mouse press events to emit the clicked signal"""
