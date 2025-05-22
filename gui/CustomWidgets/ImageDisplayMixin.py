@@ -68,8 +68,8 @@ class ImageDisplayMixin:
             size (tuple): Optional (width, height) tuple for scaling
         """
         # This is a placeholder - implement sync loading if needed
-        logger.warning("Sync loading not implemented")
-        self._on_image_error(url, "Sync loading not implemented")
+        logger.warning("Sync loading not implemented for ImageDisplayMixin. Widget should handle sync loading if async_loading is False.")
+        self._on_image_error(url, "Sync loading not implemented by mixin")
     
     def _on_image_loaded(self, url, pixmap, load_time):
         """
@@ -90,4 +90,5 @@ class ImageDisplayMixin:
             url (str): URL of the failed image
             error_message (str): Error message
         """
+        logger.error(f"Error loading image. URL: '{url if url else 'None'}'. Error: {error_message}")
         raise NotImplementedError("Widget must implement _on_image_error") 

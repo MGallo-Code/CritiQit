@@ -1,11 +1,14 @@
 # gui/CustomWidgets/MediaHeaderWidget.py
 
-import requests
 from PySide6.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, QMainWindow, QSizePolicy
+    QWidget, QLabel, QMainWindow, QSizePolicy
 )
 from PySide6.QtCore import Qt, QRect
 from PySide6.QtGui import QPixmap, QPainter, QLinearGradient, QColor
+
+from gui.CustomWidgets.ImageWidgets import ImageLabel
+from utils.APIManager import APIManager
+import requests
 
 class MediaHeaderWidget(QWidget):
     """
@@ -30,7 +33,6 @@ class MediaHeaderWidget(QWidget):
         backdrop_height_fraction=0.4,
         # Fraction of content window's height we want poster to be
         poster_height_fraction=0.45,
-
         poster_offset=(45, 30),
         # Where fade begins (0.6 means 60% down the final cropped portion)
         fade_start_fraction=0.6,
@@ -50,13 +52,16 @@ class MediaHeaderWidget(QWidget):
         self.backdrop_original = None
         self.poster_original = None
 
-        # Backdrop Label
-        self.backdrop_label = QLabel(self)
+        # Initialize API Manager for image URLs
+        self.api_manager = APIManager()
+
+        # Backdrop Label using ImageLabel
+        self.backdrop_label = ImageLabel(self, async_loading=False)  # Disable async loading
         self.backdrop_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.backdrop_label.setStyleSheet("padding:0;")
 
-        # Poster label
-        self.poster_label = QLabel(self)
+        # Poster label using ImageLabel
+        self.poster_label = ImageLabel(self, async_loading=False)  # Disable async loading
         self.poster_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.poster_label.setStyleSheet("""
             QLabel {
@@ -101,8 +106,17 @@ class MediaHeaderWidget(QWidget):
         self.desired_poster_height = int(self.current_window_height * self.poster_height_fraction) if self.poster_original else 0
         self.desired_backdrop_height = int(self.current_window_height * self.backdrop_height_fraction) if self.backdrop_original else 0
 
-        # Header's height should be largest height between backdrop and (poster+padding[y value])
-        self.desired_header_height = max(self.desired_poster_height + self.poster_offset[1] * 2, self.desired_backdrop_height)
+        # Calculate total poster height including offsets
+        total_poster_height = self.desired_poster_height + (self.poster_offset[1] * 2) if self.poster_original else 0
+
+        # Header's height should be the maximum of:
+        # 1. The backdrop height
+        # 2. The total poster height (including offsets)
+        self.desired_header_height = max(self.desired_backdrop_height, total_poster_height)
+
+        # Ensure we have a minimum height even if no images are loaded
+        if not self.desired_header_height:
+            self.desired_header_height = int(self.current_window_height * self.backdrop_height_fraction)
 
     def update(self):
         # Update height values (dependent on content area height)
@@ -144,14 +158,25 @@ class MediaHeaderWidget(QWidget):
     # ~~~~~~~~~~~~~~~~~~ Backdrop Logic ~~~~~~~~~~~~~~~~~~ #
     def load_backdrop(self):
         """
-        We'll only fetch the original once here, store in self.backdrop_original,
-        and do no scaling/cropping yet. We'll do that dynamically on resize.
+        Load the backdrop image using ImageLabel
         """
         if not self.backdrop_path:
             return
-        pm = self.fetch_image(self.backdrop_path, size_key="w1280")
-        if pm:
-            self.backdrop_original = pm
+            
+        # Get the image URL from APIManager
+        url = self.api_manager.get_tmdb_image_url(self.backdrop_path, size="w1280")
+        if url:
+            # First load the image synchronously to get the original pixmap
+            try:
+                resp = requests.get(url, timeout=5)
+                resp.raise_for_status()
+                pm = QPixmap()
+                if pm.loadFromData(resp.content):
+                    self.backdrop_original = pm
+                    # Set the pixmap directly instead of using set_image
+                    self.backdrop_label.setPixmap(pm)
+            except Exception as e:
+                print("Backdrop fetch error:", e)
 
     def update_backdrop_label(self):
         """
@@ -177,11 +202,26 @@ class MediaHeaderWidget(QWidget):
 
     # ~~~~~~~~~~~~~~~~~~ Poster Logic ~~~~~~~~~~~~~~~~~~ #
     def load_poster(self):
+        """
+        Load the poster image using ImageLabel
+        """
         if not self.poster_path:
             return
-        pm = self.fetch_image(self.poster_path, size_key="w342")
-        if pm:
-            self.poster_original = pm
+            
+        # Get the image URL from APIManager
+        url = self.api_manager.get_tmdb_image_url(self.poster_path, size="w342")
+        if url:
+            # First load the image synchronously to get the original pixmap
+            try:
+                resp = requests.get(url, timeout=5)
+                resp.raise_for_status()
+                pm = QPixmap()
+                if pm.loadFromData(resp.content):
+                    self.poster_original = pm
+                    # Set the pixmap directly instead of using set_image
+                    self.poster_label.setPixmap(pm)
+            except Exception as e:
+                print("Poster fetch error:", e)
     
     def update_poster_label(self):
         """
@@ -198,21 +238,6 @@ class MediaHeaderWidget(QWidget):
         self.poster_label.setPixmap(scaled)
 
         self.desired_poster_width = scaled.width()
-
-    # ~~~~~~~~~~~~~~~~~~ Fetchers ~~~~~~~~~~~~~~~~~~ #
-    def fetch_image(self, path, size_key="w500"):
-        if not path:
-            return None
-        url = f"https://image.tmdb.org/t/p/{size_key}{path}"
-        try:
-            resp = requests.get(url, timeout=5)
-            resp.raise_for_status()
-            pm = QPixmap()
-            if pm.loadFromData(resp.content):
-                return pm
-        except Exception as e:
-            print("Image fetch error:", e)
-        return None
 
     # ~~~~~~~~~~~~~~~~~~ fade_to_white (unchanged) ~~~~~~~~~~~~~~~~~~ #
     def fade_to_white(self, pixmap, start_fraction=0.8):
