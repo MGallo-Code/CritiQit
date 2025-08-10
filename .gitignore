@@ -1,4 +1,8 @@
-.env
+# GLOBAL FILES
 */.env
 .DS_Store
 */.DS_Store
+
+# ./supabase (BACKEND)
+supabase/volumes/db/data
+supabase/volumes/storage
