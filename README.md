@@ -1,5 +1,6 @@
 ### **CritiQit - A Unified Rating Platform**
 
+
 **So What's the Goal?**
 
 Create a multi-platform application (Web, iOS, Android) that allows authenticated users to rate, review, and organize various items using multiple flexible and hierarchical scoring systems. The platform will begin with support for movies and TV shows and is designed to be extensible to other domains like recipes or books.
@@ -11,7 +12,7 @@ Create a multi-platform application (Web, iOS, Android) that allows authenticate
 - **User Collections**: Users can create and manage personal collections of items.
 - **User Authentication**: Secure user sign-up, sign-in, sign-out, and profile management.
 
-System Architecture & Methodology
+**System Architecture & Methodology**
 
 - **Frontend**: React Native with Expo, developed web-first for rapid iteration.
 - **Backend**: Supabase (Backend-as-a-Service).
