@@ -3,6 +3,10 @@
 .DS_Store
 */.DS_Store
 
+# ./apps (FRONTEND)
+node_modules
+*/node_modules
+
 # ./supabase (BACKEND)
 supabase/volumes/db/data
 supabase/volumes/storage
