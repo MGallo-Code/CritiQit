@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from 'expo-secure-store';
 import * as aesjs from 'aes-js';
+import { Platform } from 'react-native';
 import 'react-native-get-random-values';
 
 // As Expo's SecureStore does not support values larger than 2048
@@ -59,9 +60,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Supabase URL and Anon Key must be provided in apps/mobile/.env file.");
 }
 
+// Use Platform.OS to determine which storage to use
+const storage = Platform.OS === 'web' ? AsyncStorage : new LargeSecureStore();
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: new LargeSecureStore(),
+    storage: storage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
