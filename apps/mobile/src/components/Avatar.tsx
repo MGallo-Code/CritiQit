@@ -64,7 +64,17 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
 
       const arraybuffer = await fetch(image.uri).then((res) => res.arrayBuffer())
 
-      const fileExt = image.uri?.split('.').pop()?.toLowerCase() ?? 'jpeg'
+      // Extract file extension, handling data URLs properly
+      let fileExt = 'jpeg' // default
+      if (image.mimeType?.includes('heic') || image.mimeType?.includes('heif')) {
+        fileExt = 'jpeg' // Convert HEIC to JPEG for compatibility
+      } else if (image.mimeType?.includes('png')) {
+        fileExt = 'png'
+      } else if (image.uri && !image.uri.startsWith('data:')) {
+        // Only extract from URI if it's not a data URL
+        fileExt = image.uri.split('.').pop()?.toLowerCase() ?? 'jpeg'
+      }
+      
       const path = `${Date.now()}.${fileExt}`
       const { data, error: uploadError } = await supabase.storage
         .from('avatars')
