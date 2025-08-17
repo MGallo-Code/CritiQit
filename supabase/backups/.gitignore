@@ -1,0 +1,6 @@
+# Ignore all backup files (they're large and shouldn't be in git)
+*.tar.gz
+*.zip
+
+# But keep this directory structure
+!.gitignore
