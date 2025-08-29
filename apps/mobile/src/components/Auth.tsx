@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Alert, StyleSheet, View, AppState } from 'react-native'
+import { Alert, StyleSheet, View, AppState, Text, TouchableOpacity } from 'react-native'
 import { supabase } from '../lib/supabase'
 import { Button, Input } from '@rneui/themed'
 import { makeRedirectUri } from 'expo-auth-session'
@@ -41,12 +41,227 @@ const createSessionFromUrl = async (url: string) => {
   return data.session
 }
 
-// --- Component ---
+// --- Sign In Component ---
 
-export default function Auth() {
+function SignIn({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+
+  async function signInWithEmail() {
+    if (!email || !password) {
+      Alert.alert('Please fill in all fields')
+      return
+    }
+    
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    })
+
+    if (error) Alert.alert('Sign In Error', error.message)
+    setLoading(false)
+  }
+
+  const sendMagicLink = async () => {
+    if (!email) {
+      Alert.alert('Please enter your email address')
+      return
+    }
+    
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
+    })
+
+    if (error) Alert.alert('Magic Link Error', error.message)
+    else Alert.alert('Magic Link Sent!', 'Check your email for the sign-in link.')
+    setLoading(false)
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Welcome Back</Text>
+      <Text style={styles.subtitle}>Sign in to your account</Text>
+      
+      <View style={[styles.verticallySpaced, styles.mt20]}>
+        <Input
+          label="Email"
+          leftIcon={{ type: 'font-awesome', name: 'envelope' }}
+          onChangeText={(text) => setEmail(text)}
+          value={email}
+          placeholder="email@address.com"
+          autoCapitalize={'none'}
+          keyboardType="email-address"
+        />
+      </View>
+      
+      <View style={styles.verticallySpaced}>
+        <Input
+          label="Password"
+          leftIcon={{ type: 'font-awesome', name: 'lock' }}
+          onChangeText={(text) => setPassword(text)}
+          value={password}
+          secureTextEntry={true}
+          placeholder="Password"
+          autoCapitalize={'none'}
+        />
+      </View>
+      
+      <View style={[styles.verticallySpaced, styles.mt20]}>
+        <Button 
+          title="Sign In" 
+          disabled={loading} 
+          onPress={signInWithEmail}
+          type="solid"
+        />
+      </View>
+      
+      <View style={styles.verticallySpaced}>
+        <Button 
+          title="Send Magic Link (Existing Users)" 
+          disabled={loading} 
+          onPress={sendMagicLink}
+          type="outline"
+        />
+        <Text style={styles.helperText}>
+          Forgot your password? We'll send you a secure link to sign in.
+        </Text>
+      </View>
+
+      <View style={styles.switchContainer}>
+        <Text style={styles.switchText}>Don't have an account? </Text>
+        <TouchableOpacity onPress={onSwitchToSignUp}>
+          <Text style={styles.switchLink}>Sign Up</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )
+}
+
+// --- Sign Up Component ---
+
+function SignUp({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
+  const [email, setEmail] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function signUpWithEmail() {
+    if (!email || !password || !confirmPassword) {
+      Alert.alert('Please fill in all fields')
+      return
+    }
+    
+    if (password !== confirmPassword) {
+      Alert.alert('Passwords do not match', 'Please make sure your passwords match.')
+      return
+    }
+    
+    if (password.length < 6) {
+      Alert.alert('Password too short', 'Password must be at least 6 characters long.')
+      return
+    }
+    
+    setLoading(true)
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: {
+          full_name: fullName.trim() || undefined
+        }
+      }
+    })
+
+    if (error) Alert.alert('Sign Up Error', error.message)
+    if (!session) Alert.alert('Account Created!', 'Please check your inbox for email verification.')
+    setLoading(false)
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Create Account</Text>
+      <Text style={styles.subtitle}>Sign up to get started</Text>
+      
+      <View style={[styles.verticallySpaced, styles.mt20]}>
+        <Input
+          label="Email"
+          leftIcon={{ type: 'font-awesome', name: 'envelope' }}
+          onChangeText={(text) => setEmail(text)}
+          value={email}
+          placeholder="email@address.com"
+          autoCapitalize={'none'}
+          keyboardType="email-address"
+        />
+      </View>
+      
+      <View style={styles.verticallySpaced}>
+        <Input
+          label="Full Name (Optional)"
+          leftIcon={{ type: 'font-awesome', name: 'user' }}
+          onChangeText={(text) => setFullName(text)}
+          value={fullName}
+          placeholder="John Doe"
+          autoCapitalize={'words'}
+        />
+      </View>
+      
+      <View style={styles.verticallySpaced}>
+        <Input
+          label="Password"
+          leftIcon={{ type: 'font-awesome', name: 'lock' }}
+          onChangeText={(text) => setPassword(text)}
+          value={password}
+          secureTextEntry={true}
+          placeholder="Password (min 6 characters)"
+          autoCapitalize={'none'}
+        />
+      </View>
+      
+      <View style={styles.verticallySpaced}>
+        <Input
+          label="Confirm Password"
+          leftIcon={{ type: 'font-awesome', name: 'lock' }}
+          onChangeText={(text) => setConfirmPassword(text)}
+          value={confirmPassword}
+          secureTextEntry={true}
+          placeholder="Confirm your password"
+          autoCapitalize={'none'}
+        />
+      </View>
+      
+      <View style={[styles.verticallySpaced, styles.mt20]}>
+        <Button 
+          title="Create Account" 
+          disabled={loading} 
+          onPress={signUpWithEmail}
+          type="solid"
+        />
+      </View>
+
+      <View style={styles.switchContainer}>
+        <Text style={styles.switchText}>Already have an account? </Text>
+        <TouchableOpacity onPress={onSwitchToSignIn}>
+          <Text style={styles.switchLink}>Sign In</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )
+}
+
+// --- Main Auth Component ---
+
+export default function Auth() {
+  const [isSignUp, setIsSignUp] = useState(false)
   
   // Handle incoming deep links
   useEffect(() => {
@@ -61,114 +276,49 @@ export default function Auth() {
     }
   }, [])
 
-  async function signInWithEmail() {
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    })
-
-    if (error) Alert.alert(error.message)
-    setLoading(false)
-  }
-
-  async function signUpWithEmail() {
-    setLoading(true)
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-    })
-
-    if (error) Alert.alert(error.message)
-    if (!session) Alert.alert('Please check your inbox for email verification!')
-    setLoading(false)
-  }
-
-  // function for GitHub OAuth
-  // const performOAuth = async () => {
-  //   const { data, error } = await supabase.auth.signInWithOAuth({
-  //     provider: 'github',
-  //     options: {
-  //       redirectTo,
-  //       skipBrowserRedirect: true,
-  //     },
-  //   })
-  //   if (error) Alert.alert(error.message)
-
-  //   const res = await WebBrowser.openAuthSessionAsync(data?.url ?? '', redirectTo)
-
-  //   if (res.type === 'success') {
-  //     const { url } = res
-  //     await createSessionFromUrl(url)
-  //   }
-  // }
-
-  // New function for Magic Link
-  const sendMagicLink = async () => {
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email, // Uses the email from the input field
-      options: {
-        emailRedirectTo: redirectTo,
-      },
-    })
-
-    if (error) Alert.alert(error.message)
-    else Alert.alert('Check your email for the magic link!')
-    setLoading(false)
-  }
-
   return (
-    <View style={styles.container}>
-      {/* Email and Password Inputs (no change) */}
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Input
-          label="Email"
-          leftIcon={{ type: 'font-awesome', name: 'envelope' }}
-          onChangeText={(text) => setEmail(text)}
-          value={email}
-          placeholder="email@address.com"
-          autoCapitalize={'none'}
-        />
-      </View>
-      <View style={styles.verticallySpaced}>
-        <Input
-          label="Password"
-          leftIcon={{ type: 'font-awesome', name: 'lock' }}
-          onChangeText={(text) => setPassword(text)}
-          value={password}
-          secureTextEntry={true}
-          placeholder="Password"
-          autoCapitalize={'none'}
-        />
-      </View>
-      
-      {/* Email and Password Buttons (no change) */}
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Button title="Sign in" disabled={loading} onPress={() => signInWithEmail()} />
-      </View>
-      <View style={styles.verticallySpaced}>
-        <Button title="Sign up" disabled={loading} onPress={() => signUpWithEmail()} />
-      </View>
-
-      {/* New Buttons for Magic Link and OAuth */}
-      <View style={styles.verticallySpaced}>
-        <Button title="Send Magic Link" disabled={loading} onPress={() => sendMagicLink()} />
-      </View>
-      {/* <View style={styles.verticallySpaced}>
-        <Button onPress={performOAuth} title="Sign in with Github" />
-      </View> */}
+    <View style={styles.mainContainer}>
+      {isSignUp ? (
+        <SignUp onSwitchToSignIn={() => setIsSignUp(false)} />
+      ) : (
+        <SignIn onSwitchToSignUp={() => setIsSignUp(true)} />
+      )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
   container: {
     marginTop: 40,
-    padding: 12,
+    padding: 20,
+    backgroundColor: '#ffffff',
+    margin: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#666',
   },
   verticallySpaced: {
     paddingTop: 4,
@@ -177,5 +327,30 @@ const styles = StyleSheet.create({
   },
   mt20: {
     marginTop: 20,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 30,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  switchText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  switchLink: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 })
