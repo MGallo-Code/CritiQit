@@ -38,8 +38,12 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
  SET search_path TO ''
 AS $function$
 begin
-  insert into public.profiles (id, full_name, avatar_url)
-  values (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
+  INSERT INTO public.profiles (id, full_name, username)
+  VALUES (
+    new.id,
+    new.raw_user_meta_data->>'full_name',
+    'User_' || substr(md5(new.email), 1, 8)
+  );
   return new;
 end;
 $function$
@@ -126,6 +130,16 @@ with check ((( SELECT auth.uid() AS uid) = id));
   for update
   to public
 using ((( SELECT auth.uid() AS uid) = id));
+
+
+
+  create policy "Users can delete their own profile."
+  on "public"."profiles"
+  as permissive
+  for delete
+  to public
+using ((( SELECT auth.uid() AS uid) = id));
+
 
 
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
