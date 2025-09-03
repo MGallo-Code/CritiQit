@@ -1,5 +1,8 @@
+// apps/critiqit/app/auth.tsx
+
 import React, { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+// Custom code
 import SignInForm from '../components/SignInForm'
 import SignUpForm from '../components/SignUpForm'
 

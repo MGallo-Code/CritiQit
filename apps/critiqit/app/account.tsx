@@ -1,8 +1,12 @@
+// apps/critiqit/app/account.tsx
+
 import React from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../lib/auth-context'
 import { Link, Redirect } from 'expo-router'
+import { supabase } from '../lib/supabase'
+// Custom code
+import { useAuth } from '../lib/auth-context'
+import LoadingScreen from '../components/LoadingScreen'
 
 export default function AccountScreen() {
   const { session, loading } = useAuth()
@@ -14,11 +18,7 @@ export default function AccountScreen() {
 
   // Show loading while checking authentication
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    )
+    return <LoadingScreen />
   }
 
   const handleSignOut = async () => {
@@ -123,15 +123,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    fontSize: 18,
-    color: '#666',
   },
 })
