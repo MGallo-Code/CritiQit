@@ -7,7 +7,7 @@ import { Alert } from '../lib/alert'
 interface Props {
   size: number
   url: string | null
-  onUpload: (filePath: string) => void
+  onUpload?: (filePath: string) => void
 }
 
 export default function Avatar({ url, size = 150, onUpload }: Props) {
@@ -40,6 +40,7 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
   }
 
   async function uploadAvatar() {
+    if (!onUpload) return
     try {
       setUploading(true)
 
@@ -110,13 +111,15 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       ) : (
         <View style={[avatarSize, styles.avatar, styles.noImage]} />
       )}
-      <View>
-        <Button
-          title={uploading ? 'Uploading ...' : 'Upload'}
-          onPress={uploadAvatar}
-          disabled={uploading}
-        />
-      </View>
+      {onUpload && (
+        <View>
+          <Button
+            title={uploading ? 'Uploading ...' : 'Upload'}
+            onPress={uploadAvatar}
+            disabled={uploading}
+          />
+        </View>
+      )}
     </View>
   )
 }

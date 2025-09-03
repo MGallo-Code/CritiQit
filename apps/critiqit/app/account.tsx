@@ -13,8 +13,13 @@ import { Alert } from '../lib/alert'
 export default function AccountScreen() {
   const { session, loading } = useAuth()
   const [profileLoading, setProfileLoading] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [username, setUsername] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [originalUsername, setOriginalUsername] = useState('')
+  const [originalAvatarUrl, setOriginalAvatarUrl] = useState('')
+  const [originalFullName, setOriginalFullName] = useState('')
 
   useEffect(() => {
     if (session) getProfile()
@@ -37,7 +42,7 @@ export default function AccountScreen() {
 
       const { data, error, status } = await supabase
         .from('profiles')
-        .select(`username, avatar_url`)
+        .select(`username, avatar_url, full_name`)
         .eq('id', session?.user.id)
         .single()
       
@@ -45,10 +50,17 @@ export default function AccountScreen() {
         throw error
       }
 
-      if (data) {
-        setUsername(data.username || '')
-        setAvatarUrl(data.avatar_url || '')
-      }
+                  if (data) {
+              const userData = data.username || ''
+              const avatarData = data.avatar_url || ''
+              const fullNameData = data.full_name || ''
+              setUsername(userData)
+              setAvatarUrl(avatarData)
+              setFullName(fullNameData)
+              setOriginalUsername(userData)
+              setOriginalAvatarUrl(avatarData)
+              setOriginalFullName(fullNameData)
+            }
     } catch (error) {
       if (error instanceof Error) {
         Alert.alert(error.message)
@@ -58,31 +70,40 @@ export default function AccountScreen() {
     }
   }
 
-  async function updateProfile({
-    username,
-    avatar_url,
-  }: {
-    username: string
-    avatar_url: string
-  }) {
+  async function updateProfile() {
     try {
       setProfileLoading(true)
       if (!session?.user) throw new Error('No user on the session!')
 
-      const updates = {
+      // Only include fields that have actually changed
+      const updates: any = {
         id: session?.user.id,
-        username,
-        avatar_url,
         updated_at: new Date(),
       }
 
-      const { error } = await supabase.from('profiles').upsert(updates)
-
-      if (error) {
-        throw error
+      if (username !== originalUsername) {
+        updates.username = username
       }
-      
-      Alert.alert('Profile updated successfully!')
+      if (avatarUrl !== originalAvatarUrl) {
+        updates.avatar_url = avatarUrl
+      }
+      if (fullName !== originalFullName) {
+        updates.full_name = fullName
+      }
+
+      // Only send request if there are actual changes
+      if (Object.keys(updates).length > 2) { // More than just id and updated_at
+        const { error } = await supabase.from('profiles').upsert(updates)
+
+        if (error) {
+          throw error
+        }
+        
+        Alert.alert('Profile updated successfully!')
+      } else {
+        // No changes to save
+        Alert.alert('No changes to save')
+      }
     } catch (error) {
       if (error instanceof Error) {
         Alert.alert(error.message)
@@ -99,19 +120,51 @@ export default function AccountScreen() {
     }
   }
 
+  const handleEdit = () => {
+    setIsEditing(true)
+  }
+
+  const handleCancel = () => {
+    // Reset to original values
+    setUsername(originalUsername)
+    setAvatarUrl(originalAvatarUrl)
+    setFullName(originalFullName)
+    setIsEditing(false)
+  }
+
+  const handleSave = async () => {
+    try {
+      await updateProfile()
+      // Update original values after successful save
+      setOriginalUsername(username)
+      setOriginalAvatarUrl(avatarUrl)
+      setOriginalFullName(fullName)
+      setIsEditing(false)
+    } catch (error) {
+      // Error handling is done in updateProfile
+      console.error('Error saving profile:', error)
+    }
+  }
+
+  const hasChanges = username !== originalUsername || avatarUrl !== originalAvatarUrl || fullName !== originalFullName
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Account</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Account</Text>
+        {!isEditing && (
+          <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+            <Text style={styles.editButtonText}>Edit</Text>
+          </TouchableOpacity>
+        )}
+      </View>
       
       {/* Avatar Section */}
       <View style={styles.avatarSection}>
         <Avatar
           size={120}
           url={avatarUrl}
-          onUpload={(url: string) => {
-            setAvatarUrl(url)
-            updateProfile({ username, avatar_url: url })
-          }}
+          onUpload={isEditing ? (url: string) => setAvatarUrl(url) : undefined}
         />
       </View>
 
@@ -121,43 +174,71 @@ export default function AccountScreen() {
           <Text style={styles.value}>{session.user.email}</Text>
           
           <Text style={styles.label}>Username:</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.textInput}
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Enter username"
-              autoCapitalize="none"
-            />
-          </View>
+          {isEditing ? (
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.textInput}
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Enter username"
+                autoCapitalize="none"
+                editable={isEditing}
+              />
+            </View>
+          ) : (
+            <Text style={styles.value}>{username || 'Not set'}</Text>
+          )}
           
-          {session.user.user_metadata?.full_name && (
-            <>
-              <Text style={styles.label}>Full Name:</Text>
-              <Text style={styles.value}>{session.user.user_metadata.full_name}</Text>
-            </>
+          <Text style={styles.label}>Full Name:</Text>
+          {isEditing ? (
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.textInput}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="Enter full name"
+                autoCapitalize="words"
+                editable={isEditing}
+              />
+            </View>
+          ) : (
+            <Text style={styles.value}>{fullName || 'Not set'}</Text>
           )}
         </View>
       )}
 
       <View style={styles.actions}>
-        <TouchableOpacity 
-          style={[styles.updateButton, { opacity: profileLoading ? 0.6 : 1 }]} 
-          onPress={() => updateProfile({ username, avatar_url: avatarUrl })}
-          disabled={profileLoading}
-        >
-          <Text style={styles.updateButtonText}>
-            {profileLoading ? 'Updating...' : 'Update Profile'}
-          </Text>
-        </TouchableOpacity>
-
-        <Link href="/home" style={styles.backLink}>
-          ← Back to Home
-        </Link>
-        
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
+        {isEditing ? (
+          <>
+            <TouchableOpacity 
+              style={[styles.saveButton, { opacity: profileLoading || !hasChanges ? 0.6 : 1 }]} 
+              onPress={handleSave}
+              disabled={profileLoading || !hasChanges}
+            >
+              <Text style={styles.saveButtonText}>
+                {profileLoading ? 'Saving...' : 'Save Changes'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.cancelButton} 
+              onPress={handleCancel}
+              disabled={profileLoading}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <Link href="/home" style={styles.backLink}>
+              ← Back to Home
+            </Link>
+            
+            <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+              <Text style={styles.signOutText}>Sign Out</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </View>
   )
@@ -169,12 +250,27 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f5f5f5',
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 30,
     color: '#333',
-    textAlign: 'center',
+  },
+  editButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  editButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   avatarSection: {
     alignItems: 'center',
@@ -221,15 +317,28 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
-  updateButton: {
-    backgroundColor: '#007AFF',
+  saveButton: {
+    backgroundColor: '#34C759',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: '#8E8E93',
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 20,
   },
-  updateButtonText: {
+  cancelButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
