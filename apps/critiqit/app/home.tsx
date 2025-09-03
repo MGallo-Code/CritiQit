@@ -1,22 +1,15 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
-import { supabase } from '../lib/supabase'
+
+import { Link } from 'expo-router';
 
 export default function HomeScreen() {
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error('Error signing out:', error.message)
-    }
-  }
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to CritiQit!</Text>
-      <Text style={styles.subtitle}>You are successfully signed in.</Text>
-      <Text style={styles.signOut} onPress={handleSignOut}>
-        Sign Out
-      </Text>
+      <Link href="/account" style={styles.accountLink}>
+        View Account
+      </Link>
     </View>
   )
 }
@@ -32,18 +25,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 30,
     color: '#333',
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  signOut: {
+
+  accountLink: {
     fontSize: 16,
     color: '#007AFF',
     fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 })

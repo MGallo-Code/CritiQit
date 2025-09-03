@@ -14,7 +14,7 @@ export default function Index() {
     );
   }
 
-  return session ? <Redirect href="/home" /> : <Redirect href="/auth" />;
+  return <Redirect href="/home" />;
 }
 
 const styles = StyleSheet.create({
