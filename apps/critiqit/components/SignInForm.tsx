@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
-import { Alert, StyleSheet, View, Text, TouchableOpacity } from 'react-native'
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native'
 import { supabase } from '../lib/supabase'
 import { Button, Input } from '@rneui/themed'
 import { makeRedirectUri } from 'expo-auth-session'
 import * as QueryParams from 'expo-auth-session/build/QueryParams'
 import * as WebBrowser from 'expo-web-browser'
+import { Alert } from '../lib/alert'
 
 const redirectTo = makeRedirectUri()
 

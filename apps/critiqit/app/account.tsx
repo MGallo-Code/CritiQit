@@ -1,13 +1,14 @@
 // apps/critiqit/app/account.tsx
 
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native'
 import { Link, Redirect } from 'expo-router'
 // Custom code
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth-context'
 import LoadingScreen from '../components/LoadingScreen'
 import Avatar from '../components/Avatar'
+import { Alert } from '../lib/alert'
 
 export default function AccountScreen() {
   const { session, loading } = useAuth()

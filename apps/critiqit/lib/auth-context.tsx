@@ -1,11 +1,12 @@
 import React, { useState, useEffect, createContext, useContext } from 'react'
-import { AppState, Alert } from 'react-native'
+import { AppState } from 'react-native'
 import { supabase } from './supabase'
 import { makeRedirectUri } from 'expo-auth-session'
 import * as Linking from 'expo-linking'
 import * as QueryParams from 'expo-auth-session/build/QueryParams'
 import * as WebBrowser from 'expo-web-browser'
 import { Session } from '@supabase/supabase-js'
+import { Alert } from './alert'
 
 // Tells Supabase Auth to continuously refresh the session automatically if
 // the app is in the foreground.

@@ -1,9 +1,10 @@
 // apps/critiqit/components/GoogleOneTap.tsx
 
 import { useEffect } from 'react'
-import { Platform, Alert } from 'react-native'
+import { Platform } from 'react-native'
 // Custom code
 import { supabase } from '../lib/supabase'
+import { Alert } from '../lib/alert'
 
 // TypeScript declarations for Google Identity Services with FedCM
 declare global {
