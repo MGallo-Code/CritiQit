@@ -1,11 +1,12 @@
 // apps/critiqit/app/home.tsx
 
 import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, Platform } from 'react-native'
 import { Link } from 'expo-router';
 // Custom code
 import { useAuth } from '../lib/auth-context';
 import LoadingScreen from '../components/LoadingScreen';
+import GoogleOneTap from '../components/GoogleOneTap';
 
 
 export default function HomeScreen() {
@@ -17,6 +18,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {!session && !loading && <GoogleOneTap />}
       <Text style={styles.title}>Welcome to CritiQit!</Text>
       {session ? (
         <Link href="/account" style={styles.accountLink}>
