@@ -57,15 +57,44 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 // Check that the variables were loaded correctly...
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Supabase URL and Anon Key must be provided in apps/mobile/.env file.");
+  throw new Error("Supabase URL and Anon Key must be provided in .env file.");
 }
 
-// Use Platform.OS to determine which storage to use
-const storage = Platform.OS === 'web' ? AsyncStorage : new LargeSecureStore();
+// Create a web-compatible storage adapter
+const createWebStorage = () => {
+  return {
+    getItem: (key: string) => {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return Promise.resolve(window.localStorage.getItem(key));
+      }
+      return Promise.resolve(null);
+    },
+    setItem: (key: string, value: string) => {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
+      return Promise.resolve();
+    },
+    removeItem: (key: string) => {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+      return Promise.resolve();
+    },
+  };
+};
+
+// Create storage based on platform
+const getStorage = () => {
+  if (Platform.OS === 'web') {
+    return createWebStorage();
+  }
+  return new LargeSecureStore();
+};
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: storage,
+    storage: getStorage(),
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
