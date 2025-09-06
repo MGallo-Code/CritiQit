@@ -1,7 +1,7 @@
 // apps/critiqit/app/home.tsx
 
 import React from 'react'
-import { View, Text, StyleSheet, Platform } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 import { Link } from 'expo-router';
 // Custom code
 import { useAuth } from '../lib/auth-context';
@@ -25,9 +25,15 @@ export default function HomeScreen() {
           View Account
         </Link>
       ) : (
-        <Link href="/auth" style={styles.authLink}>
-          Sign In
-        </Link>
+        <View style={styles.authLinks}>
+          <Link href="/signin" style={styles.authLink}>
+            Sign In
+          </Link>
+          <Text style={styles.separator}>•</Text>
+          <Link href="/signup" style={styles.authLink}>
+            Sign Up
+          </Link>
+        </View>
       )}
     </View>
   )
@@ -54,10 +60,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
+  authLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   authLink: {
     fontSize: 16,
     color: '#007AFF',
     fontWeight: '600',
     textDecorationLine: 'underline',
+  },
+  separator: {
+    fontSize: 16,
+    color: '#666',
   },
 })

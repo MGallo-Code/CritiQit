@@ -32,7 +32,7 @@ export default function GoogleOneTap() {
   useEffect(() => {
     if (Platform.OS === 'web') {
       // Get Google Client ID from environment variables
-      const google_client_id = process.env.GOOGLE_OAUTH_CLIENT_ID;
+      const google_client_id = process.env.EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
       if (!google_client_id) {
         console.error('Google Client ID is not set in the environment variables.')
         return;

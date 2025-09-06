@@ -25,9 +25,9 @@ export default function AccountScreen() {
     if (session) getProfile()
   }, [session])
 
-  // Redirect to auth if not authenticated
+  // Redirect to signin if not authenticated
   if (!loading && !session) {
-    return <Redirect href="/auth" />
+    return <Redirect href="/signin" />
   }
 
   // Show loading while checking authentication
