@@ -98,24 +98,12 @@
                 Please enter this code in the app to confirm your email address and complete your account setup.
               </p>
               
-              <!-- OTP Token Display -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 30px 0;">
-                <tr>
-                  <td align="center">
-                    <div style="background-color: #f8fafc; border: 2px solid #007AFF; border-radius: 8px; padding: 20px; text-align: center; max-width: 300px; margin: 0 auto;">
-                      <p style="color: #64748b; font-size: 14px; margin: 0 0 10px; font-family: Arial, sans-serif;">Confirmation Code:</p>
-                      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; font-family: 'Courier New', monospace; font-size: 24px; font-weight: bold; color: #1e293b; letter-spacing: 2px; word-spacing: 4px;">{{ .Token }}</div>
-                    </div>
-                  </td>
-                </tr>
-              </table>
-              
               <!-- Security Note -->
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 30px 0;">
                 <tr>
                   <td style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 15px;">
                     <p style="color: #92400e; font-size: 14px; margin: 0; font-family: Arial, sans-serif;">
-                      <strong style="color: #b45309;">Security Note:</strong> This confirmation link will expire in 24 hours for your security.
+                      <strong style="color: #b45309;">Security Note:</strong> This confirmation link will expire in 15 minutes for your security.
                     </p>
                   </td>
                 </tr>
@@ -177,7 +165,7 @@
               
               <p style="color: #64748b; font-size: 14px; line-height: 1.5; margin: 20px 0 0; font-family: Arial, sans-serif;">
                 If the button doesn't work, you can also copy and paste this link into your browser:<br>
-                <span style="word-break: break-all; background-color: #e2e8f0; padding: 8px 12px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #475569; display: inline-block; margin-top: 8px;">{{ .ConfirmationURL }}</span>
+                <a style="word-break: break-all; background-color: #e2e8f0; padding: 8px 12px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #475569; display: inline-block; margin-top: 8px;" href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a>
               </p>
             </td>
           </tr>
