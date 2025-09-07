@@ -91,17 +91,21 @@
           <tr>
             <td style="padding: 40px 30px;">
               <p style="color: #1e293b; font-size: 18px; line-height: 1.5; margin: 0 0 20px; font-family: Arial, sans-serif; font-weight: 500;">
-                Thanks for joining CritiQit! We're excited to have you on board.
+                Welcome to CritiQit! Your confirmation code is: <strong style="font-family: 'Courier New', monospace; font-size: 20px; color: #007AFF; letter-spacing: 1px;">{{ .Token }}</strong>
               </p>
               
               <p style="color: #64748b; font-size: 16px; line-height: 1.5; margin: 0 0 30px; font-family: Arial, sans-serif;">
-                To get started and secure your account, please confirm your email address by clicking the button below:
+                Please enter this code in the app to confirm your email address and complete your account setup.
               </p>
               
+              <!-- OTP Token Display -->
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 30px 0;">
                 <tr>
                   <td align="center">
-                    <a href="{{ .ConfirmationURL }}" class="button" style="background-color: #007AFF; border-radius: 6px; color: #ffffff; display: inline-block; font-size: 16px; font-weight: 600; padding: 16px 32px; text-align: center; text-decoration: none; font-family: Arial, sans-serif;">Confirm Email Address</a>
+                    <div style="background-color: #f8fafc; border: 2px solid #007AFF; border-radius: 8px; padding: 20px; text-align: center; max-width: 300px; margin: 0 auto;">
+                      <p style="color: #64748b; font-size: 14px; margin: 0 0 10px; font-family: Arial, sans-serif;">Confirmation Code:</p>
+                      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; font-family: 'Courier New', monospace; font-size: 24px; font-weight: bold; color: #1e293b; letter-spacing: 2px; word-spacing: 4px;">{{ .Token }}</div>
+                    </div>
                   </td>
                 </tr>
               </table>

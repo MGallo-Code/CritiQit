@@ -1,15 +1,17 @@
 // apps/critiqit/app/signup.tsx
 
 import React, { useState } from 'react'
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native'
-import { Link, Redirect } from 'expo-router'
-import { supabase } from '../lib/supabase'
+import { StyleSheet, View, Text } from 'react-native'
+import { Link, Redirect, useRouter } from 'expo-router' 
 import { Button, Input } from '@rneui/themed'
 // Custom code
+import { supabase } from '../lib/supabase'
 import { Alert } from '../lib/alert'
 import { useAuth } from '../lib/auth-context'
 
 export default function SignUpScreen() {
+  const router = useRouter() 
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -38,14 +40,24 @@ export default function SignUpScreen() {
     }
 
     setLoading(true)
-    const { data, error } = await supabase.auth.signUp({
+    const { data: { user }, error } = await supabase.auth.signUp({
       email: email,
       password: password,
     })
 
-    if (error) Alert.alert('Sign Up Error', error.message)
-    if (!session) Alert.alert('Account Created!', 'Please check your inbox for email verification.')
+    console.log(user);
+
     setLoading(false)
+
+    if (error) {
+      Alert.alert('Sign Up Error', error.message)
+    } else if (user) {
+      console.log('User created, redirecting to confirmation page');
+      router.push({
+        pathname: '/confirm-email',
+        params: { email: email },
+      })
+    }
   }
 
   if (authLoading) {
