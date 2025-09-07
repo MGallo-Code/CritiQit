@@ -149,6 +149,7 @@ services:
       GOTRUE_SMS_AUTOCONFIRM: ${ENABLE_PHONE_AUTOCONFIRM}
 
       # CUSTOM EMAIL TEMPLATES, MUST BE UPLOADED TO SUPABASE STORAGE, in public email-templates bucket
+      GOTRUE_MAILER_OTP_EXP: ${MAILER_OTP_EXP}
       GOTRUE_MAILER_TEMPLATES_CONFIRMATION: ${API_EXTERNAL_URL}/storage/v1/object/public/email-templates//confirmation.html
       GOTRUE_MAILER_TEMPLATES_RECOVERY: ${API_EXTERNAL_URL}/storage/v1/object/public/email-templates//recovery.html
       GOTRUE_MAILER_TEMPLATES_INVITE: ${API_EXTERNAL_URL}/storage/v1/object/public/email-templates//invite.html
