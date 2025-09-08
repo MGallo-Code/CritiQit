@@ -45,25 +45,70 @@ export default function AccountScreen() {
         .select(`username, avatar_url, full_name`)
         .eq('id', session?.user.id)
         .single()
-      
+
       if (error && status !== 406) {
         throw error
       }
 
-                  if (data) {
-              const userData = data.username || ''
-              const avatarData = data.avatar_url || ''
-              const fullNameData = data.full_name || ''
-              setUsername(userData)
-              setAvatarUrl(avatarData)
-              setFullName(fullNameData)
-              setOriginalUsername(userData)
-              setOriginalAvatarUrl(avatarData)
-              setOriginalFullName(fullNameData)
-            }
+      if (data) {
+        const userData = data.username || ''
+        const avatarData = data.avatar_url || ''
+        const fullNameData = data.full_name || ''
+
+        // Construct the display URL with a cache-buster
+        const displayAvatarUrl = avatarData
+          ? `${supabase.storage.from('avatars').getPublicUrl(avatarData).data.publicUrl}?v=${Date.now()}`
+          : ''
+
+        setUsername(userData)
+        setAvatarUrl(displayAvatarUrl)
+        setFullName(fullNameData)
+        setOriginalUsername(userData)
+        setOriginalAvatarUrl(displayAvatarUrl)
+        setOriginalFullName(fullNameData)
+      }
     } catch (error) {
       if (error instanceof Error) {
         Alert.alert(error.message)
+      }
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  async function handleAvatarUpload(filePath: string) {
+    try {
+      setProfileLoading(true)
+      if (!session?.user) throw new Error('No user on the session!')
+
+      // Update the database with the CLEAN file path
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: filePath,
+          updated_at: new Date()
+        })
+        .eq('id', session.user.id)
+
+      if (updateError) {
+        throw updateError
+      }
+
+      // Construct the display URL with cache-busting
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      const newDisplayUrl = `${data.publicUrl}?v=${Date.now()}`
+
+      // Update local state to trigger a re-render with the new URL
+      setAvatarUrl(newDisplayUrl)
+      setOriginalAvatarUrl(newDisplayUrl)
+      Alert.alert('Avatar updated successfully!')
+
+    } catch (error) {
+      if (error instanceof Error) {
+        Alert.alert('Error', error.message)
       }
     } finally {
       setProfileLoading(false)
@@ -75,7 +120,6 @@ export default function AccountScreen() {
       setProfileLoading(true)
       if (!session?.user) throw new Error('No user on the session!')
 
-      // Only include fields that have actually changed
       const updates: any = {
         id: session?.user.id,
         updated_at: new Date(),
@@ -84,24 +128,15 @@ export default function AccountScreen() {
       if (username !== originalUsername) {
         updates.username = username
       }
-      if (avatarUrl !== originalAvatarUrl) {
-        updates.avatar_url = avatarUrl
-      }
       if (fullName !== originalFullName) {
         updates.full_name = fullName
       }
 
-      // Only send request if there are actual changes
-      if (Object.keys(updates).length > 2) { // More than just id and updated_at
+      if (Object.keys(updates).length > 2) {
         const { error } = await supabase.from('profiles').upsert(updates)
-
-        if (error) {
-          throw error
-        }
-        
+        if (error) throw error
         Alert.alert('Profile updated successfully!')
       } else {
-        // No changes to save
         Alert.alert('No changes to save')
       }
     } catch (error) {
@@ -127,26 +162,23 @@ export default function AccountScreen() {
   const handleCancel = () => {
     // Reset to original values
     setUsername(originalUsername)
-    setAvatarUrl(originalAvatarUrl)
     setFullName(originalFullName)
+    setAvatarUrl(originalAvatarUrl) // Reset avatar URL on cancel
     setIsEditing(false)
   }
 
   const handleSave = async () => {
     try {
       await updateProfile()
-      // Update original values after successful save
       setOriginalUsername(username)
-      setOriginalAvatarUrl(avatarUrl)
       setOriginalFullName(fullName)
       setIsEditing(false)
     } catch (error) {
-      // Error handling is done in updateProfile
       console.error('Error saving profile:', error)
     }
   }
 
-  const hasChanges = username !== originalUsername || avatarUrl !== originalAvatarUrl || fullName !== originalFullName
+  const hasChanges = username !== originalUsername || fullName !== originalFullName
 
   return (
     <View style={styles.container}>
@@ -158,13 +190,13 @@ export default function AccountScreen() {
           </TouchableOpacity>
         )}
       </View>
-      
+
       {/* Avatar Section */}
       <View style={styles.avatarSection}>
         <Avatar
           size={120}
           url={avatarUrl}
-          onUpload={isEditing ? (url: string) => setAvatarUrl(url) : undefined}
+          onUpload={isEditing ? handleAvatarUpload : undefined}
         />
       </View>
 
@@ -172,7 +204,7 @@ export default function AccountScreen() {
         <View style={styles.userInfo}>
           <Text style={styles.label}>Email:</Text>
           <Text style={styles.value}>{session.user.email}</Text>
-          
+
           <Text style={styles.label}>Username:</Text>
           {isEditing ? (
             <View style={styles.inputContainer}>
@@ -188,7 +220,7 @@ export default function AccountScreen() {
           ) : (
             <Text style={styles.value}>{username || 'Not set'}</Text>
           )}
-          
+
           <Text style={styles.label}>Full Name:</Text>
           {isEditing ? (
             <View style={styles.inputContainer}>
@@ -210,8 +242,8 @@ export default function AccountScreen() {
       <View style={styles.actions}>
         {isEditing ? (
           <>
-            <TouchableOpacity 
-              style={[styles.saveButton, { opacity: profileLoading || !hasChanges ? 0.6 : 1 }]} 
+            <TouchableOpacity
+              style={[styles.saveButton, { opacity: profileLoading || !hasChanges ? 0.6 : 1 }]}
               onPress={handleSave}
               disabled={profileLoading || !hasChanges}
             >
@@ -219,9 +251,9 @@ export default function AccountScreen() {
                 {profileLoading ? 'Saving...' : 'Save Changes'}
               </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.cancelButton} 
+
+            <TouchableOpacity
+              style={styles.cancelButton}
               onPress={handleCancel}
               disabled={profileLoading}
             >
@@ -233,7 +265,7 @@ export default function AccountScreen() {
             <Link href="/home" style={styles.backLink}>
               ← Back to Home
             </Link>
-            
+
             <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
               <Text style={styles.signOutText}>Sign Out</Text>
             </TouchableOpacity>
