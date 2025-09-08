@@ -20,7 +20,6 @@ AppState.addEventListener('change', (state) => {
 
 // Required for web only
 WebBrowser.maybeCompleteAuthSession()
-const redirectTo = makeRedirectUri()
 
 // --- Helper Functions for OAuth & Deep Linking ---
 
@@ -70,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (mounted) {
-        console.log('Initial session:', session ? 'Found' : 'None')
         setSession(session)
         setLoading(false)
       }
@@ -81,8 +79,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       if (mounted) {
-        console.log('Auth state change:', event, session ? 'Session found' : 'No session')
-        console.log('Event details:', { event, session: session ? 'exists' : 'null' })
         setSession(session)
         setLoading(false)
       }
