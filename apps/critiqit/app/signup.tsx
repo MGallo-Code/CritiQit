@@ -1,52 +1,71 @@
+// apps/critiqit/app/signup.tsx
+
 import React, { useState } from 'react'
-import { Alert, StyleSheet, View, Text, TouchableOpacity } from 'react-native'
-import { supabase } from '../lib/supabase'
+import { StyleSheet, View, Text } from 'react-native'
+import { Link, Redirect, useRouter } from 'expo-router' 
 import { Button, Input } from '@rneui/themed'
+// Custom code
+import { supabase } from '../lib/supabase'
+import { Alert } from '../lib/alert'
+import { useAuth } from '../lib/auth-context'
 
-interface SignUpFormProps {
-  onSwitchToSignIn: () => void
-}
+export default function SignUpScreen() {
+  const router = useRouter() 
 
-export default function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
   const [email, setEmail] = useState('')
-  const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const { session, loading: authLoading } = useAuth()
+
+  // Redirect if already authenticated
+  if (!authLoading && session) {
+    return <Redirect href="/home" />
+  }
 
   async function signUpWithEmail() {
     if (!email || !password || !confirmPassword) {
       Alert.alert('Please fill in all fields')
       return
     }
-    
+
     if (password !== confirmPassword) {
       Alert.alert('Passwords do not match', 'Please make sure your passwords match.')
       return
     }
-    
+
     if (password.length < 6) {
       Alert.alert('Password too short', 'Password must be at least 6 characters long.')
       return
     }
-    
+
     setLoading(true)
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.signUp({
+    const { data: { user }, error } = await supabase.auth.signUp({
       email: email,
       password: password,
-      options: {
-        data: {
-          full_name: fullName.trim() || undefined
-        }
-      }
     })
 
-    if (error) Alert.alert('Sign Up Error', error.message)
-    if (!session) Alert.alert('Account Created!', 'Please check your inbox for email verification.')
+    console.log(user);
+
     setLoading(false)
+
+    if (error) {
+      Alert.alert('Sign Up Error', error.message)
+    } else if (user) {
+      console.log('User created, redirecting to confirmation page');
+      router.push({
+        pathname: '/confirm-email',
+        params: { email: email },
+      })
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    )
   }
 
   return (
@@ -68,27 +87,16 @@ export default function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
       
       <View style={styles.verticallySpaced}>
         <Input
-          label="Full Name (Optional)"
-          leftIcon={{ type: 'font-awesome', name: 'user' }}
-          onChangeText={(text) => setFullName(text)}
-          value={fullName}
-          placeholder="John Doe"
-          autoCapitalize={'words'}
-        />
-      </View>
-      
-      <View style={styles.verticallySpaced}>
-        <Input
           label="Password"
           leftIcon={{ type: 'font-awesome', name: 'lock' }}
           onChangeText={(text) => setPassword(text)}
           value={password}
           secureTextEntry={true}
-          placeholder="Password (min 6 characters)"
+          placeholder="Password"
           autoCapitalize={'none'}
         />
       </View>
-      
+
       <View style={styles.verticallySpaced}>
         <Input
           label="Confirm Password"
@@ -96,25 +104,37 @@ export default function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
           onChangeText={(text) => setConfirmPassword(text)}
           value={confirmPassword}
           secureTextEntry={true}
-          placeholder="Confirm your password"
+          placeholder="Confirm Password"
           autoCapitalize={'none'}
         />
       </View>
       
       <View style={[styles.verticallySpaced, styles.mt20]}>
         <Button 
-          title="Create Account" 
+          title="Sign Up" 
           disabled={loading} 
           onPress={signUpWithEmail}
           type="solid"
         />
       </View>
+      
+      <View style={styles.verticallySpaced}>
+        <Text style={styles.helperText}>
+          By signing up, you agree to our Terms of Service and Privacy Policy.
+        </Text>
+      </View>
 
       <View style={styles.switchContainer}>
         <Text style={styles.switchText}>Already have an account? </Text>
-        <TouchableOpacity onPress={onSwitchToSignIn}>
-          <Text style={styles.switchLink}>Sign In</Text>
-        </TouchableOpacity>
+        <Link href="/signin" style={styles.switchLink}>
+          Sign In
+        </Link>
+      </View>
+
+      <View style={styles.backContainer}>
+        <Link href="/home" style={styles.backLink}>
+          ← Back to Home
+        </Link>
       </View>
     </View>
   )
@@ -122,19 +142,15 @@ export default function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 40,
+    flex: 1,
     padding: 20,
-    backgroundColor: '#ffffff',
-    margin: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    textAlign: 'center',
+    fontSize: 18,
+    color: '#666',
   },
   title: {
     fontSize: 28,
@@ -146,33 +162,43 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 30,
     color: '#666',
   },
   verticallySpaced: {
     paddingTop: 4,
     paddingBottom: 4,
-    alignSelf: 'stretch',
   },
   mt20: {
     marginTop: 20,
+  },
+  helperText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
   },
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 30,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    marginTop: 20,
   },
   switchText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666',
   },
   switchLink: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#007AFF',
     fontWeight: '600',
+  },
+  backContainer: {
+    marginTop: 30,
+    alignItems: 'center',
+  },
+  backLink: {
+    fontSize: 14,
+    color: '#666',
+    textDecorationLine: 'underline',
   },
 })

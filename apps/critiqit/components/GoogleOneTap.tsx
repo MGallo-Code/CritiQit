@@ -1,14 +1,26 @@
-import React, { useEffect } from 'react'
-import { Platform, Alert } from 'react-native'
-import { supabase } from '../lib/supabase'
+// apps/critiqit/components/GoogleOneTap.tsx
 
-// TypeScript declarations for Google Identity Services
+import { useEffect } from 'react'
+import { Platform } from 'react-native'
+// Custom code
+import { supabase } from '../lib/supabase'
+import { Alert } from '../lib/alert'
+
+// TypeScript declarations for Google Identity Services with FedCM
 declare global {
   interface Window {
     google: {
       accounts: {
         id: {
-          initialize: (config: any) => void
+          initialize: (config: {
+            client_id: string
+            callback: (response: any) => void
+            auto_select?: boolean
+            cancel_on_tap_outside?: boolean
+            use_fedcm_for_prompt?: boolean
+            use_fedcm_for_button?: boolean
+            button_auto_select?: boolean
+          }) => void
           prompt: (callback?: (notification: any) => void) => void
         }
       }
@@ -19,6 +31,12 @@ declare global {
 export default function GoogleOneTap() {
   useEffect(() => {
     if (Platform.OS === 'web') {
+      // Get Google Client ID from environment variables
+      const google_client_id = process.env.EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
+      if (!google_client_id) {
+        console.error('Google Client ID is not set in the environment variables.')
+        return;
+      }
       // Load Google Identity Services
       const script = document.createElement('script')
       script.src = 'https://accounts.google.com/gsi/client'
@@ -30,19 +48,15 @@ export default function GoogleOneTap() {
         // Initialize Google One Tap
         if (window.google) {
           window.google.accounts.id.initialize({
-            client_id: '1075700773857-b0ao16bjk3rbtg51ps2a0fivvjci5p05.apps.googleusercontent.com',
+            client_id: google_client_id,
             callback: handleCredentialResponse,
             auto_select: false,
             cancel_on_tap_outside: true,
+            use_fedcm_for_prompt: true, // Enable FedCM for One Tap
           })
 
           // Render the One Tap prompt
-          window.google.accounts.id.prompt((notification) => {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              // One Tap was not displayed or was skipped
-              console.log('One Tap not displayed or skipped')
-            }
-          })
+          window.google.accounts.id.prompt()
         }
       }
 

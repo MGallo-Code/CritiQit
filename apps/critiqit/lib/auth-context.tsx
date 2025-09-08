@@ -1,11 +1,12 @@
 import React, { useState, useEffect, createContext, useContext } from 'react'
-import { AppState, Alert } from 'react-native'
+import { AppState } from 'react-native'
 import { supabase } from './supabase'
 import { makeRedirectUri } from 'expo-auth-session'
 import * as Linking from 'expo-linking'
 import * as QueryParams from 'expo-auth-session/build/QueryParams'
 import * as WebBrowser from 'expo-web-browser'
 import { Session } from '@supabase/supabase-js'
+import { Alert } from './alert'
 
 // Tells Supabase Auth to continuously refresh the session automatically if
 // the app is in the foreground.
@@ -19,7 +20,6 @@ AppState.addEventListener('change', (state) => {
 
 // Required for web only
 WebBrowser.maybeCompleteAuthSession()
-const redirectTo = makeRedirectUri()
 
 // --- Helper Functions for OAuth & Deep Linking ---
 
@@ -69,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (mounted) {
-        console.log('Initial session:', session ? 'Found' : 'None')
         setSession(session)
         setLoading(false)
       }
@@ -80,8 +79,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       if (mounted) {
-        console.log('Auth state change:', event, session ? 'Session found' : 'No session')
-        console.log('Event details:', { event, session: session ? 'exists' : 'null' })
         setSession(session)
         setLoading(false)
       }
