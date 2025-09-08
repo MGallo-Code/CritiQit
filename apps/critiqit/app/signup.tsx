@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { StyleSheet, View, Text } from 'react-native'
 import { Link, Redirect, useRouter } from 'expo-router' 
 import { Button, Input } from '@rneui/themed'
+import { Turnstile } from '@marsidev/react-turnstile'
 // Custom code
 import { supabase } from '../lib/supabase'
 import { Alert } from '../lib/alert'
@@ -16,6 +17,7 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState()
   const { session, loading: authLoading } = useAuth()
 
   // Redirect if already authenticated
@@ -24,6 +26,11 @@ export default function SignUpScreen() {
   }
 
   async function signUpWithEmail() {
+    if (!captchaToken) {
+      Alert.alert('Please solve the captcha')
+      return
+    }
+
     if (!email || !password || !confirmPassword) {
       Alert.alert('Please fill in all fields')
       return
@@ -43,6 +50,9 @@ export default function SignUpScreen() {
     const { data: { user }, error } = await supabase.auth.signUp({
       email: email,
       password: password,
+      options: {
+        captchaToken,
+      },
     })
 
     console.log(user);
@@ -108,6 +118,13 @@ export default function SignUpScreen() {
           autoCapitalize={'none'}
         />
       </View>
+
+      <Turnstile
+        siteKey={process.env.EXPO_PUBLIC_TURNSTILE_SITEKEY}
+        onSuccess={(token) => {
+          setCaptchaToken(token)
+        }}
+      />
       
       <View style={[styles.verticallySpaced, styles.mt20]}>
         <Button 

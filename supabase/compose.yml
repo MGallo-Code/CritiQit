@@ -156,6 +156,11 @@ services:
       GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: ${API_EXTERNAL_URL}/storage/v1/object/public/email-templates//magic_link.html
       GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE: ${API_EXTERNAL_URL}/storage/v1/object/public/email-templates//email_change.html
 
+      # CAPTCHA Cloudflare Turnstile
+      GOTRUE_SECURITY_CAPTCHA_ENABLED: ${SECURITY_CAPTCHA_ENABLED}
+      GOTRUE_SECURITY_CAPTCHA_PROVIDER: ${SECURITY_CAPTCHA_PROVIDER}
+      GOTRUE_SECURITY_CAPTCHA_SECRET: ${SECURITY_CAPTCHA_SECRET}
+
       # Uncomment to enable custom access token hook. Please see: https://supabase.com/docs/guides/auth/auth-hooks for full list of hooks and additional details about custom_access_token_hook
 
       # GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED: "true"
