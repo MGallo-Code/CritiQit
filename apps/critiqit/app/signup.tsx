@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase'
 import { Alert } from '../lib/alert'
 import { useAuth } from '../lib/auth-context'
 
+
 export default function SignUpScreen() {
   const router = useRouter() 
 
@@ -17,11 +18,18 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [captchaToken, setCaptchaToken] = useState()
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>()
   const { session, loading: authLoading } = useAuth()
 
   // Redirect if already authenticated
   if (!authLoading && session) {
+    return <Redirect href="/home" />
+  }
+
+  // CAPTCHA, Cloudflare Turnstile
+  const turnstileSiteKey = process.env.EXPO_PUBLIC_TURNSTILE_SITEKEY
+  if (!turnstileSiteKey) {
+    Alert.alert('Turnstile token is not set...')
     return <Redirect href="/home" />
   }
 
@@ -120,10 +128,9 @@ export default function SignUpScreen() {
       </View>
 
       <Turnstile
-        siteKey={process.env.EXPO_PUBLIC_TURNSTILE_SITEKEY}
-        onSuccess={(token) => {
-          setCaptchaToken(token)
-        }}
+        // Already checked for undefined above...
+        siteKey={turnstileSiteKey || ''}
+        onSuccess={(token) => setCaptchaToken(token)}
       />
       
       <View style={[styles.verticallySpaced, styles.mt20]}>

@@ -12,6 +12,7 @@ import { Alert } from '../lib/alert'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth-context'
 import GoogleOneTap from '../components/GoogleOneTap'
+import { Turnstile } from '@marsidev/react-turnstile'
 
 const redirectTo = makeRedirectUri()
 
@@ -28,17 +29,25 @@ const createSessionFromUrl = async (url: string) => {
     refresh_token,
   })
   if (error) Alert.alert(error.message)
-  return data.session
-}
+    return data.session
+  }
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>()
   const { session, loading: authLoading } = useAuth()
 
   // Redirect if already authenticated
   if (!authLoading && session) {
+    return <Redirect href="/home" />
+  }
+
+  // CAPTCHA, Cloudflare Turnstile
+  const turnstileSiteKey = process.env.EXPO_PUBLIC_TURNSTILE_SITEKEY
+  if (!turnstileSiteKey) {
+    Alert.alert('Turnstile token is not set...')
     return <Redirect href="/home" />
   }
 
@@ -52,6 +61,9 @@ export default function SignInScreen() {
     const { error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
+      options: {
+        captchaToken: captchaToken,
+      },
     })
 
     if (error) Alert.alert('Sign In Error', error.message)
@@ -68,7 +80,8 @@ export default function SignInScreen() {
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
-        }
+        },
+
       },
     })
     
@@ -123,6 +136,14 @@ export default function SignInScreen() {
           autoCapitalize={'none'}
         />
       </View>
+
+      <Turnstile
+        // Already checked for undefined above...
+        siteKey={turnstileSiteKey || ''}
+        onSuccess={(token) => {
+          setCaptchaToken(token)
+        }}
+      />
       
       <View style={[styles.verticallySpaced, styles.mt20]}>
         <Button 
