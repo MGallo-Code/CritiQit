@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { StyleSheet, View, Image, Button, Platform } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
+import * as FileSystem from 'expo-file-system'
 import { Alert } from '../lib/alert'
 import { useAuth } from '../lib/auth-context'
 
@@ -59,23 +60,49 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       })
       const finalUri = formatted.uri
       
-      const response = await fetch(finalUri)
-      const arrayBuffer = await response.arrayBuffer()
-      const blob = new Blob([arrayBuffer], { type: 'image/webp' })
-      
       const userId = session.user.id
       const filePath = `${userId}/avatar.webp`
 
-      const { error } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, blob, {
-          cacheControl: '3600',
-          upsert: true, // This overwrites the old avatar
-          contentType: 'image/webp',
+      if (Platform.OS === 'web') {
+        // Web: use Supabase client with blob
+        const response = await fetch(finalUri)
+        const arrayBuffer = await response.arrayBuffer()
+        const blob = new Blob([arrayBuffer], { type: 'image/webp' })
+        
+        const { error } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, blob, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType: 'image/webp',
+          })
+
+        if (error) throw error
+      } else {
+        // Mobile: use Expo FileSystem direct upload
+        const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
+        const accessToken = session.access_token
+        
+        if (!supabaseUrl || !accessToken) {
+          throw new Error('Missing Supabase configuration')
+        }
+
+        const uploadUrl = `${supabaseUrl}/storage/v1/object/avatars/${filePath}`
+        const res = await FileSystem.uploadAsync(uploadUrl, finalUri, {
+          httpMethod: 'POST',
+          uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+          headers: {
+            'Content-Type': 'image/webp',
+            'Authorization': `Bearer ${accessToken}`,
+            'x-upsert': 'true',
+            'Cache-Control': '3600',
+          },
         })
 
-      if (error) {
-        throw error
+        if (res.status !== 200 && res.status !== 201) {
+          const message = res.body ? JSON.parse(res.body)?.message : `Upload failed with status ${res.status}`
+          throw new Error(message)
+        }
       }
 
       // Call the parent's upload handler with the clean file path
