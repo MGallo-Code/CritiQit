@@ -12,7 +12,7 @@ import { Alert } from '../lib/alert'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth-context'
 import GoogleOneTap from '../components/GoogleOneTap'
-import { Turnstile } from '@marsidev/react-turnstile'
+import { Turnstile } from '../components/Turnstile'
 
 const redirectTo = makeRedirectUri()
 
@@ -41,13 +41,6 @@ export default function SignInScreen() {
 
   // Redirect if already authenticated
   if (!authLoading && session) {
-    return <Redirect href="/home" />
-  }
-
-  // CAPTCHA, Cloudflare Turnstile
-  const turnstileSiteKey = process.env.EXPO_PUBLIC_TURNSTILE_SITEKEY
-  if (!turnstileSiteKey) {
-    Alert.alert('Turnstile token is not set...')
     return <Redirect href="/home" />
   }
 
@@ -81,7 +74,6 @@ export default function SignInScreen() {
           access_type: 'offline',
           prompt: 'consent',
         },
-
       },
     })
     
@@ -138,11 +130,7 @@ export default function SignInScreen() {
       </View>
 
       <Turnstile
-        // Already checked for undefined above...
-        siteKey={turnstileSiteKey || ''}
-        onSuccess={(token) => {
-          setCaptchaToken(token)
-        }}
+        onTokenReceived={(token) => setCaptchaToken(token)}
       />
       
       <View style={[styles.verticallySpaced, styles.mt20]}>

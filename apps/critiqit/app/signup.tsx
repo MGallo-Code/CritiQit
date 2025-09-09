@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { StyleSheet, View, Text } from 'react-native'
 import { Link, Redirect, useRouter } from 'expo-router' 
 import { Button, Input } from '@rneui/themed'
-import { Turnstile } from '@marsidev/react-turnstile'
+import { Turnstile } from '../components/Turnstile'
 // Custom code
 import { supabase } from '../lib/supabase'
 import { Alert } from '../lib/alert'
@@ -23,13 +23,6 @@ export default function SignUpScreen() {
 
   // Redirect if already authenticated
   if (!authLoading && session) {
-    return <Redirect href="/home" />
-  }
-
-  // CAPTCHA, Cloudflare Turnstile
-  const turnstileSiteKey = process.env.EXPO_PUBLIC_TURNSTILE_SITEKEY
-  if (!turnstileSiteKey) {
-    Alert.alert('Turnstile token is not set...')
     return <Redirect href="/home" />
   }
 
@@ -128,9 +121,7 @@ export default function SignUpScreen() {
       </View>
 
       <Turnstile
-        // Already checked for undefined above...
-        siteKey={turnstileSiteKey || ''}
-        onSuccess={(token) => setCaptchaToken(token)}
+        onTokenReceived={(token) => setCaptchaToken(token)}
       />
       
       <View style={[styles.verticallySpaced, styles.mt20]}>
