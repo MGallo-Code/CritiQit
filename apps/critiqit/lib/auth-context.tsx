@@ -86,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Handle incoming deep links
     const handleUrl = (url: string) => {
+      console.log('Deep link received:', url)
       createSessionFromUrl(url)
     }
     

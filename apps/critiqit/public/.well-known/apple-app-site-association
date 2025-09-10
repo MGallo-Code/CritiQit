@@ -1,0 +1,22 @@
+{
+    "applinks": {
+        "apps": [], 
+        "defaults": { "percentEncoded": false },
+        "details": [
+            {
+                "appID": "Z2L7G9JS2J.com.mgco.critiqit",
+                "paths": ["*"],
+                "appIDs": ["Z2L7G9JS2J.com.mgco.critiqit"],
+                "components": [
+                    { "/": "/*" }
+                ]
+            }
+        ]
+    },
+    "activitycontinuation": {
+        "apps": ["Z2L7G9JS2J.com.mgco.critiqit"]
+    },
+    "webcredentials": {
+        "apps": ["Z2L7G9JS2J.com.mgco.critiqit"]
+    }
+}

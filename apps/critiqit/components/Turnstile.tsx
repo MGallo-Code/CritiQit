@@ -68,10 +68,10 @@ export const MobileTurnstile: React.FC<MobileTurnstileProps> = ({ onTokenReceive
   return (
     <View style={[styles.container, { height: webViewHeight }]}>
       <WebView
+        originWhitelist={['*', 'challenges.cloudflare.com', 'about:blank', 'about:srcdoc']}
         onMessage={handleMessage}
         domStorageEnabled={true}
         javaScriptEnabled={true}
-        mixedContentMode="compatibility"
         scrollEnabled={false}
         source={{
             // Important to use baseURL for cloudflare domain issues
