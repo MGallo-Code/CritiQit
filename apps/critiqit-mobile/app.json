@@ -20,8 +20,9 @@
       "associatedDomains": [
         "applinks:critiqit.io",
         "applinks:www.critiqit.io",
-        "applinks:api.critiqit.io",
-        "applinks:www.api.critiqit.io"
+        "applinks:app.critiqit.io",
+        "applinks:www.app.critiqit.io",
+        "applinks:api.critiqit.io"
       ],
       "config": {
         "usesNonExemptEncryption": false
@@ -30,6 +31,20 @@
       "bundleIdentifier": "com.mgco.critiqit"
     },
     "android": {
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "*.critiqit.io",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
