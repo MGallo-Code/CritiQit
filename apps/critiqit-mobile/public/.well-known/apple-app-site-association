@@ -5,11 +5,7 @@
         "details": [
             {
                 "appID": "Z2L7G9JS2J.com.mgco.critiqit",
-                "paths": ["*"],
-                "appIDs": ["Z2L7G9JS2J.com.mgco.critiqit"],
-                "components": [
-                    { "/": "/*" }
-                ]
+                "paths": ["*", "/home", "/account", "/signin", "/signup", "/confirm-email"]
             }
         ]
     },
