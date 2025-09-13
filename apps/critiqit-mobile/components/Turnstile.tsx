@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import WebView, { WebViewMessageEvent } from 'react-native-webview';
-import { Turnstile as WebTurnstile } from '@marsidev/react-turnstile';
 
 // Props for generic Turnstile component
 interface TurnstileProps {
@@ -23,27 +22,33 @@ export const Turnstile: React.FC<TurnstileProps> = ({ onTokenReceived }) => {
     }
 
     // If on web, return prebuilt web Turnstile component
-    if (Platform.OS === 'web') {
-        return (
-            <WebTurnstile
-                siteKey={turnstileSiteKey}
-                onSuccess={(token) => {
-                    onTokenReceived(token)
-                }}
-            />
-        )
-    } 
-    // If on mobile, return custom WebView-based Turnstile component
-    else {
-        return (
-            <MobileTurnstile
-                siteKey={turnstileSiteKey}
-                onTokenReceived={(token) => {
-                    onTokenReceived(token)
-                }}
-            />
-        )
-    }
+    // if (Platform.OS === 'web') {
+    //     return (
+    //         <WebTurnstile
+    //             siteKey={turnstileSiteKey}
+    //             onSuccess={(token) => {
+    //                 onTokenReceived(token)
+    //             }}
+    //         />
+    //     )
+    // } 
+    // // If on mobile, return custom WebView-based Turnstile component
+    // else {
+    //     return (
+    //         <MobileTurnstile
+    //             siteKey={turnstileSiteKey}
+    //             onTokenReceived={(token) => {
+    //                 onTokenReceived(token)
+    //             }}
+    //         />
+    //     )
+    // }
+    return <MobileTurnstile
+      siteKey={turnstileSiteKey}
+      onTokenReceived={(token) => {
+        onTokenReceived(token)
+      }}
+    />
 }
 
 export const MobileTurnstile: React.FC<MobileTurnstileProps> = ({ onTokenReceived, siteKey }) => {

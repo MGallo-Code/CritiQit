@@ -1,7 +1,8 @@
 import React, { useState, useEffect, createContext, useContext } from 'react'
 import { AppState } from 'react-native'
 import { supabase } from './supabase'
-import { makeRedirectUri } from 'expo-auth-session'
+//TODO check if this is needed
+// import { makeRedirectUri } from 'expo-auth-session'
 import * as Linking from 'expo-linking'
 import * as QueryParams from 'expo-auth-session/build/QueryParams'
 import * as WebBrowser from 'expo-web-browser'

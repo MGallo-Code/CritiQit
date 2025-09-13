@@ -3,7 +3,8 @@
 import React, { useState } from 'react'
 import { StyleSheet, View, Text } from 'react-native'
 import { Link, Redirect, useRouter } from 'expo-router' 
-import { Button, Input } from '@rneui/themed'
+import Button from '../components/ui/Button'
+import Input from '../components/ui/Input'
 import { Turnstile } from '../components/Turnstile'
 // Custom code
 import { supabase } from '../lib/supabase'

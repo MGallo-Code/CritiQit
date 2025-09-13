@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase'
 import { StyleSheet, View, Image, Button, Platform } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
-import * as FileSystem from 'expo-file-system'
+import { fetch } from 'expo/fetch'
+import { File } from 'expo-file-system'
 import { Alert } from '../lib/alert'
 import { useAuth } from '../lib/auth-context'
 
@@ -40,7 +41,7 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 1,
@@ -62,6 +63,7 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       
       const userId = session.user.id
       const filePath = `${userId}/avatar.webp`
+      const file = new File(finalUri)
 
       if (Platform.OS === 'web') {
         // Web: use Supabase client with blob
@@ -88,20 +90,19 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
         }
 
         const uploadUrl = `${supabaseUrl}/storage/v1/object/avatars/${filePath}`
-        const res = await FileSystem.uploadAsync(uploadUrl, finalUri, {
-          httpMethod: 'POST',
-          uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+        const res = await fetch(uploadUrl, {
+          method: 'POST',
           headers: {
             'Content-Type': 'image/webp',
             'Authorization': `Bearer ${accessToken}`,
             'x-upsert': 'true',
             'Cache-Control': '3600',
           },
-        })
+          body: file,
+        });
 
-        if (res.status !== 200 && res.status !== 201) {
-          const message = res.body ? JSON.parse(res.body)?.message : `Upload failed with status ${res.status}`
-          throw new Error(message)
+        if (!res.ok) {
+          throw new Error(`Upload failed: ${res.statusText}, ${res.statusText}`);
         }
       }
 

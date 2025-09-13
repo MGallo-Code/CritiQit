@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -18,11 +18,8 @@
     ],
     "ios": {
       "associatedDomains": [
-        "applinks:critiqit.io",
-        "applinks:www.critiqit.io",
         "applinks:app.critiqit.io",
-        "applinks:www.app.critiqit.io",
-        "applinks:api.critiqit.io"
+        "applinks:www.app.critiqit.io"
       ],
       "config": {
         "usesNonExemptEncryption": false
@@ -38,11 +35,14 @@
           "data": [
             {
               "scheme": "https",
-              "host": "*.critiqit.io",
+              "host": "app.critiqit.io",
               "pathPrefix": "/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "adaptiveIcon": {
@@ -59,7 +59,15 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-router"
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them.",
+          "cameraPermission": "The app accesses your camera to let you take photos."
+        }
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
@@ -67,8 +75,11 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "7568476f-1517-4e5e-b2e0-614e1ce82243"
+        "projectId": "26fd8712-905d-4b31-a48c-2d725e41d8fc"
       }
+    },
+    "developmentClient": {
+      "silentLaunch": true
     },
     "owner": "mgallo.code"
   }
