@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Turnstile } from "@/components/ui/turnstile";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -23,9 +24,16 @@ export function ForgotPasswordForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!turnstileToken) {
+      setError("Please complete the security verification");
+      return;
+    }
+
     const supabase = createClient();
     setIsLoading(true);
     setError(null);
@@ -34,6 +42,7 @@ export function ForgotPasswordForm({
       // The url which will be included in the email. This URL needs to be configured in your redirect URLs in the Supabase dashboard at https://supabase.com/dashboard/project/_/auth/url-configuration
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/update-password`,
+        captchaToken: turnstileToken,
       });
       if (error) throw error;
       setSuccess(true);
@@ -82,8 +91,16 @@ export function ForgotPasswordForm({
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
+                <div className="grid gap-2">
+                  <Label>Security Verification</Label>
+                  <Turnstile
+                    onTokenReceived={setTurnstileToken}
+                    onError={(error) => setError(`Security verification failed: ${error}`)}
+                    onExpired={() => setTurnstileToken(null)}
+                  />
+                </div>
                 {error && <p className="text-sm text-red-500">{error}</p>}
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
                   {isLoading ? "Sending..." : "Send reset email"}
                 </Button>
               </div>
