@@ -9,10 +9,12 @@ export const CurrentUserAvatar = () => {
   const username = currentUser?.username || ""
 
   return (
-    <Avatar>
-      {username && <p>{username}</p>}
-      <AvatarImage src={profileImage} alt={username || "User Profile Image"} />
-      <AvatarFallback>{username}</AvatarFallback>
-    </Avatar>
+      <a className="flex items-center gap-2" href="/profile">
+        <Avatar>
+          <AvatarImage src={profileImage} alt={username || "User Profile Image"} />
+          <AvatarFallback>{username}</AvatarFallback>
+        </Avatar>
+        {username && <p>{username}</p>}
+      </a>
   )
 }

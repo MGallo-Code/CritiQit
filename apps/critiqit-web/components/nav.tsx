@@ -10,13 +10,13 @@ const anonNavItems = [
 
 const authNavItems = [
     { label: "Home", href: "/" },
-    { label: "Dashboard", href: "/protected" },
-    { label: "Profile", href: "/profile" }
+    { label: "Dashboard", href: "/protected" }
 ]
 
 export function Nav() {
     const currentUser = useCurrentUser();
     const navItems = currentUser ? authNavItems : anonNavItems;
+    const profileItem = currentUser ? <CurrentUserAvatar /> : <Link href="/auth/login">Sign in</Link>;
     return (
         <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
             <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
@@ -27,7 +27,7 @@ export function Nav() {
                     {navItems.map((item) => (
                         <Link key={item.href} href={item.href}>{item.label}</Link>
                     ))}
-                    <CurrentUserAvatar />
+                    {profileItem}
                 </div>
             </div>
         </nav>
