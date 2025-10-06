@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-
+import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
 const defaultUrl = `https://${process.env.VERCEL_URL}`;
 
 export const metadata: Metadata = {
@@ -31,7 +32,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <Nav />
           {children}
+          <Footer />
         </ThemeProvider>
       </body>
     </html>
