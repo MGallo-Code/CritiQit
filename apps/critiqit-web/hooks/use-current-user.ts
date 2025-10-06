@@ -17,6 +17,11 @@ export const useCurrentUser = () => {
         console.error(error)
       }
 
+      if (!data.session) {
+        setUser(null)
+        return
+      }
+
       const userId = data.session?.user.user_metadata.sub
 
       const { data: userProfile, error: userProfileError } = await createClient().from('profiles').select('*').eq('id', userId).single()
