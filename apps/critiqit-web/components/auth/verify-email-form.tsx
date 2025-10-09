@@ -105,6 +105,11 @@ export function VerifyEmailForm({ initialEmail = "" }: VerifyEmailFormProps) {
               disabled={true}
               onChange={(event) => setEmail(event.target.value)}
             />
+            <input
+              type="hidden"
+              name="email"
+              value={email}
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="token">Verification code</Label>

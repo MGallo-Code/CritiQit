@@ -35,7 +35,7 @@ export async function verifyResetCodeAction(
   const supabase = await createClient();
 
   const { error } = await supabase.auth.verifyOtp({
-    type: "recovery",
+    req_type: "recovery",
     email,
     token,
     options: {

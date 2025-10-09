@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { FunctionsHttpError } from '@supabase/supabase-js'
 
 // form state for verify email code
 export type VerifyEmailFormState = {
@@ -32,21 +33,23 @@ export async function verifyEmailCodeAction(
 
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.verifyOtp({
-    type: "signup",
-    email,
-    token,
-    options: {
-      captchaToken,
+  const { error } = await supabase.functions.invoke('verify-otp-securely', {
+    body: {
+      req_type: "signup",
+      email: email,
+      token: token,
+      captchaToken: captchaToken,
     },
   });
 
-  if (error) {
+  if (error && error instanceof FunctionsHttpError) {
+    const errorObj = await error.context.json()
     return {
       status: "error",
-      error: error.message,
+      error: errorObj.error,
     };
   }
+
 
   return {
     status: "success",
