@@ -41,13 +41,19 @@ export function LoginForm({
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
         options: {
           captchaToken: turnstileToken
         }
       });
+      // if email not confirmed, redirect to verify email page
+      if (error && error.message && error.message.includes("Email not confirmed")) {
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
+      // throw any errors
       if (error) throw error;
       // Update this route to redirect to an authenticated route. The user already has an active session.
       router.push("/protected");
