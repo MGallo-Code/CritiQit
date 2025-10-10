@@ -34,19 +34,20 @@ export async function verifyResetCodeAction(
   // create supabase client, attempt to verify otp
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.verifyOtp({
-    req_type: "recovery",
-    email,
-    token,
-    options: {
-      captchaToken,
+  const { error } = await supabase.functions.invoke('verify-otp-securely', {
+    body: {
+      req_type: "recovery",
+      email: email,
+      token: token,
+      captchaToken: captchaToken,
     },
   });
 
-  if (error) {
+  if (error && error instanceof FunctionsHttpError) {
+    const errorObj = await error.context.json()
     return {
       status: "error",
-      error: error.message,
+      error: errorObj.error,
     };
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useEffect, useMemo, useState, useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,11 +41,11 @@ export function VerifyResetForm({ initialEmail = "" }: VerifyResetFormProps) {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileKey, setTurnstileKey] = useState(0);
 
-  const [verifyState, verifyAction] = useFormState(
+  const [verifyState, verifyAction] = useActionState(
     verifyResetCodeAction,
     INITIAL_FORM_STATE,
   );
-  const [resendState, resendAction] = useFormState(
+  const [resendState, resendAction] = useActionState(
     resendResetCodeAction,
     INITIAL_FORM_STATE,
   );
