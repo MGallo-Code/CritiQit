@@ -33,7 +33,7 @@ export async function verifyEmailCodeAction(
 
   const supabase = await createClient();
 
-  const { error } = await supabase.functions.invoke('verify-otp-securely', {
+  const { data,error } = await supabase.functions.invoke('verify-otp-securely', {
     body: {
       req_type: "signup",
       email: email,
@@ -50,12 +50,19 @@ export async function verifyEmailCodeAction(
     };
   }
 
+  if (!data || !data.session) {
+    return {
+      status: "error",
+      error: "Error verifying email. Please try again later.",
+    };
+  }
+
   const { access_token, refresh_token } = data.session
 
   if (!access_token || !refresh_token) {
     return {
       status: "error",
-      error: "Error setting session. Please try again later.",
+      error: "Error fetching session. Please try again later.",
     };
   }
 
