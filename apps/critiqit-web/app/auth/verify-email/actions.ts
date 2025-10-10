@@ -50,6 +50,26 @@ export async function verifyEmailCodeAction(
     };
   }
 
+  const { access_token, refresh_token } = data.session
+
+  if (!access_token || !refresh_token) {
+    return {
+      status: "error",
+      error: "Error setting session. Please try again later.",
+    };
+  }
+
+  const { sessionError } = await supabase.auth.setSession({
+    access_token,
+    refresh_token
+  })
+
+  if (sessionError) {
+    return {
+      status: "error",
+      error: sessionError.message,
+    };
+  }
 
   return {
     status: "success",
