@@ -34,16 +34,26 @@ basicauth_credentials:
 ### API Routes
 ###
 services:
-  ## Open Auth routes
-  - name: auth-v1-open
+  ## CLOSED Auth routes
+  - name: auth-v1-closed-verify
     url: http://auth:9999/verify
     routes:
-      - name: auth-v1-open
+      - name: auth-v1-closed-verify
         strip_path: true
         paths:
           - /auth/v1/verify
     plugins:
       - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          deny:
+            - anon
+
+  ## OPEN Auth routes
   - name: auth-v1-open-callback
     url: http://auth:9999/callback
     routes:
