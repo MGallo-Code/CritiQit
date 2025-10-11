@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useCurrentUser } from '@/providers/current-user-provider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ThemeSwitcher } from '@/components/auth/theme-switcher'
+import { Button } from '@/components/ui/button'
 import { LogoutButton } from '@/components/auth/logout-button'
 
 const ProfilePage = () => {
@@ -50,21 +51,24 @@ const ProfilePage = () => {
     <section className="flex flex-1 items-center justify-center p-6">
       <div className="flex w-full max-w-3xl flex-col gap-10 rounded-lg border border-border bg-background p-8 shadow-sm">
         <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-24 w-24">
+          <div className="flex items-center flex-col gap-4">
+            <Avatar className="h-40 w-40 shrink-0">
               <AvatarImage
                 src={user.avatar_url ?? undefined}
                 alt={avatarAlt}
               />
             </Avatar>
-            <div className="flex flex-col gap-1 p-5">
+            <div className="flex flex-col">
               <h1 className="text-3xl font-semibold"><span className="text-2xl text-muted-foreground font-light">@</span>{username}</h1>
             </div>
           </div>
         </header>
 
         <section className="grid gap-6 rounded-lg border border-border/70 p-6">
-          <h2 className="text-lg font-semibold">Profile Information</h2>
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold">Profile Information</h2>
+            <Button>Edit</Button>
+          </div>
           <dl className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
               <dt className="text-xs font-semibold uppercase text-muted-foreground">
