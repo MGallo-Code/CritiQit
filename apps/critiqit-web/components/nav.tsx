@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link";
-import { CurrentUserAvatar } from "./current-user-avatar";
-import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCurrentUser } from '@/providers/current-user-provider'
+import { CurrentUserAvatar } from '@/components/current-user-avatar'
+
 
 const anonNavItems = [
     { label: "Home", href: "/" },
@@ -14,9 +15,23 @@ const authNavItems = [
 ]
 
 export function Nav() {
-    const currentUser = useCurrentUser();
-    const navItems = currentUser ? authNavItems : anonNavItems;
-    const profileItem = currentUser ? <CurrentUserAvatar /> : <Link href="/auth/login">Sign in</Link>;
+    const { user, isLoading } = useCurrentUser();
+    const navItems = user ? authNavItems : anonNavItems;
+
+    let profileItem: React.ReactNode;
+    if (isLoading) {
+        profileItem = (
+            <div
+                aria-label="Loading profile"
+                className="h-8 w-8 rounded-full bg-muted animate-pulse"
+            />
+        );
+    } else if (user) {
+        profileItem = <CurrentUserAvatar />;
+    } else {
+        profileItem = <Link href="/auth/login">Sign in</Link>;
+    }
+
     return (
         <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
             <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">

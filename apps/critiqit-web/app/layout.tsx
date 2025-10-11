@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
+import { CurrentUserProvider } from "@/providers/current-user-provider";
 const defaultUrl = `https://${process.env.VERCEL_URL}`;
 
 export const metadata: Metadata = {
@@ -32,7 +33,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <CurrentUserProvider>
+            <div className="min-h-screen flex flex-col">
+              <Nav />
+              <main className="flex-1 flex flex-col">{children}</main>
+              <Footer />
+            </div>
+          </CurrentUserProvider>
         </ThemeProvider>
       </body>
     </html>
