@@ -1,22 +1,26 @@
 'use client'
 
+import Link from 'next/link'
 import { useCurrentUser } from '@/providers/current-user-provider'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
 
-// Component to display current user's avatar + name
 export const CurrentUserAvatar = () => {
-  // get current user's data and loading state
   const { user, isLoading } = useCurrentUser()
-  const profileImage = user?.avatar_url || '/images/default-avatar.svg'
-  const displayName = user?.username || ''
+  const username = user?.username ?? ''
+  const avatarUrl = user?.avatar_url || '/images/default-avatar.svg'
+  const avatarAlt = username
+    ? `${username}'s profile image`
+    : 'User profile image'
 
   return (
-    <a className="flex items-center gap-2" href="/profile">
+    <Link className="flex items-center gap-2" href="/profile">
       <Avatar>
-        <AvatarImage src={profileImage} alt={displayName || "User Profile Image"} />
-        <AvatarFallback>{displayName}</AvatarFallback>
+        <AvatarImage
+          src={avatarUrl}
+          alt={avatarAlt}
+        />
       </Avatar>
-      {!isLoading && displayName && <p>{displayName}</p>}
-    </a>
+      {!isLoading && username && <p>{username}</p>}
+    </Link>
   )
 }

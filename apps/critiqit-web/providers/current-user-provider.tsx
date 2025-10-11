@@ -6,11 +6,10 @@ import type { Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { usePathname } from 'next/navigation'
 
-// Sctructure for a user's profile data, comes from db profile table
 interface UserProfile {
-  email: string | null
+  email: string
   avatar_url: string | null
-  username: string | null
+  username: string
   full_name: string | null
 }
 
@@ -29,18 +28,18 @@ const mapSessionToUser = (
   profile: Partial<UserProfile> | null,
 ): UserProfile => {
   const metadata = session.user.user_metadata ?? {}
+  const email =
+    (metadata.email as string | undefined) ??
+    session.user.email ??
+    ''
+  const username = (profile?.username as string | undefined) ?? ''
   return {
-    email:
-      profile?.email ??
-      metadata.email as string | null,
-    avatar_url:
-      profile?.avatar_url ??
-      (metadata.picture as string | null),
-    username:
-      profile?.username ??
-      null,
+    email,
+    avatar_url: profile?.avatar_url ?? null,
+    username,
     full_name:
-      profile?.full_name || null,
+      (profile?.full_name as string | undefined) ??
+      null,
   }
 }
 
@@ -69,7 +68,6 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
   //   Ensure doesn't re-run on every render
   const loadProfile = useCallback(
     async (session: Session) => {
-      // Get user ID from session
       const userId = session.user.user_metadata?.sub as string | undefined
 
       // if no user ID, return null
