@@ -28,18 +28,12 @@ const mapSessionToUser = (
   profile: Partial<UserProfile> | null,
 ): UserProfile => {
   const metadata = session.user.user_metadata ?? {}
-  const email =
-    (metadata.email as string | undefined) ??
-    session.user.email ??
-    ''
-  const username = (profile?.username as string | undefined) ?? ''
+  
   return {
-    email,
+    email: (metadata.email as string | undefined) ?? '',
     avatar_url: profile?.avatar_url ?? null,
-    username,
-    full_name:
-      (profile?.full_name as string | undefined) ??
-      null,
+    username: (profile?.username as string | undefined) ?? '',
+    full_name: (profile?.full_name as string | undefined) ?? 'Not Set',
   }
 }
 
@@ -68,6 +62,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
   //   Ensure doesn't re-run on every render
   const loadProfile = useCallback(
     async (session: Session) => {
+      // Get user ID from session
       const userId = session.user.user_metadata?.sub as string | undefined
 
       // if no user ID, return null
