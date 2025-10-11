@@ -51,15 +51,14 @@ const ProfilePage = () => {
       <div className="flex w-full max-w-3xl flex-col gap-10 rounded-lg border border-border bg-background p-8 shadow-sm">
         <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
+            <Avatar className="h-24 w-24">
               <AvatarImage
                 src={user.avatar_url ?? undefined}
                 alt={avatarAlt}
               />
             </Avatar>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 p-5">
               <h1 className="text-3xl font-semibold"><span className="text-2xl text-muted-foreground font-light">@</span>{username}</h1>
-              <p className="text-sm text-muted-foreground">{email}</p>
             </div>
           </div>
         </header>
