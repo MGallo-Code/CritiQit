@@ -1,7 +1,9 @@
+"use client"
+
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { ArrowRight, Sparkles, Star, Users } from "lucide-react";
-
+import { useCurrentUser } from "@/providers/current-user-provider";
 import { AuthButton } from "@/components/auth/auth-button";
 import { Hero } from "@/components/hero";
 import { Button } from "@/components/ui/button";
@@ -31,12 +33,16 @@ const featureHighlights: FeatureHighlight[] = [
 ];
 
 export default function Home() {
+  // Get current user from provider
+  const { user, isLoading } = useCurrentUser();
+
   return (
     <main className="flex flex-1 flex-col items-center">
       <div className="flex w-full max-w-5xl flex-col gap-16 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <Hero />
 
         <section className="grid gap-6 md:grid-cols-3">
+          {/* Show feature highlights, as defined above... */}
           {featureHighlights.map(({ title, description, icon: Icon }) => (
             <div
               key={title}
@@ -63,16 +69,33 @@ export default function Home() {
               </p>
             </div>
             <div className="flex flex-col items-center gap-3 text-center lg:items-end lg:text-right">
-              <AuthButton />
-              <Button asChild variant="secondary">
-                <Link
-                  href="/protected"
-                  className="group inline-flex items-center gap-1"
-                >
-                  View your dashboard
-                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                </Link>
-              </Button>
+              {/* If loading, show a pulse */}
+              {isLoading ? (
+                <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+              ) : (
+                // If user is logged in, show the dashboard button
+                user ? (
+                  <Button asChild variant="secondary">
+                    <Link
+                      href="/protected"
+                      className="group inline-flex items-center gap-1"
+                    >
+                      View your dashboard
+                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                    </Link>
+                  </Button>
+                ) : (
+                  // If user is not logged in, show the login/signup buttons
+                  <div className="flex justify-center gap-2">
+                    <Button asChild size="sm" variant={"outline"}>
+                      <Link href="/auth/login">Sign in</Link>
+                    </Button>
+                    <Button asChild size="sm" variant={"default"}>
+                      <Link href="/auth/sign-up">Sign up</Link>
+                    </Button>
+                  </div>
+                )
+              )}
             </div>
           </div>
         </section>
