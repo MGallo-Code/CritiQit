@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useCurrentUser } from '@/providers/current-user-provider'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { ThemeSwitcher } from '@/components/auth/theme-switcher'
 import { Button } from '@/components/ui/button'
 import { LogoutButton } from '@/components/auth/logout-button'
@@ -50,8 +50,8 @@ const ProfilePage = () => {
   return (
     <section className="flex flex-1 items-center justify-center p-6">
       <div className="flex w-full max-w-3xl flex-col gap-10 rounded-lg border border-border bg-background p-8 shadow-sm">
-        <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center flex-col gap-4">
+        <header className="flex flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-4">
             <Avatar className="h-40 w-40 shrink-0">
               <AvatarImage
                 src={user.avatar_url ?? undefined}
