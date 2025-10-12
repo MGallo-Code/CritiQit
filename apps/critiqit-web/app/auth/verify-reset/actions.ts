@@ -2,6 +2,7 @@
 
 import { FormState } from "@/lib/form-state";
 import { createClient } from "@/lib/supabase/server";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 
 // base url for site redirects
 const siteUrl = process.env.SITE_URL
@@ -51,6 +52,13 @@ export async function verifyResetCodeAction(
     };
   }
 
+  if (!data || !data.session) {
+    return {
+      status: "error",
+      error: "Error verifying reset code. Please try again later.",
+    };
+  }
+
   const { access_token, refresh_token } = data.session
 
   if (!access_token || !refresh_token) {
@@ -60,7 +68,7 @@ export async function verifyResetCodeAction(
     };
   }
 
-  const { sessionError } = await supabase.auth.setSession({
+  const { error: sessionError } = await supabase.auth.setSession({
     access_token,
     refresh_token
   })

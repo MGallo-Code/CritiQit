@@ -29,11 +29,13 @@ function AvatarImage({
   src,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+  const resolvedSrc = src ?? DEFAULT_AVATAR_URL
+
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
       className={cn("aspect-square size-full", className)}
-      src={props.src || DEFAULT_AVATAR_URL}
+      src={resolvedSrc}
       {...props}
     />
   )
