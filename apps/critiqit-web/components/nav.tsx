@@ -19,18 +19,11 @@ export function Nav() {
     const navItems = user ? authNavItems : anonNavItems;
 
     let profileItem: React.ReactNode;
-    if (isLoading) {
-        profileItem = (
-            <div
-                aria-label="Loading profile"
-                className="h-8 w-8 rounded-full bg-muted animate-pulse"
-            />
-        );
-    } else if (user) {
-        profileItem = <CurrentUserAvatar />;
-    } else {
-        profileItem = <Link href="/auth/login">Sign in</Link>;
-    }
+    profileItem = user ? (
+        <CurrentUserAvatar />
+    ) : (
+        <Link href="/auth/login">Sign in</Link>
+    )
 
     return (
         <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
