@@ -11,6 +11,7 @@ interface UserProfile {
   avatar_url: string | null
   username: string
   full_name: string | null
+  created_at: number | null
 }
 
 // Structure passed to components
@@ -34,6 +35,7 @@ const mapSessionToUser = (
     avatar_url: profile?.avatar_url ?? null,
     username: (profile?.username as string | undefined) ?? '',
     full_name: (profile?.full_name as string | undefined) ?? 'Not Set',
+    created_at: (session.user?.created_at as number | undefined) ?? null
   }
 }
 
@@ -178,6 +180,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
   )
 }
 
+// Hook for accessing the current user
 export const useCurrentUser = () => {
   const context = useContext(CurrentUserContext)
 
