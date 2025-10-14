@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { ArrowRight, Sparkles, Star, Users } from "lucide-react";
 import { useCurrentUser } from "@/providers/current-user-provider";
-import { AuthButton } from "@/components/auth/auth-button";
 import { Hero } from "@/components/hero";
 import { Button } from "@/components/ui/button";
 
@@ -69,10 +68,7 @@ export default function Home() {
               </p>
             </div>
             <div className="flex flex-col items-center gap-3 text-center lg:items-end lg:text-right">
-              {/* If loading, show a pulse */}
-              {isLoading ? (
-                <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
-              ) : (
+              {
                 // If user is logged in, show the dashboard button
                 user ? (
                   <Button asChild variant="secondary">
@@ -85,7 +81,7 @@ export default function Home() {
                     </Link>
                   </Button>
                 ) : (
-                  // If user is not logged in, show the login/signup buttons
+                  // If user is not logged in OR is loading, show the login/signup buttons
                   <div className="flex justify-center gap-2">
                     <Button asChild size="sm" variant={"outline"}>
                       <Link href="/auth/login">Sign in</Link>
@@ -95,7 +91,7 @@ export default function Home() {
                     </Button>
                   </div>
                 )
-              )}
+              }
             </div>
           </div>
         </section>

@@ -20,7 +20,7 @@ export const CurrentUserAvatar = () => {
           alt={avatarAlt}
         />
       </Avatar>
-      {!isLoading && username && <p>{username}</p>}
+      {username && <p>{username}</p>}
     </Link>
   )
 }

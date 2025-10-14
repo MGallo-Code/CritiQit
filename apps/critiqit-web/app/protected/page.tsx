@@ -5,21 +5,7 @@ import { InfoIcon, ListChecks, Star } from "lucide-react";
 import { useCurrentUser } from "@/providers/current-user-provider";
 
 export default function ProtectedPage() {
-  const { user, isLoading } = useCurrentUser();
-
-  if (isLoading) {
-    return (
-      <div className="flex w-full flex-1 flex-col gap-10">
-        <div className="rounded-xl border border-border/60 bg-card/60 p-6 shadow-sm sm:p-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-muted rounded mb-4"></div>
-            <div className="h-4 bg-muted rounded mb-2"></div>
-            <div className="h-4 bg-muted rounded w-3/4"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const { user, isLoading } = useCurrentUser()
 
   if (!user) {
     redirect("/auth/login");

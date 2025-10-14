@@ -11,7 +11,7 @@ interface UserProfile {
   avatar_url: string | null
   username: string
   full_name: string | null
-  created_at: number | null
+  created_at: string | null
 }
 
 // Structure passed to components
@@ -31,11 +31,11 @@ const mapSessionToUser = (
   const metadata = session.user.user_metadata ?? {}
   
   return {
-    email: (metadata.email as string | undefined) ?? '',
+    email: (profile?.email as string | undefined) ?? (metadata.email as string | undefined) ?? '',
     avatar_url: profile?.avatar_url ?? null,
     username: (profile?.username as string | undefined) ?? '',
     full_name: (profile?.full_name as string | undefined) ?? 'Not Set',
-    created_at: (session.user?.created_at as number | undefined) ?? null
+    created_at: session.user?.created_at ?? null
   }
 }
 
@@ -65,7 +65,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
   const loadProfile = useCallback(
     async (session: Session) => {
       // Get user ID from session
-      const userId = session.user.user_metadata?.sub as string | undefined
+      const userId = session?.user?.id ?? session?.user?.user_metadata?.sub ?? undefined;
 
       // if no user ID, return null
       if (!userId) {
@@ -79,8 +79,12 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', userId)
         .maybeSingle()
 
+      // If didn't fetch profile, but session still set (assumed at this point),
+      //   assume middleware within auth state changes
+      //   and use the current user until next auth state change
       if (error) {
-        console.error('[CurrentUserProvider] Failed to load profile', error)
+        console.error('[CurrentUserProvider] Failed to load profile, assuming middleware within auth state changes, so using current user until next auth state change', error)
+        return mapSessionToUser(session, state.user ?? null)
       }
 
       return mapSessionToUser(session, profile ?? null)
@@ -91,27 +95,38 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
   // When session changes, update the state
   const applySession = useCallback(
     async (session: Session | null) => {
+      // if the component has unmounted, do nothing.
       if (!isMountedRef.current) {
         return
       }
-
-      // if no session, set state to null
+  
+      // If there no session, the user is logged out.
       if (!session) {
         setState({ user: null, isLoading: false })
         return
       }
-
-      //set loading
+  
+      // The session object includes an 'expires_at' timestamp (in seconds).
+      // Check if the current time is past the expiration time.
+      const isExpired = session.expires_at! * 1000 < Date.now();
+  
+      // If token is expired, don't try to load the profile, wait. 
+      //   onAuthStateChange listener should fire again shortly
+      //   with new session
+      if (isExpired) {
+        setState((prev) => ({ ...prev, isLoading: true }));
+        return;
+      }
+  
+      // If token is not expired, proceed with loading the profile.
       setState((prev) => ({ ...prev, isLoading: true }))
-
-      // Load profile data
       const userProfile = await loadProfile(session)
-
+  
       if (!isMountedRef.current) {
         return
       }
-
-      // set state to the profile data
+  
+      // Fetched profile, so set the state
       setState({ user: userProfile, isLoading: false })
     },
     [loadProfile],
