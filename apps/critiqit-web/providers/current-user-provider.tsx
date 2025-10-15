@@ -1,18 +1,18 @@
 'use client'
 
-import { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import type { ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
-import { usePathname } from 'next/navigation'
-
-interface UserProfile {
-  email: string
-  avatar_url: string | null
-  username: string
-  full_name: string | null
-  created_at: string | null
-}
+import { mapSessionToUser, type UserProfile } from '@/lib/auth/user'
 
 // Structure passed to components
 interface CurrentUserContextValue {
@@ -20,37 +20,28 @@ interface CurrentUserContextValue {
   isLoading: boolean
 }
 
+interface CurrentUserProviderProps {
+  children: ReactNode
+  initialUser?: UserProfile | null
+}
+
 // Create channel for data to be passed to components
 const CurrentUserContext = createContext<CurrentUserContextValue | undefined>(undefined)
 
-// Pulls data from session and profile table, unifies the data
-const mapSessionToUser = (
-  session: Session,
-  profile: Partial<UserProfile> | null,
-): UserProfile => {
-  const metadata = session.user.user_metadata ?? {}
-  
-  return {
-    email: (profile?.email as string | undefined) ?? (metadata.email as string | undefined) ?? '',
-    avatar_url: profile?.avatar_url ?? null,
-    username: (profile?.username as string | undefined) ?? '',
-    full_name: (profile?.full_name as string | undefined) ?? 'Not Set',
-    created_at: session.user?.created_at ?? null
-  }
-}
-
 // Main component, wraps components receiving the data
-export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
+export const CurrentUserProvider = ({
+  children,
+  initialUser = null,
+}: CurrentUserProviderProps) => {
   // State of the data/component
-  const [state, setState] = useState<CurrentUserContextValue>({
-    user: null,
-    isLoading: true,
-  })
-  // Follow path changes, for syncing session
-  const pathname = usePathname()
+  const [state, setState] = useState<CurrentUserContextValue>(() => ({
+    user: initialUser,
+    isLoading: initialUser ? false : true,
+  }))
   // Create supabase client, only once, hence useMemo w/ no dependencies
   const supabase = useMemo(() => createClient(), [])
   const isMountedRef = useRef(false)
+  const hasInitialUserRef = useRef(Boolean(initialUser))
 
   // Handle mounting and unmounting of the component
   useEffect(() => {
@@ -89,7 +80,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
 
       return mapSessionToUser(session, profile ?? null)
     },
-    [supabase],
+    [supabase, state.user],
   )
 
   // When session changes, update the state
@@ -151,7 +142,9 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
 
     // Sync the session to see if user is logged in
-    void syncSession()
+    if (!hasInitialUserRef.current) {
+      void syncSession()
+    }
 
     // Listen for auth changes
     const {
@@ -176,11 +169,6 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
       window.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [supabase, applySession, syncSession])
-
-  // Sync the session when the pathname changes
-  useEffect(() => {
-    void syncSession()
-  }, [pathname, syncSession])
 
   // Pass the data to the components
   const value = useMemo(

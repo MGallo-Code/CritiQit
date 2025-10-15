@@ -5,6 +5,7 @@ import "./globals.css";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { CurrentUserProvider } from "@/providers/current-user-provider";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
 const defaultUrl = `https://${process.env.VERCEL_URL}`;
 
 export const metadata: Metadata = {
@@ -19,11 +20,13 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { user: currentUser } = await getCurrentUser();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.className} antialiased`}>
@@ -33,7 +36,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <CurrentUserProvider>
+          <CurrentUserProvider initialUser={currentUser}>
             <div className="min-h-screen flex flex-col">
               <Nav />
               <main className="flex-1 flex flex-col">{children}</main>

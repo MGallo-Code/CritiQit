@@ -1,11 +1,9 @@
-'use client'
-
 import { redirect } from "next/navigation";
 import { InfoIcon, ListChecks, Star } from "lucide-react";
-import { useCurrentUser } from "@/providers/current-user-provider";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
 
-export default function ProtectedPage() {
-  const { user, isLoading } = useCurrentUser()
+export default async function ProtectedPage() {
+  const { user } = await getCurrentUser();
 
   if (!user) {
     redirect("/auth/login");
