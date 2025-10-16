@@ -38,17 +38,31 @@ begin
   VALUES (
     new.id,
     new.raw_user_meta_data->>'full_name',
-    'User_' || substr(md5(new.email), 1, 8)
+    'User_' || substr(md5(new.email || NOW()::text), 1, 8)
   );
   return new;
 end;
 $function$;
 
+-- Call the function on user creation
 CREATE TRIGGER on_auth_user_created 
   AFTER INSERT ON auth.users 
   FOR EACH ROW 
   EXECUTE FUNCTION handle_new_user();
 
+-- ================================
+-- Storage
+-- ================================
+
+-- Create the 'avatars' bucket
+INSERT INTO storage.buckets (id, name, public)
+  VALUES ('avatars', 'avatars', true)
+  on conflict (id) do nothing; -- prevent errors on subsequent runs
+
+-- Create the 'email.templates' bucket
+INSERT INTO storage.buckets (id, name, public)
+  VALUES ('email-templates', 'email-templates', true)
+  on conflict (id) do nothing; -- prevent errors on subsequent runs
 
 -- ================================
 -- Policies
@@ -125,3 +139,32 @@ CREATE POLICY "Users can delete their own avatars."
   USING (
     (bucket_id = 'avatars'::text) AND (owner = auth.uid())
   );
+
+-- ~~~~~~~ Email Templates ~~~~~~~
+
+CREATE POLICY "Admins can upload email templates."
+  ON "storage"."objects"
+  AS permissive
+  FOR insert
+  TO authenticated
+  WITH CHECK (
+    (bucket_id = 'email-templates'::text) AND (owner = auth.uid())
+  );
+
+CREATE POLICY "Allow service_role to insert into email-templates"
+  ON "storage"."objects"
+  AS permissive
+  FOR INSERT
+  WITH CHECK (
+    (bucket_id = 'email-templates'::text) AND
+    (auth.role() = 'service_role')
+  );
+
+-- ================================
+-- Realtime
+-- ================================
+begin;
+  drop publication if exists supabase_realtime;
+  create publication supabase_realtime;
+commit;
+alter publication supabase_realtime add table "public"."profiles";
