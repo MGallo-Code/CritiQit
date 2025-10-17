@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { InfoIcon, ListChecks, Star } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 
-export default async function ProtectedPage() {
+export default async function DashboardPage() {
   const { user } = await getCurrentUser();
 
   if (!user) {
