@@ -16,6 +16,7 @@ import { Turnstile } from "@/components/ui/turnstile";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { OAuthPanel } from "./oauth-panel";
 
 export function SignUpForm({
   className,
@@ -73,6 +74,12 @@ export function SignUpForm({
           <CardDescription>Create a new account</CardDescription>
         </CardHeader>
         <CardContent>
+          <OAuthPanel />
+          <div className="flex w-full items-center gap-2 p-6 text-sm text-slate-600">
+              <div className="h-px w-full bg-primary"></div>
+              OR
+              <div className="h-px w-full bg-primary"></div>
+          </div>
           <form onSubmit={handleSignUp}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
