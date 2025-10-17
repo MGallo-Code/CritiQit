@@ -73,7 +73,7 @@ export default function Home() {
                 user ? (
                   <Button asChild variant="secondary">
                     <Link
-                      href="/protected"
+                      href="/protected/dashboard"
                       className="group inline-flex items-center gap-1"
                     >
                       View your dashboard

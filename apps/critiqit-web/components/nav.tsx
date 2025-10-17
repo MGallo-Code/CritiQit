@@ -11,7 +11,7 @@ const anonNavItems = [
 
 const authNavItems = [
     { label: "Home", href: "/" },
-    { label: "Dashboard", href: "/protected" }
+    { label: "Dashboard", href: "/protected/dashboard" }
 ]
 
 export function Nav() {

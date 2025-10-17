@@ -13,7 +13,7 @@ export const CurrentUserAvatar = () => {
     : 'User profile image'
 
   return (
-    <Link className="flex items-center gap-2" href="/profile">
+    <Link className="flex items-center gap-2" href="/protected/profile">
       <Avatar>
         <AvatarImage
           src={avatarUrl}
