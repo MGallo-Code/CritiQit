@@ -30,7 +30,6 @@ export function OAuthPanel({
   redirectTo: string;
 }) {
   const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
-  console.log("oauth panel redirectTo", redirectTo);
   const [isPending, setIsPending] = useState<string | null>(null);
   const supabase = createClient();
 
