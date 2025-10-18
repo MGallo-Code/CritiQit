@@ -26,7 +26,7 @@ export function SignUpForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | React.ReactNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const router = useRouter();
@@ -52,7 +52,7 @@ export function SignUpForm({
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -60,6 +60,31 @@ export function SignUpForm({
         },
       });
       if (error) throw error;
+      // user already exists and is verified
+      if (data.user.identities.length === 0) {
+        // notify user that they already have an account
+        setError(
+          <>
+            An account with this email already exists. Please{' '}
+            <Link
+              href={`/auth/login?${redirectToParamString}`}
+              className="underline underline-offset-4"
+            >
+              login
+            </Link>{' '}
+            or{' '}
+            <Link
+              href={`/auth/forgot-password?email=${encodeURIComponent(email)}&${redirectToParamString}`}
+              className="underline underline-offset-4"
+            >
+              reset your password
+            </Link>
+            .
+          </>,
+        );
+        setIsLoading(false);
+        return;
+      }
       router.push(`/auth/verify-email?email=${encodeURIComponent(email)}&${redirectToParamString}`);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
