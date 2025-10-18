@@ -19,16 +19,18 @@ import { useState } from "react";
 
 export function ForgotPasswordForm({
   className,
+  initialEmail = "",
   redirectTo = "/protected/dashboard",
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const router = useRouter();
 
   const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
+  const emailParamString = "email=" + encodeURIComponent(email);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +51,7 @@ export function ForgotPasswordForm({
         captchaToken: turnstileToken,
       });
       if (error) throw error;
-      router.push(`/auth/verify-reset?email=${encodeURIComponent(email)}&${redirectToParamString}`);
+      router.push(`/auth/verify-reset?${emailParamString}&${redirectToParamString}`);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {

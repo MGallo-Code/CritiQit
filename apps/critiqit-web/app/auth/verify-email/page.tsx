@@ -5,7 +5,7 @@ export default async function Page({
 }: {
   searchParams?: Promise<{
     email?: string;
-    redirectTo?: string
+    redirectTo?: string;
   }>;
 }) {
   const params = await searchParams;
