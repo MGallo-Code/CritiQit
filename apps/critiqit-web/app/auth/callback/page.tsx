@@ -1,15 +1,16 @@
-import { redirect } from 'next/navigation'
-import { getCurrentUser } from '@/lib/auth/get-current-user'
+"use client";
+
+import { redirect, useSearchParams } from 'next/navigation'
+import { useCurrentUser } from '@/providers/current-user-provider'
 import LoadingContent from '@/components/ui/loading-content'
 
-export default async function AuthCallbackPage({
-    searchParams,
-}: {
-    searchParams: { redirectTo?: string };
-}) {
-  // Wait for the server-side authentication to complete.
-  const { user } = await getCurrentUser()
-  const redirectTo = searchParams.redirectTo ?? '/protected/dashboard'
+export default function AuthCallbackPage() {
+  // Get the current user
+  const { user } = useCurrentUser()
+
+  // Get the redirect to parameter
+  const params = useSearchParams()
+  const redirectTo = params.get('redirectTo') ?? '/protected/dashboard'
 
   // If the user object exists, the authentication was successful.
   if (user) {

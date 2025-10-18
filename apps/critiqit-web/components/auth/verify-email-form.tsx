@@ -33,14 +33,20 @@ function SubmitButton({ children, disabled }: { children: React.ReactNode; disab
 
 export interface VerifyEmailFormProps {
   initialEmail?: string;
+  redirectTo?: string;
 }
 
-export function VerifyEmailForm({ initialEmail = "" }: VerifyEmailFormProps) {
+export function VerifyEmailForm({
+  initialEmail = "",
+  redirectTo = "/protected/dashboard"
+}: VerifyEmailFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState(initialEmail);
   const [token, setToken] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileKey, setTurnstileKey] = useState(0);
+
+  const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
 
   const [verifyState, verifyAction] = useActionState(
     verifyEmailCodeAction,
@@ -54,7 +60,7 @@ export function VerifyEmailForm({ initialEmail = "" }: VerifyEmailFormProps) {
   // redirect to auth protected route on successful verification
   useEffect(() => {
     if (verifyState.status === "success") {
-      router.push("/protected");
+      router.push (`/auth/callback?${redirectToParamString}`);
     }
   }, [verifyState.status, router]);
 

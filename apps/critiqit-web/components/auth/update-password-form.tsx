@@ -17,6 +17,7 @@ import { useState } from "react";
 
 export function UpdatePasswordForm({
   className,
+  redirectTo = "/protected/dashboard",
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [password, setPassword] = useState("");
@@ -24,6 +25,8 @@ export function UpdatePasswordForm({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +43,7 @@ export function UpdatePasswordForm({
 
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      // Redirect to protected route
-      router.push("/protected");
+      router.push(`/auth/callback?${redirectToParamString}`);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {

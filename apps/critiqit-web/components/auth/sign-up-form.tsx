@@ -20,6 +20,7 @@ import { OAuthPanel } from "./oauth-panel";
 
 export function SignUpForm({
   className,
+  redirectTo = "/protected/dashboard",
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [email, setEmail] = useState("");
@@ -30,6 +31,8 @@ export function SignUpForm({
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const router = useRouter();
 
+  const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
+  
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -53,12 +56,11 @@ export function SignUpForm({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/protected`,
           captchaToken: turnstileToken,
         },
       });
       if (error) throw error;
-      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}&${redirectToParamString}`);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -74,7 +76,7 @@ export function SignUpForm({
           <CardDescription>Create a new account</CardDescription>
         </CardHeader>
         <CardContent>
-          <OAuthPanel />
+          <OAuthPanel redirectTo={redirectTo} />
           <div className="flex w-full items-center gap-2 p-6 text-sm text-slate-600">
               <div className="h-px w-full bg-primary"></div>
               OR
@@ -132,7 +134,10 @@ export function SignUpForm({
             </div>
             <div className="mt-4 text-center text-sm">
               Already have an account?{" "}
-              <Link href="/auth/login" className="underline underline-offset-4">
+              <Link
+                href={`/auth/login?${redirectToParamString}`}
+                className="underline underline-offset-4"
+              >
                 Login
               </Link>
             </div>

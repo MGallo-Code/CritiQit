@@ -24,7 +24,13 @@ const oauthProviders: OAuthProvider[] = [
 ];
 
 
-export function OAuthPanel() {
+export function OAuthPanel({
+  redirectTo = "/protected/dashboard",
+}: {
+  redirectTo: string;
+}) {
+  const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
+  console.log("oauth panel redirectTo", redirectTo);
   const [isPending, setIsPending] = useState<string | null>(null);
   const supabase = createClient();
 
@@ -36,8 +42,7 @@ export function OAuthPanel() {
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: providerName,
             options: {
-                // You can specify a redirect URL here if needed
-                redirectTo: `${location.origin}/home`,
+                redirectTo: `${location.origin}/auth/callback?${redirectToParamString}`,
             },
         });
     } catch (error) {

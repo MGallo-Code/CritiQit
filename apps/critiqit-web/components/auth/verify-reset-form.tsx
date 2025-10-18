@@ -32,14 +32,20 @@ function SubmitButton({ children, disabled }: { children: React.ReactNode; disab
 
 export interface VerifyResetFormProps {
   initialEmail?: string;
+  redirectTo?: string;
 }
 
-export function VerifyResetForm({ initialEmail = "" }: VerifyResetFormProps) {
+export function VerifyResetForm({
+  initialEmail = "",
+  redirectTo = "/protected/dashboard"
+}: VerifyResetFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState(initialEmail);
   const [token, setToken] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileKey, setTurnstileKey] = useState(0);
+
+  const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
 
   const [verifyState, verifyAction] = useActionState(
     verifyResetCodeAction,
@@ -52,9 +58,9 @@ export function VerifyResetForm({ initialEmail = "" }: VerifyResetFormProps) {
 
   useEffect(() => {
     if (verifyState.status === "success") {
-      router.push("/auth/update-password");
+      router.push(`/auth/update-password?${redirectToParamString}`);
     }
-  }, [verifyState.status, router]);
+  }, [verifyState.status, router, redirectToParamString]);
 
   useEffect(() => {
     if (verifyState.status !== "idle" || resendState.status !== "idle") {

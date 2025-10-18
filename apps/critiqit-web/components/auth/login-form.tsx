@@ -20,6 +20,7 @@ import { OAuthPanel } from "./oauth-panel";
 
 export function LoginForm({
   className,
+  redirectTo = "/protected/dashboard",
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [email, setEmail] = useState("");
@@ -28,6 +29,8 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const router = useRouter();
+
+  const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,13 +54,13 @@ export function LoginForm({
       });
       // if email not confirmed, redirect to verify email page
       if (error && error.message && error.message.includes("Email not confirmed")) {
-        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}&${redirectToParamString}`);
         return;
       }
       // throw any errors
       if (error) throw error;
       // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push("/protected");
+      router.push(`/auth/callback?${redirectToParamString}`);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -75,7 +78,7 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <OAuthPanel />
+          <OAuthPanel redirectTo={redirectTo} />
           <div className="flex w-full items-center gap-2 p-6 text-sm text-slate-600">
               <div className="h-px w-full bg-primary"></div>
               OR
@@ -98,7 +101,7 @@ export function LoginForm({
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
                   <Link
-                    href="/auth/forgot-password"
+                    href={`/auth/forgot-password?${redirectToParamString}`}
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                   >
                     Forgot your password?
@@ -128,7 +131,7 @@ export function LoginForm({
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{" "}
               <Link
-                href="/auth/sign-up"
+                href={`/auth/sign-up?${redirectToParamString}`}
                 className="underline underline-offset-4"
               >
                 Sign up

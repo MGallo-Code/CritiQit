@@ -19,6 +19,7 @@ import { useState } from "react";
 
 export function ForgotPasswordForm({
   className,
+  redirectTo = "/protected/dashboard",
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [email, setEmail] = useState("");
@@ -26,6 +27,8 @@ export function ForgotPasswordForm({
   const [isLoading, setIsLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const router = useRouter();
+
+  const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,11 +45,11 @@ export function ForgotPasswordForm({
     try {
       // The url which will be included in the email. This URL needs to be configured in your redirect URLs in the Supabase dashboard at https://supabase.com/dashboard/project/_/auth/url-configuration
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/update-password`,
+        redirectTo: `${window.location.origin}/auth/update-password?${redirectToParamString}`,
         captchaToken: turnstileToken,
       });
       if (error) throw error;
-      router.push(`/auth/verify-reset?email=${encodeURIComponent(email)}`);
+      router.push(`/auth/verify-reset?email=${encodeURIComponent(email)}&${redirectToParamString}`);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -93,7 +96,10 @@ export function ForgotPasswordForm({
             </div>
             <div className="mt-4 text-center text-sm">
               Already have an account?{" "}
-              <Link href="/auth/login" className="underline underline-offset-4">
+              <Link
+                href={`/auth/login?${redirectToParamString}`}
+                className="underline underline-offset-4"
+              >
                 Login
               </Link>
             </div>
