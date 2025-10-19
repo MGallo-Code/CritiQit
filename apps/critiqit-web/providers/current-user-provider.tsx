@@ -10,9 +10,9 @@ import {
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
-import type { Session } from '@supabase/supabase-js'
+import type { Session, User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
-import { mapSessionToUser, type UserProfile } from '@/lib/auth/user'
+import { mapAuthUserToProfile, type UserProfile } from '@/lib/auth/user'
 
 // Structure passed to components
 interface CurrentUserContextValue {
@@ -54,13 +54,13 @@ export const CurrentUserProvider = ({
   // When supabase state changes, load profile data
   //   Ensure doesn't re-run on every render
   const loadProfile = useCallback(
-    async (session: Session) => {
-      // Get user ID from session
-      const userId = session?.user?.id ?? session?.user?.user_metadata?.sub ?? undefined;
+    async (authUser: User) => {
+      // Get user ID from the verified auth user
+      const userId = authUser?.id ?? (authUser?.user_metadata?.sub as string | undefined);
 
       // if no user ID, return null
       if (!userId) {
-        return mapSessionToUser(session, null)
+        return mapAuthUserToProfile(authUser, null)
       }
 
       // Load profile data from supabase
@@ -75,10 +75,10 @@ export const CurrentUserProvider = ({
       //   and use the current user until next auth state change
       if (error) {
         console.error('[CurrentUserProvider] Failed to load profile, assuming middleware within auth state changes, so using current user until next auth state change', error)
-        return mapSessionToUser(session, state.user ?? null)
+        return mapAuthUserToProfile(authUser, state.user ?? null)
       }
 
-      return mapSessionToUser(session, profile ?? null)
+      return mapAuthUserToProfile(authUser, profile ?? null)
     },
     [supabase, state.user],
   )
@@ -90,17 +90,17 @@ export const CurrentUserProvider = ({
       if (!isMountedRef.current) {
         return
       }
-  
+
       // If there no session, the user is logged out.
       if (!session) {
         setState({ user: null, isLoading: false })
         return
       }
-  
+
       // The session object includes an 'expires_at' timestamp (in seconds).
       // Check if the current time is past the expiration time.
       const isExpired = session.expires_at! * 1000 < Date.now();
-  
+
       // If token is expired, don't try to load the profile, wait. 
       //   onAuthStateChange listener should fire again shortly
       //   with new session
@@ -108,15 +108,32 @@ export const CurrentUserProvider = ({
         setState((prev) => ({ ...prev, isLoading: true }));
         return;
       }
-  
+
       // If token is not expired, proceed with loading the profile.
       setState((prev) => ({ ...prev, isLoading: true }))
-      const userProfile = await loadProfile(session)
-  
+
+      const {
+        data: { user: authUser },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError) {
+        console.error('[CurrentUserProvider] Failed to verify session', userError)
+        setState({ user: null, isLoading: false })
+        return
+      }
+
+      if (!authUser) {
+        setState({ user: null, isLoading: false })
+        return
+      }
+
+      const userProfile = await loadProfile(authUser)
+
       if (!isMountedRef.current) {
         return
       }
-  
+
       // Fetched profile, so set the state
       setState({ user: userProfile, isLoading: false })
     },

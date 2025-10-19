@@ -1,4 +1,4 @@
-import type { Session } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 
 // interface for the user profile
 export interface UserProfile {
@@ -9,18 +9,22 @@ export interface UserProfile {
   created_at: string | null;
 }
 
-// map the session and user profile to the user interface
-export const mapSessionToUser = (
-  session: Session,
+// map the auth user and optional profile record to the user interface
+export const mapAuthUserToProfile = (
+  user: User,
   profile: Partial<UserProfile> | null,
 ): UserProfile => {
-  const metadata = session.user.user_metadata ?? {};
+  const metadata = user.user_metadata ?? {};
 
   return {
-    email: profile?.email ?? (metadata.email as string | undefined) ?? "",
+    email:
+      profile?.email ??
+      user.email ??
+      (metadata.email as string | undefined) ??
+      "",
     avatar_url: profile?.avatar_url ?? null,
     username: (profile?.username as string | undefined) ?? "",
     full_name: (profile?.full_name as string | undefined) ?? "Not Set",
-    created_at: profile?.created_at ?? session.user?.created_at ?? null,
+    created_at: profile?.created_at ?? user.created_at ?? null,
   };
 };
