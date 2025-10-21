@@ -20,11 +20,21 @@ export const mapAuthUserToProfile = (
     email:
       profile?.email ??
       claims.email ??
-      (metadata.email as string | undefined) ??
+      metadata.email ??
       "",
-    avatar_url: profile?.avatar_url ?? null,
-    username: (profile?.username as string | undefined) ?? "",
-    full_name: (profile?.full_name as string | undefined) ?? "Not Set",
-    created_at: profile?.created_at ?? claims.created_at ?? null,
+    avatar_url:
+      profile?.avatar_url ??
+      metadata.avatar_url ??
+      null,
+    username:
+      profile?.username ??
+      "",
+    full_name:
+      profile?.full_name ??
+      metadata.full_name ??
+      "Not Set",
+    created_at:
+      profile?.created_at ??
+      null,
   };
 };
