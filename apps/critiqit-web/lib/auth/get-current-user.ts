@@ -9,22 +9,21 @@ interface CurrentUserResult {
 
 // get the current user from the database, cached
 export const getCurrentUser = cache(async (): Promise<CurrentUserResult> => {
+  console.log("[getCurrentUser] Getting current user");
   const supabase = await createClient();
 
-  // verify the current user with Supabase Auth
+  // if no claims, return null, as user is logged out
   const {
-    data: { user: authUser },
-    error: userError,
-  } = await supabase.auth.getUser();
+    data: claims,
+    error: claimsError,
+  } = await supabase.auth.getClaims();
 
-  if (userError) {
-    console.error("[getCurrentUser] Failed to verify user", userError);
+  // user not logged in, no need for further checks
+  if (!claims || claimsError) {
     return { user: null };
   }
 
-  if (!authUser) {
-    return { user: null };
-  }
+  const userClaims = claims.claims;
 
   // get user's profile from the db
   const {
@@ -33,19 +32,19 @@ export const getCurrentUser = cache(async (): Promise<CurrentUserResult> => {
   } = await supabase
     .from("profiles")
     .select("avatar_url, username, full_name")
-    .eq("id", authUser.id)
+    .eq("id", userClaims.sub)
     .maybeSingle();
 
   // if error, return the verified auth user without extra profile data
   if (profileError) {
-    console.error("[getCurrentUser] Failed to load profile", profileError);
+    console.error("[getCurrentUser] Failed to load user's profile", profileError);
     return {
-      user: mapAuthUserToProfile(authUser, null),
+      user: mapAuthUserToProfile(userClaims, null),
     };
   }
 
   // return the user's profile combined with data from Supabase Auth
   return {
-    user: mapAuthUserToProfile(authUser, profile ?? null),
+    user: mapAuthUserToProfile(userClaims, profile ?? null),
   };
 });

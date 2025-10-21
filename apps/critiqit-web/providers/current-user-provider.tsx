@@ -10,7 +10,7 @@ import {
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
-import type { Session, User } from '@supabase/supabase-js'
+import type { User, Claims } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { mapAuthUserToProfile, type UserProfile } from '@/lib/auth/user'
 
@@ -43,7 +43,7 @@ export const CurrentUserProvider = ({
   const isMountedRef = useRef(false)
   const hasInitialUserRef = useRef(Boolean(initialUser))
 
-  // Handle mounting and unmounting of the component
+  // Handle updating mount and unmount state of the component
   useEffect(() => {
     isMountedRef.current = true
     return () => {
@@ -51,17 +51,13 @@ export const CurrentUserProvider = ({
     }
   }, [])
 
-  // When supabase state changes, load profile data
+  // When claims change, update the state, load profile data
   //   Ensure doesn't re-run on every render
+  //   Called when claims change
   const loadProfile = useCallback(
-    async (authUser: User) => {
+    async (claims: Claims) => {
       // Get user ID from the verified auth user
-      const userId = authUser?.id ?? (authUser?.user_metadata?.sub as string | undefined);
-
-      // if no user ID, return null
-      if (!userId) {
-        return mapAuthUserToProfile(authUser, null)
-      }
+      const userId = claims.sub;
 
       // Load profile data from supabase
       const { data: profile, error } = await supabase
@@ -69,111 +65,75 @@ export const CurrentUserProvider = ({
         .select('avatar_url, username, full_name')
         .eq('id', userId)
         .maybeSingle()
-
-      // If didn't fetch profile, but session still set (assumed at this point),
-      //   assume middleware within auth state changes
-      //   and use the current user until next auth state change
+      
+      // if error, return the current user profile,
+      //   shouldn't happen but just in case.
       if (error) {
-        console.error('[CurrentUserProvider] Failed to load profile, assuming middleware within auth state changes, so using current user until next auth state change', error)
-        return mapAuthUserToProfile(authUser, state.user ?? null)
+        console.error('[CurrentUserProvider (loadProfile)] Failed to load profile', error)
+        return mapAuthUserToProfile(claims, null)
       }
 
-      return mapAuthUserToProfile(authUser, profile ?? null)
+      // return the profile data, should be valid if no error
+      return mapAuthUserToProfile(claims, profile)
     },
     [supabase, state.user],
   )
 
-  // When session changes, update the state
-  const applySession = useCallback(
-    async (session: Session | null) => {
-      // if the component has unmounted, do nothing.
-      if (!isMountedRef.current) {
-        return
-      }
-
-      // If there no session, the user is logged out.
-      if (!session) {
-        setState({ user: null, isLoading: false })
-        return
-      }
-
-      // The session object includes an 'expires_at' timestamp (in seconds).
-      // Check if the current time is past the expiration time.
-      const isExpired = session.expires_at! * 1000 < Date.now();
-
-      // If token is expired, don't try to load the profile, wait. 
-      //   onAuthStateChange listener should fire again shortly
-      //   with new session
-      if (isExpired) {
-        setState((prev) => ({ ...prev, isLoading: true }));
-        return;
-      }
-
-      // If token is not expired, proceed with loading the profile.
-      setState((prev) => ({ ...prev, isLoading: true }))
-
-      const {
-        data: { user: authUser },
-        error: userError,
-      } = await supabase.auth.getUser()
-
-      if (userError) {
-        console.error('[CurrentUserProvider] Failed to verify session', userError)
-        setState({ user: null, isLoading: false })
-        return
-      }
-
-      if (!authUser) {
-        setState({ user: null, isLoading: false })
-        return
-      }
-
-      const userProfile = await loadProfile(authUser)
-
-      if (!isMountedRef.current) {
-        return
-      }
-
-      // Fetched profile, so set the state
-      setState({ user: userProfile, isLoading: false })
-    },
-    [loadProfile],
-  )
-
-  // Sync the session
-  const syncSession = useCallback(async () => {
-    // get session from supabase
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession()
-
-    if (error) {
-      console.error('[CurrentUserProvider] Failed to load session', error)
+  // Sync and apply claims
+  const syncClaims = useCallback(async () => {
+    // if component unmounted, do nothing.
+    if (!isMountedRef.current) {
+      return
     }
 
-    await applySession(session ?? null)
-  }, [supabase, applySession])
+    // set loading for claims change
+    setState((prev) => ({ ...prev, isLoading: true }))
+
+    // get claims from supabase
+    const {
+      data: claims,
+      error: claimsError,
+    } = await supabase.auth.getClaims();
+
+    // If there are no claims or error, the user is logged out.
+    if (!claims || claimsError) {
+      if (!isMountedRef.current) {
+        return
+      }
+      setState({ user: null, isLoading: false })
+      return
+    }
+
+    // load profile data from supabase
+    const userProfile = await loadProfile(claims.claims)
+
+    if (!isMountedRef.current) {
+      return
+    }
+
+    // Fetched profile, so set the state
+    setState({ user: userProfile, isLoading: false })
+  }, [supabase, loadProfile])
 
   // Main hook, syncs the session
   useEffect(() => {
 
-    // Sync the session to see if user is logged in
+    // Sync the claims to see if user is logged in
     if (!hasInitialUserRef.current) {
-      void syncSession()
+      void syncClaims()
     }
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      void applySession(session ?? null)
+    } = supabase.auth.onAuthStateChange(async (_event) => {
+      void syncClaims()
     })
 
     // Handle tab visibility changes
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        void syncSession()
+        void syncClaims()
       }
     }
 
@@ -185,7 +145,7 @@ export const CurrentUserProvider = ({
       subscription.unsubscribe()
       window.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [supabase, applySession, syncSession])
+  }, [supabase, syncClaims])
 
   // Pass the data to the components
   const value = useMemo(

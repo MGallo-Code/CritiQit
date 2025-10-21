@@ -1,4 +1,4 @@
-import type { User } from "@supabase/supabase-js";
+import type { Claims } from "@supabase/supabase-js";
 
 // interface for the user profile
 export interface UserProfile {
@@ -11,20 +11,20 @@ export interface UserProfile {
 
 // map the auth user and optional profile record to the user interface
 export const mapAuthUserToProfile = (
-  user: User,
+  claims: Claims,
   profile: Partial<UserProfile> | null,
 ): UserProfile => {
-  const metadata = user.user_metadata ?? {};
+  const metadata = claims.user_metadata ?? {};
 
   return {
     email:
       profile?.email ??
-      user.email ??
+      claims.email ??
       (metadata.email as string | undefined) ??
       "",
     avatar_url: profile?.avatar_url ?? null,
     username: (profile?.username as string | undefined) ?? "",
     full_name: (profile?.full_name as string | undefined) ?? "Not Set",
-    created_at: profile?.created_at ?? user.created_at ?? null,
+    created_at: profile?.created_at ?? claims.created_at ?? null,
   };
 };

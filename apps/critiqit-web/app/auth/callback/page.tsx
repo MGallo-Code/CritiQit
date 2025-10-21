@@ -1,25 +1,33 @@
 "use client";
 
-import { redirect, useSearchParams } from 'next/navigation'
-import { useCurrentUser } from '@/providers/current-user-provider'
-import LoadingContent from '@/components/ui/loading-content'
+import { useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+import LoadingContent from "@/components/ui/loading-content";
+import { useCurrentUser } from "@/providers/current-user-provider";
 
 export default function AuthCallbackPage() {
-  // Get the current user
-  const { user } = useCurrentUser()
+  const { user } = useCurrentUser();
+  const router = useRouter();
+  const hasRedirectedRef = useRef(false);
 
-  // Get the redirect to parameter
-  const params = useSearchParams()
-  const redirectTo = params.get('redirectTo') ?? '/protected/dashboard'
+  // get the redirect to parameter
+  const params = useSearchParams();
+  const redirectParam = params.get("redirectTo") ?? "";
+  const redirectTo =
+    redirectParam && redirectParam.startsWith("/")
+      ? redirectParam
+      : "/protected/dashboard";
 
-  // If the user object exists, the authentication was successful.
-  if (user) {
-    // Redirect the user to their dashboard or another protected page.
-    redirect(redirectTo)
-  }
+  useEffect(() => {
+    if (!user || hasRedirectedRef.current) {
+      return;
+    }
 
-  // Show message to user while waiting for authentication to complete,
-  // also show a loading spinner
+    hasRedirectedRef.current = true;
+    router.replace(redirectTo);
+  }, [user, redirectTo, router]);
+
   return (
     <LoadingContent
       heading="Please wait while we authenticate you..."

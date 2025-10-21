@@ -43,7 +43,8 @@ export async function updateSession(request: NextRequest) {
   if (
     !user && request.nextUrl.pathname.startsWith("/protected")
   ) {
-    // no user, potentially respond by redirecting the user to the login page
+    // no user, redirect the user to the login page
+    // set the redirect to the current page
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
     url.searchParams.set("redirectTo", request.nextUrl.pathname);
