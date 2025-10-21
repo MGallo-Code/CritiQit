@@ -7,17 +7,13 @@ import { getCurrentUser } from "@/lib/auth/get-current-user";
 const ProfilePage = async () => {
   const { user } = await getCurrentUser();
 
-  if (!user) {
-    redirect("/auth/login");
-  }
-
   const username = user.username;
   const email = user.email;
   const fullName = user.full_name ?? "Not Set";
   const avatarAlt = username
     ? `${username}'s profile image`
     : "User profile image";
-
+  
   return (
     <section className="flex flex-1 items-center justify-center p-6">
       <div className="flex w-full max-w-3xl flex-col gap-10 rounded-lg border border-border bg-background p-8 shadow-sm">
