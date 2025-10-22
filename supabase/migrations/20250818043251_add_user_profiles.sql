@@ -42,7 +42,7 @@ begin
   VALUES (
     new.id,
     new.raw_user_meta_data->>'full_name',
-    'User_' || substr(md5(new.email || NOW()::text), 1, 8)
+    'User_' || substr(md5(new.email || NOW()::text), 1, 10)
   );
   return new;
 end;
