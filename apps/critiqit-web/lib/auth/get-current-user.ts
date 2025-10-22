@@ -9,7 +9,6 @@ interface CurrentUserResult {
 
 // get the current user from the database, cached
 export const getCurrentUser = cache(async (): Promise<CurrentUserResult> => {
-  console.log("[getCurrentUser] Getting current user");
   const supabase = await createClient();
 
   // if no claims, return null, as user is logged out
@@ -19,7 +18,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUserResult> => {
   } = await supabase.auth.getClaims();
 
   // user not logged in, no need for further checks
-  if (!claims || claimsError) {
+  if (!claims || !claims.claims || claimsError) {
     return { user: null };
   }
 

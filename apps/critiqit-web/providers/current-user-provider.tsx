@@ -18,6 +18,7 @@ import { mapAuthUserToProfile, type UserProfile } from '@/lib/auth/user'
 interface CurrentUserContextValue {
   user: UserProfile | null
   isLoading: boolean
+  refreshUser: () => Promise<void>
 }
 
 interface CurrentUserProviderProps {
@@ -38,6 +39,7 @@ export const CurrentUserProvider = ({
     user: initialUser,
     isLoading: initialUser ? false : true,
   }))
+  
   // Create supabase client, only once, hence useMemo w/ no dependencies
   const supabase = useMemo(() => createClient(), [])
   const isMountedRef = useRef(false)
@@ -51,106 +53,79 @@ export const CurrentUserProvider = ({
     }
   }, [])
 
-  // When claims change, update the state, load profile data
-  //   Ensure doesn't re-run on every render
-  //   Called when claims change
-  const loadProfile = useCallback(
-    async (claims: Claims) => {
-      // Get user ID from the verified auth user
-      const userId = claims.sub;
-
-      // Load profile data from supabase
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('avatar_url, username, full_name')
-        .eq('id', userId)
-        .maybeSingle()
-      
-      // if error, return the current user profile,
-      //   shouldn't happen but just in case.
-      if (error) {
-        console.error('[CurrentUserProvider (loadProfile)] Failed to load profile', error)
-        return mapAuthUserToProfile(claims, null)
-      }
-
-      // return the profile data, should be valid if no error
-      return mapAuthUserToProfile(claims, profile)
-    },
-    [supabase, state.user],
-  )
-
-  // Sync and apply claims
-  const syncClaims = useCallback(async () => {
-    // if component unmounted, do nothing.
-    if (!isMountedRef.current) {
-      return
-    }
-
-    // set loading for claims change
+  // sync claims and load profile
+  const syncAndLoadProfile = useCallback(async () => {
+    if (!isMountedRef.current) return
+    
     setState((prev) => ({ ...prev, isLoading: true }))
 
-    // get claims from supabase
-    const {
-      data: claims,
-      error: claimsError,
-    } = await supabase.auth.getClaims();
+    // Get claims from supabase
+    const { data: claims, error: claimsError } = await supabase.auth.getClaims()
 
-    // If there are no claims or error, the user is logged out.
-    if (!claims || claimsError) {
-      if (!isMountedRef.current) {
-        return
+    // If there are no claims or error, the user is logged out
+    if (!claims || claimsError || !claims.claims) {
+      if (isMountedRef.current) {
+        setState({ user: null, isLoading: false })
       }
-      setState({ user: null, isLoading: false })
       return
     }
 
-    // load profile data from supabase
-    const userProfile = await loadProfile(claims.claims)
+    const userClaims = claims.claims
+    const userId = userClaims.sub
 
-    if (!isMountedRef.current) {
-      return
-    }
+    // Load profile data from supabase
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('avatar_url, username, full_name')
+      .eq('id', userId)
+      .maybeSingle()
 
-    // Fetched profile, so set the state
+    if (!isMountedRef.current) return
+
+    // Map user data
+    const userProfile = mapAuthUserToProfile(
+      userClaims,
+      profileError ? null : profile
+    )
+
     setState({ user: userProfile, isLoading: false })
-  }, [supabase, loadProfile])
+  }, [supabase])
 
-  // Main hook, syncs the session
+  // Main hook - setup auth listeners
   useEffect(() => {
-
-    // Sync the claims to see if user is logged in
+    // Sync claims if no initial user
     if (!hasInitialUserRef.current) {
-      void syncClaims()
+      syncAndLoadProfile()
     }
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event) => {
-      void syncClaims()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      syncAndLoadProfile()
     })
 
     // Handle tab visibility changes
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        void syncClaims()
+        syncAndLoadProfile()
       }
     }
 
-    // Listen for visibility changes
     window.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // Cleanup
     return () => {
       subscription.unsubscribe()
       window.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [supabase, syncClaims])
+  }, [supabase, syncAndLoadProfile])
 
   // Pass the data to the components
   const value = useMemo(
-    () => ({ user: state.user, isLoading: state.isLoading }),
-    [state.user, state.isLoading],
+    () => ({
+      user: state.user,
+      isLoading: state.isLoading,
+      refreshUser: syncAndLoadProfile,
+    }),
+    [state.user, state.isLoading, syncAndLoadProfile],
   )
 
   return (
