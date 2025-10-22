@@ -1,7 +1,6 @@
 "use client"
 
 import { useCurrentUser } from "@/providers/current-user-provider"
-import LoadingContent from "@/components/ui/loading-content"
 
 export default function ProtectedLayout({
   children,
