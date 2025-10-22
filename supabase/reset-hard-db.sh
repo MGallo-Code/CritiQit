@@ -26,7 +26,7 @@ fi
 
 echo "Stopping database..."
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
-docker compose down
+docker compose down -v
 
 echo "Cleaning up volumes..."
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
@@ -35,6 +35,9 @@ rm -rf ./volumes/db/data
 echo "Starting database..."
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
 docker compose up -d
+
+# Wait 10 seconds to ensure started properly
+sleep 10
 
 echo "Applying migrations..."
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
