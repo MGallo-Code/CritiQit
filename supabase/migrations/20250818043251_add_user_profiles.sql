@@ -4,14 +4,18 @@ create extension if not exists "pgjwt" with schema "extensions";
 -- Tables
 -- ================================
 
-create table "public"."profiles" (
-  "id" uuid not null primary key references auth.users(id),
-  "updated_at" timestamp with time zone,
-  "username" text unique,
-  "full_name" text,
-  "avatar_url" text,
-  "website" text,
-  constraint "username_length" check (char_length(username) >= 3)
+CREATE TABLE "public"."profiles" (
+  "id" uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id),
+  "username" TEXT UNIQUE
+    CONSTRAINT "username_length" CHECK (char_length(username) >= 3 AND char_length(username) <= 35),
+  "full_name" TEXT
+    CONSTRAINT "full_name_length" CHECK (char_length(full_name) >= 3 AND char_length(full_name) <= 100),
+  "bio" TEXT
+    CONSTRAINT bio_length CHECK (char_length(bio) <= 800),
+  "avatar_url" TEXT
+    CONSTRAINT "avatar_url_length" CHECK (char_length(avatar_url) <= 2048),
+  "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  "updated_at" TIMESTAMP WITH TIME ZONE
 );
 
 -- ================================
