@@ -29,6 +29,10 @@ export const mapAuthUserToProfile = (
     username:
       profile?.username ??
       "",
+    bio:
+      profile?.bio ??
+      metadata.bio ??
+      "",
     full_name:
       profile?.full_name ??
       metadata.full_name ??
