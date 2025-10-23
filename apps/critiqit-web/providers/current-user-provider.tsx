@@ -43,7 +43,10 @@ export const CurrentUserProvider = ({
   // Create supabase client, only once, hence useMemo w/ no dependencies
   const supabase = useMemo(() => createClient(), [])
   const isMountedRef = useRef(false)
+  // Remember whether the server already seeded the user to avoid extra initial fetch
   const hasInitialUserRef = useRef(Boolean(initialUser))
+  // Deduplicate overlapping refreshes so multiple triggers share a single in-flight request
+  const syncPromiseRef = useRef<Promise<void> | null>(null)
 
   // Handle updating mount and unmount state of the component
   useEffect(() => {
@@ -54,54 +57,81 @@ export const CurrentUserProvider = ({
   }, [])
 
   // sync claims and load profile
-  const syncAndLoadProfile = useCallback(async () => {
-    if (!isMountedRef.current) return
-    
-    setState((prev) => ({ ...prev, isLoading: true }))
-
-    // Get claims from supabase
-    const { data: claims, error: claimsError } = await supabase.auth.getClaims()
-
-    // If there are no claims or error, the user is logged out
-    if (!claims || claimsError || !claims.claims) {
-      if (isMountedRef.current) {
-        setState({ user: null, isLoading: false })
-      }
-      return
+  const syncAndLoadProfile = useCallback(() => {
+    // if component not mounted, do nothing
+    if (!isMountedRef.current) {
+      return Promise.resolve()
     }
 
-    const userClaims = claims.claims
-    const userId = userClaims.sub
+    // if another caller already started a refresh, just return THAT promise, don't run another
+    if (syncPromiseRef.current) {
+      return syncPromiseRef.current
+    }
 
-    // Load profile data from supabase
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('avatar_url, username, created_at')
-      .eq('id', userId)
-      .maybeSingle()
+    // start a new refresh
+    const promise = (async () => {
+      // set loading state to true
+      setState((prev) => ({ ...prev, isLoading: true }))
 
-    if (!isMountedRef.current) return
+      // Get claims from supabase
+      const { data: claims, error: claimsError } = await supabase.auth.getClaims()
 
-    // Map user data
-    const userProfile = mapAuthUserToProfile(
-      userClaims,
-      profileError ? null : profile
-    )
+      // If there are no claims or error, the user is logged out
+      if (!claims || claimsError || !claims.claims) {
+        if (isMountedRef.current) {
+          setState({ user: null, isLoading: false })
+        }
+        return
+      }
 
-    setState({ user: userProfile, isLoading: false })
+      const userClaims = claims.claims
+      const userId = userClaims.sub
+
+      // Load profile data from supabase
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('avatar_url, username, created_at')
+        .eq('id', userId)
+        .maybeSingle()
+
+      // if component not mounted, do nothing
+      if (!isMountedRef.current) return
+
+      // Map user data
+      const userProfile = mapAuthUserToProfile(
+        userClaims,
+        profileError ? null : profile
+      )
+
+      // set loading state to false, and set the new user data
+      setState({ user: userProfile, isLoading: false })
+    })()
+
+    // store the promise in the ref
+    syncPromiseRef.current = promise
+
+    // if the promise is finally resolved, clear the ref
+    promise.finally(() => {
+      if (syncPromiseRef.current === promise) {
+        syncPromiseRef.current = null
+      }
+    })
+
+    // return the promise
+    return promise
   }, [supabase])
 
   // Main hook - setup auth listeners
   useEffect(() => {
-    // Sync claims if no initial user
+    const syncEvents: AuthChangeEvent[] = ['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED']
+    const signOutEvents: AuthChangeEvent[] = ['SIGNED_OUT', 'USER_DELETED']
+
+    // Sync once on mount whenever we did not render with an initial user.
     if (!hasInitialUserRef.current) {
       syncAndLoadProfile()
     }
 
-    const syncEvents: AuthChangeEvent[] = ['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED']
-    const signOutEvents: AuthChangeEvent[] = ['SIGNED_OUT', 'USER_DELETED']
-
-    // Listen for auth changes
+    // Only react to auth events that imply the user profile might have changed
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (signOutEvents.includes(event)) {
         setState({ user: null, isLoading: false })
@@ -113,7 +143,7 @@ export const CurrentUserProvider = ({
       }
     })
 
-    // Handle tab visibility changes
+    // Keep the profile fresh when a backgrounded tab returns to the foreground
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         syncAndLoadProfile()
