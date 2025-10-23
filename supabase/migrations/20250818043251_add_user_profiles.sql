@@ -38,10 +38,11 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
   SET search_path TO ''
 AS $function$
 begin
-  INSERT INTO public.profiles (id, full_name, username)
+  INSERT INTO public.profiles (id, full_name, avatar_url, username)
   VALUES (
     new.id,
     new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'avatar_url',
     'User_' || substr(md5(new.email || NOW()::text), 1, 10)
   );
   return new;
