@@ -10,7 +10,7 @@ import {
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
-import type { User, Claims } from '@supabase/supabase-js'
+import type { AuthChangeEvent } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { mapAuthUserToProfile, type UserProfile } from '@/lib/auth/user'
 
@@ -98,9 +98,19 @@ export const CurrentUserProvider = ({
       syncAndLoadProfile()
     }
 
+    const syncEvents: AuthChangeEvent[] = ['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED']
+    const signOutEvents: AuthChangeEvent[] = ['SIGNED_OUT', 'USER_DELETED']
+
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      syncAndLoadProfile()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (signOutEvents.includes(event)) {
+        setState({ user: null, isLoading: false })
+        return
+      }
+
+      if (syncEvents.includes(event)) {
+        syncAndLoadProfile()
+      }
     })
 
     // Handle tab visibility changes
