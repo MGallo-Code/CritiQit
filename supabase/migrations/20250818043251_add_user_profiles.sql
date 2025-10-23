@@ -4,7 +4,7 @@ create extension if not exists "pgjwt" with schema "extensions";
 -- Tables
 -- ================================
 
-CREATE TABLE "public"."profiles" (
+CREATE TABLE public.profiles (
   "id" uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id),
   "username" TEXT UNIQUE
     CONSTRAINT "username_length" CHECK (char_length(username) >= 3 AND char_length(username) <= 35),
@@ -22,8 +22,8 @@ CREATE TABLE "public"."profiles" (
 -- Row Level Security
 -- ================================
 
-alter table "public"."profiles" enable row level security;
-alter table "storage"."objects" enable row level security;
+alter table public.profiles enable row level security;
+alter table storage.objects enable row level security;
 
 -- ================================
 -- Functions / Triggers
@@ -76,28 +76,28 @@ INSERT INTO storage.buckets (id, name, public)
 -- ~~~~~~~ Profiles ~~~~~~~
 
 create policy "Public profiles are viewable by everyone."
-  on "public"."profiles"
+  on public.profiles
   as permissive
   for select
   to public
   using (true);
 
 create policy "Users can insert their own profile."
-  on "public"."profiles"
+  on public.profiles
   as permissive
   for insert
   to authenticated
   with check (auth.uid() = id);
 
 create policy "Users can update own profile."
-  on "public"."profiles"
+  on public.profiles
   as permissive
   for update
   to authenticated
   using (auth.uid() = id);
 
 create policy "Users can delete their own profile."
-  on "public"."profiles"
+  on public.profiles
   as permissive
   for delete
   to authenticated
@@ -116,7 +116,7 @@ CREATE POLICY "Avatar images are publicly accessible."
   );
 
 CREATE POLICY "Users can upload an avatar to their own folder."
-  ON "storage"."objects"
+  ON storage.objects
   AS permissive
   FOR insert
   TO authenticated
@@ -125,7 +125,7 @@ CREATE POLICY "Users can upload an avatar to their own folder."
   );
 
 CREATE POLICY "Users can update their own avatars."
-  ON "storage"."objects"
+  ON storage.objects
   AS permissive
   FOR update
   TO authenticated
@@ -137,7 +137,7 @@ CREATE POLICY "Users can update their own avatars."
   );
 
 CREATE POLICY "Users can delete their own avatars."
-  ON "storage"."objects"
+  ON storage.objects
   AS permissive
   FOR delete
   TO authenticated
@@ -148,7 +148,7 @@ CREATE POLICY "Users can delete their own avatars."
 -- ~~~~~~~ Email Templates ~~~~~~~
 
 CREATE POLICY "Admins can upload email templates."
-  ON "storage"."objects"
+  ON storage.objects
   AS permissive
   FOR insert
   TO authenticated
@@ -157,7 +157,7 @@ CREATE POLICY "Admins can upload email templates."
   );
 
 CREATE POLICY "Allow service_role to insert into email-templates"
-  ON "storage"."objects"
+  ON storage.objects
   AS permissive
   FOR INSERT
   WITH CHECK (
@@ -172,4 +172,5 @@ begin;
   drop publication if exists supabase_realtime;
   create publication supabase_realtime;
 commit;
-alter publication supabase_realtime add table "public"."profiles";
+
+alter publication supabase_realtime add table public.profiles;
