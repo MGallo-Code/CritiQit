@@ -30,7 +30,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUserResult> => {
     error: profileError,
   } = await supabase
     .from("profiles")
-    .select("avatar_url, username, created_at")
+    .select("avatar_url, username, full_name, bio, created_at")
     .eq("id", userClaims.sub)
     .maybeSingle();
 

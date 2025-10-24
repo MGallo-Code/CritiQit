@@ -2,10 +2,12 @@ import type { Claims } from "@supabase/supabase-js";
 
 // interface for the user profile
 export interface UserProfile {
+  id: string;
   email: string;
   avatar_url: string | null;
   username: string;
   full_name: string | null;
+  bio: string | null;
   created_at: string | null;
 }
 
@@ -17,6 +19,7 @@ export const mapAuthUserToProfile = (
   const metadata = claims.user_metadata ?? {};
 
   return {
+    id: typeof claims.sub === "string" ? claims.sub : "",
     email:
       profile?.email ??
       claims.email ??
@@ -28,17 +31,18 @@ export const mapAuthUserToProfile = (
       null,
     username:
       profile?.username ??
-      "",
-    bio:
-      profile?.bio ??
-      metadata.bio ??
+      metadata.username ??
       "",
     full_name:
       profile?.full_name ??
       metadata.full_name ??
-      "Not Set",
+      null,
     created_at:
       profile?.created_at ??
+      null,
+    bio:
+      profile?.bio ??
+      metadata.bio ??
       null,
   };
 };
