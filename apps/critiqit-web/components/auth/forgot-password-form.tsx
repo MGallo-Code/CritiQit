@@ -15,14 +15,19 @@ import { Label } from "@/components/ui/label";
 import { Turnstile } from "@/components/ui/turnstile";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type ComponentPropsWithoutRef } from "react";
+
+type ForgotPasswordFormProps = ComponentPropsWithoutRef<typeof Card> & {
+  initialEmail?: string;
+  redirectTo?: string;
+};
 
 export function ForgotPasswordForm({
   className,
   initialEmail = "",
   redirectTo = "/protected/dashboard",
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}: ForgotPasswordFormProps) {
   const [email, setEmail] = useState(initialEmail);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,54 +65,54 @@ export function ForgotPasswordForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Reset Your Password</CardTitle>
-          <CardDescription>
-            Type in your email and we&apos;ll send you a link and a code to reset
-            your password.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleForgotPassword}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Security Verification</Label>
-                <Turnstile
-                  onTokenReceived={setTurnstileToken}
-                  onError={(error) => setError(`Security verification failed: ${error}`)}
-                  onExpired={() => setTurnstileToken(null)}
-                />
-              </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
-                {isLoading ? "Sending..." : "Send reset email"}
-              </Button>
+    <Card {...props} className={cn("w-full", className)}>
+      <CardHeader>
+        <CardTitle className="text-2xl">Reset Your Password</CardTitle>
+        <CardDescription>
+          Type in your email and we&apos;ll send you a link and a code to reset
+          your password.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleForgotPassword}>
+          <div className="flex flex-col gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
-            <div className="mt-4 text-center text-sm">
-              Already have an account?{" "}
-              <Link
-                href={`/auth/login?${redirectToParamString}`}
-                className="underline underline-offset-4"
-              >
-                Login
-              </Link>
+            <div className="grid gap-2">
+              <Label>Security Verification</Label>
+              <Turnstile
+                onTokenReceived={setTurnstileToken}
+                onError={(error) =>
+                  setError(`Security verification failed: ${error}`)
+                }
+                onExpired={() => setTurnstileToken(null)}
+              />
             </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
+              {isLoading ? "Sending..." : "Send reset email"}
+            </Button>
+          </div>
+          <div className="mt-4 text-center text-sm">
+            Already have an account?{" "}
+            <Link
+              href={`/auth/login?${redirectToParamString}`}
+              className="underline underline-offset-4"
+            >
+              Login
+            </Link>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

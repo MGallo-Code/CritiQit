@@ -14,9 +14,11 @@ export default async function Page({
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <ForgotPasswordForm initialEmail={email} redirectTo={redirectTo} />
-      </div>
+      <ForgotPasswordForm
+        className="w-full max-w-sm"
+        initialEmail={email}
+        redirectTo={redirectTo}
+      />
     </div>
   );
 }

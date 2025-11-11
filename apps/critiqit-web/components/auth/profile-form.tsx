@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -34,10 +34,12 @@ const EMPTY_PROFILE: EditableProfile = {
 const textareaClasses =
   "flex min-h-[128px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
+type ProfileFormProps = ComponentPropsWithoutRef<typeof Card>;
+
 export function ProfileForm({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}: ProfileFormProps) {
   const [mode, setMode] = useState<"edit" | "view">("view");
   const [formData, setFormData] = useState<EditableProfile>(EMPTY_PROFILE);
   const [initialProfile, setInitialProfile] =
@@ -167,47 +169,27 @@ export function ProfileForm({
   // if user is loading, show a loading card
   if (isUserLoading) {
     return (
-      <div
-        className={cn(
-          "flex flex-1 items-center justify-center p-6",
-          className,
-        )}
-        {...props}
-      >
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            Loading profile…
-          </CardContent>
-        </Card>
-      </div>
+      <Card {...props} className={cn("w-full max-w-md", className)}>
+        <CardContent className="p-6 text-center text-sm text-muted-foreground">
+          Loading profile…
+        </CardContent>
+      </Card>
     );
   }
 
   // if no current user, show an error card
   if (!currentUser) {
     return (
-      <div
-        className={cn(
-          "flex flex-1 items-center justify-center p-6",
-          className,
-        )}
-        {...props}
-      >
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            We couldn&apos;t load your profile details.
-          </CardContent>
-        </Card>
-      </div>
+      <Card {...props} className={cn("w-full max-w-md", className)}>
+        <CardContent className="p-6 text-center text-sm text-muted-foreground">
+          We couldn&apos;t load your profile details.
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div
-      className={cn("flex flex-1 items-center justify-center p-6", className)}
-      {...props}
-    >
-      <Card className="w-full max-w-4xl overflow-hidden">
+      <Card {...props} className={cn("w-full max-w-4xl overflow-hidden", className)}>
         <div className="h-36 bg-gradient-to-r from-primary/70 via-primary to-primary/80 dark:from-primary/30 dark:via-primary/40 dark:to-primary/20" />
         <CardHeader className="px-6 pb-6 pt-0">
           <div className="-mt-24 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -348,6 +330,5 @@ export function ProfileForm({
           <LogoutButton />
         </CardFooter>
       </Card>
-    </div>
   );
 }

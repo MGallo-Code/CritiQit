@@ -15,14 +15,18 @@ import { Label } from "@/components/ui/label";
 import { Turnstile } from "@/components/ui/turnstile";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type ComponentPropsWithoutRef } from "react";
 import { OAuthPanel } from "./oauth-panel";
+
+type LoginFormProps = ComponentPropsWithoutRef<typeof Card> & {
+  redirectTo?: string;
+};
 
 export function LoginForm({
   className,
   redirectTo = "/protected/dashboard",
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -69,77 +73,75 @@ export function LoginForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <OAuthPanel redirectTo={redirectTo} />
-          <div className="flex w-full items-center gap-2 p-6 text-sm text-slate-600">
-              <div className="h-px w-full bg-primary"></div>
-              OR
-              <div className="h-px w-full bg-primary"></div>
+    <Card {...props} className={cn("w-full", className)}>
+      <CardHeader>
+        <CardTitle className="text-2xl">Login</CardTitle>
+        <CardDescription>
+          Enter your email below to login to your account
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <OAuthPanel redirectTo={redirectTo} />
+        <div className="flex w-full items-center gap-2 p-6 text-sm text-slate-600">
+            <div className="h-px w-full bg-primary"></div>
+            OR
+            <div className="h-px w-full bg-primary"></div>
+        </div>
+        <form onSubmit={handleLogin}>
+          <div className="flex flex-col gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href={`/auth/forgot-password?${redirectToParamString}`}
+                  className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Security Verification</Label>
+              <Turnstile
+                onTokenReceived={setTurnstileToken}
+                onError={(error) => setError(`Security verification failed: ${error}`)}
+                onExpired={() => setTurnstileToken(null)}
+              />
+            </div>
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
+              {isLoading ? "Logging in..." : "Login"}
+            </Button>
           </div>
-          <form onSubmit={handleLogin}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    href={`/auth/forgot-password?${redirectToParamString}`}
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Security Verification</Label>
-                <Turnstile
-                  onTokenReceived={setTurnstileToken}
-                  onError={(error) => setError(`Security verification failed: ${error}`)}
-                  onExpired={() => setTurnstileToken(null)}
-                />
-              </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
-                {isLoading ? "Logging in..." : "Login"}
-              </Button>
-            </div>
-            <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
-              <Link
-                href={`/auth/sign-up?${redirectToParamString}`}
-                className="underline underline-offset-4"
-              >
-                Sign up
-              </Link>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          <div className="mt-4 text-center text-sm">
+            Don&apos;t have an account?{" "}
+            <Link
+              href={`/auth/sign-up?${redirectToParamString}`}
+              className="underline underline-offset-4"
+            >
+              Sign up
+            </Link>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

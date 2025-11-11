@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, useActionState } from "react";
+import { useEffect, useMemo, useState, useActionState, type ComponentPropsWithoutRef } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,14 +32,18 @@ function SubmitButton({ children, disabled }: { children: React.ReactNode; disab
   );
 }
 
-export interface VerifyEmailFormProps {
+type CardProps = ComponentPropsWithoutRef<typeof Card>;
+
+export interface VerifyEmailFormProps extends CardProps {
   initialEmail?: string;
   redirectTo?: string;
 }
 
 export function VerifyEmailForm({
   initialEmail = "",
-  redirectTo = "/protected/dashboard"
+  redirectTo = "/protected/dashboard",
+  className,
+  ...props
 }: VerifyEmailFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState(initialEmail);
@@ -90,7 +95,7 @@ export function VerifyEmailForm({
   }, [verifyState, resendState]);
 
   return (
-    <Card>
+    <Card {...props} className={cn("w-full", className)}>
       <CardHeader>
         <CardTitle className="text-2xl">Enter verification code</CardTitle>
         <CardDescription>
