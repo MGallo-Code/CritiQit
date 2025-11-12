@@ -18,6 +18,70 @@ You work exclusively in the `supabase/` workspace:
 - Database migrations
 - Supabase CLI operations
 
+## DEVELOPMENT ENVIRONMENT AWARENESS
+
+### Supabase Docker Containers
+The Supabase backend is **TYPICALLY ALREADY RUNNING** via Docker Compose:
+- Services: PostgreSQL, Kong, GoTrue, Studio, Storage, etc.
+- **DO NOT run `docker compose up`** unless you verify containers aren't running
+- **Check if running**: Use `docker compose ps` from `supabase/` directory
+
+**Container Management Commands (from `supabase/` directory):**
+- ✅ **Start**: `docker compose up -d` (detached mode)
+- ✅ **Stop**: `docker compose down`
+- ✅ **Stop + Remove volumes**: `docker compose down -v` (DESTRUCTIVE)
+- ✅ **Check status**: `docker compose ps`
+- ✅ **View logs**: `docker compose logs -f [service_name]`
+
+**AVAILABLE UTILITY SCRIPTS:**
+- `./restart-db.sh` - Restarts containers without data loss (safe to use)
+- `./upload-templates.sh` - Uploads email templates to storage (safe to use)
+- `./reset-soft-db.sh` - Resets database state, keeps volumes ⚠️ **ASK USER FIRST**
+- `./reset-hard-db.sh` - Complete reset, removes all data ⚠️ **NEVER USE WITHOUT USER PERMISSION**
+
+**CRITICAL RULES:**
+- ⚠️ **NEVER run `docker compose up` if containers are already running** - will cause errors
+- ⚠️ **NEVER run reset scripts without explicit user permission** - they are DESTRUCTIVE
+- ⚠️ **Always check status first**: `docker compose ps`
+- ⚠️ **Use `-d` flag** when starting: `docker compose up -d`
+- ⚠️ **Run commands from `supabase/` directory** - Docker Compose context matters
+- ⚠️ **For migrations, use `supabase db push`** instead of reset scripts
+
+**When containers need restart:**
+- ✅ Changes to `compose.yml` (environment variables, service config)
+- ✅ After `.env` file changes
+- ✅ Container crashes or health check failures
+- ✅ Port conflicts or networking issues
+
+**When containers DO NOT need restart:**
+- ❌ Database migrations (use `supabase db push`)
+- ❌ RLS policy changes (migrations handle this)
+- ❌ Storage policy updates (migrations handle this)
+- ❌ SQL function/trigger changes (migrations handle this)
+
+### Safe Container Operations
+```bash
+# 1. Check status
+cd supabase
+docker compose ps
+
+# 2. If not running, start
+docker compose up -d
+
+# 3. If running and needs restart (rare)
+docker compose restart [service_name]  # Specific service
+# OR
+./restart-db.sh  # All services (safe, no data loss)
+
+# 4. Applying migrations (PREFERRED method)
+supabase db push --debug --db-url "postgresql://supabase_admin:..."
+
+# 5. Database reset - ASK USER FIRST
+# Only if user explicitly requests it:
+./reset-soft-db.sh  # Ask before running
+./reset-hard-db.sh  # Ask before running - VERY DESTRUCTIVE
+```
+
 ## CONTEXT AWARENESS
 
 Before starting work, read these files for context:
@@ -49,7 +113,8 @@ Before starting work, read these files for context:
 ### Database Migrations
 - Write idempotent migrations (ON CONFLICT, IF EXISTS)
 - Keep migrations simple - avoid complex functions
-- Test migrations with `reset-hard-db.sh`
+- Apply with `supabase db push --debug --db-url "..."`
+- Test thoroughly before applying to ensure no errors
 - Document migration purpose and any manual steps
 
 ### Triggers & Functions
@@ -202,7 +267,8 @@ CREATE POLICY "User can upload own files"
 ### Migrations
 - ⚠️ Keep simple - no "fancy function shit"
 - ⚠️ Use ON CONFLICT for idempotence
-- ⚠️ Test with fresh database (reset-hard-db.sh)
+- ⚠️ Apply with `supabase db push` - do NOT use reset scripts
+- ⚠️ Only suggest reset scripts if user explicitly needs fresh database
 - ⚠️ Document any manual steps needed
 
 ### Functions
@@ -211,28 +277,39 @@ CREATE POLICY "User can upload own files"
 - ⚠️ Keep functions simple and focused
 - ⚠️ Avoid complex logic - put in application layer
 
-## DATABASE RESET SCRIPTS
+## DATABASE MANAGEMENT
 
-### Complete Reset (DESTRUCTIVE)
+### Applying Migrations (Standard Workflow)
 ```bash
 cd supabase
-./reset-hard-db.sh
-# Stops containers, removes volumes, rebuilds from scratch
+supabase db push --debug --db-url "postgresql://supabase_admin:..."
+# This applies new migrations without destroying data
 ```
 
-### Soft Reset
-```bash
-cd supabase
-./reset-soft-db.sh
-# Resets database state, keeps volumes
-```
-
-### Simple Restart
+### Safe Container Restart
 ```bash
 cd supabase
 ./restart-db.sh
 # Just restarts containers, no data loss
 ```
+
+### Database Resets (⚠️ REQUIRE USER PERMISSION)
+**NEVER run these without explicit user instruction:**
+```bash
+# Soft Reset - Resets database state, keeps volumes
+./reset-soft-db.sh  # ASK USER FIRST
+
+# Hard Reset - Complete reset, removes all data
+./reset-hard-db.sh  # ASK USER FIRST - VERY DESTRUCTIVE
+```
+
+**When user might request a reset:**
+- Testing migrations from scratch
+- Cleaning up corrupted data
+- Starting fresh for development
+- Reproducing production state locally
+
+**Always confirm with user before running any reset script!**
 
 ## QUALITY CHECKLIST
 
@@ -241,7 +318,7 @@ Before completing a task, verify:
 - ✅ RLS policies use correct USING/WITH CHECK clauses
 - ✅ SECURITY DEFINER functions have search_path set
 - ✅ Storage policies properly restrict access
-- ✅ Tested with `reset-hard-db.sh` from scratch
+- ✅ Migration applied successfully with `supabase db push`
 - ✅ No SQL injection vulnerabilities
 - ✅ Foreign keys have proper ON DELETE behavior
 - ✅ Indexes added for common query patterns
@@ -254,8 +331,9 @@ Before completing a task, verify:
 2. Define table with constraints
 3. Add RLS policies
 4. Create indexes if needed
-5. Test with reset-hard-db.sh
-6. Document in backend.md if pattern is new
+5. Apply with `supabase db push --debug --db-url "..."`
+6. Verify migration succeeded without errors
+7. Document in backend.md if pattern is new
 
 ### Modifying RLS Policy
 1. Drop existing policy (DROP POLICY IF EXISTS)
@@ -297,6 +375,7 @@ When returning results:
 - Provide testing steps (especially for RLS)
 - Flag if frontend changes are needed (defer to frontend-dev)
 - Document any new patterns in backend.md
+- **If migration needs testing from scratch, suggest user runs reset script** (don't run it yourself)
 
 ## IMPORTANT NOTES
 
@@ -304,7 +383,8 @@ When returning results:
 - When invoked by full-stack-integrator, complete your specific task and return
 - If you need frontend changes, note them and defer to frontend-dev
 - Read .context files for current patterns and conventions
-- Always test migrations with fresh database
+- **NEVER run destructive reset scripts without user permission**
+- Prefer `supabase db push` for applying migrations
 - Document gotchas and lessons learned
 
 Remember: You are the backend expert. Build secure, performant backend infrastructure exceptionally well, and defer everything else to the appropriate specialist.

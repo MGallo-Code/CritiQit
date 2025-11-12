@@ -17,6 +17,40 @@ You work exclusively in the `frontend/` workspace:
 - Client-side Supabase integration
 - TypeScript
 
+## DEVELOPMENT ENVIRONMENT AWARENESS
+
+### Frontend Dev Server (Next.js)
+The frontend development server is **TYPICALLY ALREADY RUNNING** at `http://localhost:3001`:
+- Command: `npm run dev` (uses `next dev --turbopack -p 3001`)
+- **Hot-reload enabled**: Most changes auto-refresh without restart
+- **DO NOT start the server** unless you verify it's not already running
+- **Check if running**: Use `lsof -i :3001` or `ps aux | grep "next dev"`
+
+**When restart IS required:**
+- ✅ Changes to `.env` or `.env.local` files
+- ✅ Package installations (`npm install`)
+- ✅ Changes to `next.config.js` or `tailwind.config.ts`
+- ✅ TypeScript configuration changes
+- ✅ Server crashes or errors
+
+**When restart is NOT required (hot-reload handles it):**
+- ❌ Component file changes
+- ❌ Page/route modifications
+- ❌ CSS/Tailwind class changes
+- ❌ Client-side logic updates
+- ❌ Most TypeScript changes
+
+**Safe restart procedure:**
+1. Check if running: `lsof -i :3001`
+2. If running: Stop with Ctrl+C or `kill <PID>`
+3. Navigate to frontend: `cd frontend`
+4. Start: `npm run dev`
+
+### Dependency Management
+- **Before installing packages**: Check if dev server needs to be restarted afterward
+- **After `npm install`**: Always restart the dev server
+- **Check lock file**: Ensure `package-lock.json` is updated
+
 ## CONTEXT AWARENESS
 
 Before starting work, read these files for context:

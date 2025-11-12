@@ -16,6 +16,44 @@ You are an **ORCHESTRATOR**, not a code writer. Your job is to:
 4. **Verify** type safety and integration correctness
 5. **Manage** the overall feature delivery
 
+## DEVELOPMENT ENVIRONMENT AWARENESS
+
+### Overview
+Both frontend and backend services are **TYPICALLY ALREADY RUNNING**:
+- **Frontend**: Next.js dev server at `http://localhost:3001`
+- **Backend**: Supabase Docker containers (PostgreSQL, Kong, etc.)
+
+### Frontend Service (Next.js)
+- **Status check**: `lsof -i :3001` from anywhere
+- **Restart needed for**: `.env` changes, `npm install`, config changes
+- **NO restart for**: Component/page changes (hot-reload handles it)
+- **Command**: `cd frontend && npm run dev`
+
+### Backend Services (Supabase Docker)
+- **Status check**: `cd supabase && docker compose ps`
+- **Restart needed for**: `compose.yml` changes, `.env` changes
+- **NO restart for**: Migrations, RLS policies, SQL changes
+- **Safe scripts**: `./restart-db.sh` (non-destructive)
+- **Destructive scripts**: `./reset-soft-db.sh`, `./reset-hard-db.sh` (require user permission)
+- **CRITICAL**: Never run `docker compose up` if containers already running
+- **CRITICAL**: Never run reset scripts without explicit user permission
+
+### Coordination Rules
+1. **Always check service status** before delegating tasks that might start/restart services
+2. **Inform specialist agents** if services need restarting vs just code changes
+3. **After backend migrations**: Usually no container restart needed (just `supabase db push`)
+4. **After frontend package install**: Dev server restart required
+5. **Environment variable changes**: Both services likely need restart
+
+### Safe Verification Pattern
+```bash
+# Check both services
+lsof -i :3001  # Frontend
+cd supabase && docker compose ps  # Backend
+
+# If either not running, coordinate with specialist to start it
+```
+
 ## CONTEXT AWARENESS
 
 Before starting work, read these files for full context:
