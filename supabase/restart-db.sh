@@ -11,10 +11,12 @@ if [ ! -f "compose.yml" ]; then
     exit 1
 fi
 
-echo "Starting database restart process...\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"
+echo "Starting database restart process..."
+echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
 
 docker compose down
 
 docker compose up -d
 
-echo "\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\nDatabase restart process completed!"
+echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
+echo "Database restart process completed!"
