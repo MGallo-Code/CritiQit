@@ -164,6 +164,51 @@ local function check_rate_limit(pg, identifier, identifier_type, endpoint, limit
   return nil, "Unexpected result type"
 end
 
+local function get_request_body()
+  -- Read request body (only works in access phase before proxying)
+  -- Use pcall to catch any errors gracefully
+  local ok, body = pcall(kong.request.get_body)
+  if not ok then
+    kong.log.debug("[rate-limit-db] Failed to get request body (error): ", body)
+    return nil
+  end
+
+  if not body then
+    kong.log.debug("[rate-limit-db] No request body available")
+    return nil
+  end
+
+  -- Ensure body is a table (should be JSON parsed)
+  if type(body) ~= "table" then
+    kong.log.debug("[rate-limit-db] Request body is not a table: ", type(body))
+    return nil
+  end
+
+  return body
+end
+
+local function extract_content_identifier(conf)
+  -- Extract identifier from request body based on configured fields
+  local body = get_request_body()
+
+  if not body then
+    kong.log.debug("[rate-limit-db] No request body available for content-based rate limiting")
+    return nil
+  end
+
+  -- Try each configured field in order
+  for _, field in ipairs(conf.content_identifier_fields) do
+    local value = body[field]
+    if value and type(value) == "string" and value ~= "" then
+      kong.log.debug("[rate-limit-db] Extracted content identifier from field '", field, "': ", value)
+      return value
+    end
+  end
+
+  kong.log.debug("[rate-limit-db] No content identifier found in body fields: ", table.concat(conf.content_identifier_fields, ", "))
+  return nil
+end
+
 local function set_rate_limit_headers(conf, result)
   if conf.hide_client_headers then
     return
@@ -196,7 +241,7 @@ local function set_rate_limit_headers(conf, result)
 end
 
 function RateLimitHandler:access(conf)
-  kong.log.info("[rate-limit-db] Access phase - checking rate limits")
+  kong.log.info("[rate-limit-db] Access phase - strategy: ", conf.identifier_strategy)
 
   -- Check if service role (bypass rate limiting)
   local api_key = kong.request.get_header("apikey")
@@ -215,94 +260,103 @@ function RateLimitHandler:access(conf)
     return
   end
 
-  -- Get identifiers
-  local user_id = get_user_id_from_jwt()
-  local client_ip = get_client_ip()
   local endpoint = kong.request.get_path()
+  local identifier, identifier_type
 
-  kong.log.info("[rate-limit-db] Rate limit check - User: ", user_id or "none", " IP: ", client_ip, " Endpoint: ", endpoint)
+  -- Determine identifier based on strategy
+  if conf.identifier_strategy == "user" then
+    -- Tier 3: User-based (existing logic)
+    identifier = get_user_id_from_jwt()
+    identifier_type = "user"
 
-  -- Determine which checks to perform
-  local should_check_user = user_id and conf.limit_authenticated_by_user
-  local should_check_ip = conf.limit_anonymous_by_ip
-
-  local limits = {
-    second = conf.second,
-    minute = conf.minute,
-    hour = conf.hour,
-    day = conf.day,
-  }
-
-  -- Check user-based rate limit (if authenticated)
-  if should_check_user then
-    local result, err = check_rate_limit(pg, user_id, "user", endpoint, limits)
-
-    if not result then
-      kong.log.err("[rate-limit-db] User rate limit check failed: ", err)
-      -- Fail open
+    if not identifier then
+      kong.log.debug("[rate-limit-db] No user ID found, rate limiting not applied")
       pg:keepalive()
       return
     end
 
-    set_rate_limit_headers(conf, result)
+  elseif conf.identifier_strategy == "ip" then
+    -- Tier 1: IP-based
+    identifier = get_client_ip()
+    identifier_type = "ip"
 
-    if not result.allowed then
+  elseif conf.identifier_strategy == "content" then
+    -- Tier 2: Content-based
+    identifier = extract_content_identifier(conf)
+    identifier_type = conf.content_identifier_type
+
+    if not identifier and conf.fallback_by_ip then
+      -- Fallback to IP if content identifier not found
+      kong.log.debug("[rate-limit-db] Content identifier not found, falling back to IP")
+      identifier = get_client_ip()
+      identifier_type = "ip"
+    end
+
+    if not identifier then
+      kong.log.warn("[rate-limit-db] No identifier found for content-based rate limiting and no fallback configured")
       pg:keepalive()
-
-      local retry_after = "60"
-      if result.reset_at then
-        local reset_time = ngx.parse_http_time(result.reset_at)
-        if reset_time then
-          retry_after = tostring(math.max(1, reset_time - ngx.time()))
-        end
-      end
-
-      kong.response.set_header("Retry-After", retry_after)
-
-      kong.log.warn("[rate-limit-db] BLOCKED - User rate limit exceeded: ", user_id, " on ", endpoint)
-
-      return kong.response.exit(conf.error_code, {
-        message = conf.error_message,
-        limit_hit = result.limit_hit,
-        retry_after = tonumber(retry_after),
-      })
+      return
     end
   end
 
-  -- Check IP-based rate limit (always for anonymous, optional for authenticated)
-  if should_check_ip and (not user_id or should_check_user) then
-    local result, err = check_rate_limit(pg, client_ip, "ip", endpoint, limits)
+  kong.log.info("[rate-limit-db] Rate limit check - Strategy: ", conf.identifier_strategy,
+                " Type: ", identifier_type, " Identifier: ", identifier, " Endpoint: ", endpoint)
 
-    if not result then
-      kong.log.err("[rate-limit-db] IP rate limit check failed: ", err)
-      -- Fail open
-      pg:keepalive()
-      return
-    end
+  -- Determine which limits to use (primary or fallback)
+  local limits
+  if conf.identifier_strategy == "content" and identifier_type == "ip" and conf.fallback_by_ip then
+    -- Use fallback limits for IP when content identifier not found
+    limits = {
+      second = conf.fallback_limits.second,
+      minute = conf.fallback_limits.minute,
+      hour = conf.fallback_limits.hour,
+      day = conf.fallback_limits.day,
+    }
+    kong.log.debug("[rate-limit-db] Using fallback limits for IP")
+  else
+    -- Use primary limits
+    limits = {
+      second = conf.second,
+      minute = conf.minute,
+      hour = conf.hour,
+      day = conf.day,
+    }
+    kong.log.debug("[rate-limit-db] Using primary limits")
+  end
 
-    set_rate_limit_headers(conf, result)
+  -- Check rate limit
+  local result, err = check_rate_limit(pg, identifier, identifier_type, endpoint, limits)
 
-    if not result.allowed then
-      pg:keepalive()
+  if not result then
+    kong.log.err("[rate-limit-db] Rate limit check failed: ", err)
+    -- Fail open
+    pg:keepalive()
+    return
+  end
 
-      local retry_after = "60"
-      if result.reset_at then
-        local reset_time = ngx.parse_http_time(result.reset_at)
-        if reset_time then
-          retry_after = tostring(math.max(1, reset_time - ngx.time()))
-        end
+  set_rate_limit_headers(conf, result)
+
+  if not result.allowed then
+    pg:keepalive()
+
+    local retry_after = "60"
+    if result.reset_at then
+      local reset_time = ngx.parse_http_time(result.reset_at)
+      if reset_time then
+        retry_after = tostring(math.max(1, reset_time - ngx.time()))
       end
-
-      kong.response.set_header("Retry-After", retry_after)
-
-      kong.log.warn("[rate-limit-db] BLOCKED - IP rate limit exceeded: ", client_ip, " on ", endpoint)
-
-      return kong.response.exit(conf.error_code, {
-        message = conf.error_message,
-        limit_hit = result.limit_hit,
-        retry_after = tonumber(retry_after),
-      })
     end
+
+    kong.response.set_header("Retry-After", retry_after)
+
+    kong.log.warn("[rate-limit-db] BLOCKED - Rate limit exceeded: ", identifier_type, "=", identifier, " on ", endpoint)
+
+    return kong.response.exit(conf.error_code, {
+      message = conf.error_message,
+      identifier_type = identifier_type,
+      limit_hit = result.limit_hit,
+      retry_after = tonumber(retry_after),
+    })
   end
 
   -- Close database connection

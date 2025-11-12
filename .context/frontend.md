@@ -551,6 +551,153 @@ OAuth callbacks may take a moment to process. The callback page should show a lo
 
 ---
 
+## Error Handling Patterns
+
+### Edge Function Error Handling Pattern
+
+#### Critical Difference from Direct Auth Calls
+
+Edge Functions in Supabase return errors through `FunctionsHttpError` with a different structure than direct auth calls.
+
+**Direct Auth Calls (signUp, signInWithPassword, etc.):**
+```typescript
+const { error } = await supabase.auth.signUp({ email, password });
+if (error) {
+  console.log(error.message);  // String message
+  console.log(error.status);   // HTTP status code
+}
+```
+
+**Edge Function Calls (functions.invoke):**
+```typescript
+const { error } = await supabase.functions.invoke("my-function", { body: data });
+if (error) {
+  // error is a FunctionsHttpError
+  const errorData = await error.context.json();  // MUST parse context!
+  console.log(errorData.message);
+  console.log(error.context.status);  // HTTP status from context
+}
+```
+
+### Rate Limiting Error Format
+
+When rate limits are exceeded (429 status), both patterns receive:
+
+```json
+{
+  "message": "Rate limit exceeded",
+  "identifier_type": "email",
+  "limit_hit": "hour",
+  "retry_after": 60
+}
+```
+
+### Parsing Utilities
+
+Use the provided parsing functions from `@/lib/parse-auth-error`:
+
+- `parseAuthError(error)` - For direct Supabase auth calls (synchronous)
+- `parseEdgeFunctionError(error)` - For Edge Function calls (asynchronous!)
+
+### Example: OTP Verification (Edge Function)
+
+```typescript
+import { parseEdgeFunctionError } from "@/lib/parse-auth-error";
+
+const { data, error } = await supabase.functions.invoke("verify-otp-securely", {
+  body: { req_type: "signup", email, token, captchaToken },
+});
+
+if (error) {
+  // IMPORTANT: Must use async parser for Edge Functions!
+  const parsedError = await parseEdgeFunctionError(error);
+
+  if (isRateLimitError(parsedError)) {
+    // Show countdown timer, disable form
+    console.log(`Retry in ${parsedError.retry_after} seconds`);
+  } else {
+    // Show normal error message
+    console.log(parsedError);
+  }
+
+  return {
+    status: "error",
+    error: parsedError,
+  };
+}
+```
+
+### Example: Login (Direct Auth Call)
+
+```typescript
+import { parseAuthError } from "@/lib/parse-auth-error";
+
+const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+if (error) {
+  // Synchronous parser for direct calls
+  const parsedError = parseAuthError(error);
+
+  if (isRateLimitError(parsedError)) {
+    // Show countdown timer, disable form
+  } else {
+    // Show normal error message
+  }
+
+  setError(parsedError);
+}
+```
+
+### FormError Component
+
+The `FormError` component (`@/components/ui/form-error`) automatically:
+- Detects rate limit errors using the `isRateLimitError` type guard
+- Shows countdown timer for rate limit errors
+- Styles appropriately (yellow warning for rate limits, red for errors)
+- Supports dark mode
+- Updates countdown every second
+
+**Usage:**
+```typescript
+import { FormError } from "@/components/ui/form-error";
+import { isRateLimitError } from "@/lib/form-state";
+
+const [error, setError] = useState<string | RateLimitError | null>(null);
+const isRateLimited = isRateLimitError(error);
+
+// In JSX:
+<FormError error={error} />
+<Button disabled={isLoading || isRateLimited}>Submit</Button>
+```
+
+### Type Definitions
+
+```typescript
+// From @/lib/form-state
+export type RateLimitError = {
+  message: string;
+  type: "rate_limit";
+  retry_after: number;      // seconds until retry allowed
+  limit_hit: string;        // "hour" | "minute" | "day"
+  identifier_type: string;  // "email" | "ip" | "user"
+};
+
+export function isRateLimitError(error: string | RateLimitError | undefined): error is RateLimitError {
+  return typeof error === "object" && error !== null && error.type === "rate_limit";
+}
+```
+
+### Best Practices
+
+1. **Always disable form buttons when rate limited** to prevent users from making the problem worse
+2. **Use FormError component** for consistent error display across all forms
+3. **Parse Edge Function errors asynchronously** - `parseEdgeFunctionError` is async!
+4. **Parse direct auth errors synchronously** - `parseAuthError` is sync
+5. **Test dark mode** - rate limit warnings should display correctly in both themes
+6. **Handle countdown completion** - FormError shows "You can try again now" when countdown reaches zero
+
+---
+
 ## Related Documentation
 
 - **Project overview**: [project.md](./project.md)

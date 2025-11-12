@@ -2,12 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { FunctionsHttpError } from "@supabase/supabase-js";
+import { parseEdgeFunctionError } from "@/lib/parse-auth-error";
+import { FormState } from "@/lib/form-state";
 
-// form state for verify email code
-export type VerifyEmailFormState = {
-  status: "idle" | "error" | "success";
-  error?: string;
-};
+// form state for verify email code (uses the standard FormState)
+export type VerifyEmailFormState = FormState;
 
 export async function verifyEmailCodeAction(
   _: VerifyEmailFormState,
@@ -42,11 +41,12 @@ export async function verifyEmailCodeAction(
     },
   });
 
-  if (error && error instanceof FunctionsHttpError) {
-    const errorObj = await error.context.json()
+  if (error) {
+    // IMPORTANT: Parse Edge Function errors using the async parser
+    const parsedError = await parseEdgeFunctionError(error);
     return {
       status: "error",
-      error: errorObj.error,
+      error: parsedError,
     };
   }
 

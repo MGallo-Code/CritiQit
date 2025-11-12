@@ -5,9 +5,9 @@
 CREATE TABLE IF NOT EXISTS public.rate_limits (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 
-  -- Identifier (user ID or IP address)
+  -- Identifier (user ID, IP address, email, username, token, or custom)
   identifier text NOT NULL,
-  identifier_type text NOT NULL CHECK (identifier_type IN ('user', 'ip')),
+  identifier_type text NOT NULL CHECK (identifier_type IN ('user', 'ip', 'email', 'username', 'token', 'custom')),
 
   -- Endpoint being tracked
   endpoint text NOT NULL,

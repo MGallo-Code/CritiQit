@@ -15,18 +15,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Turnstile } from "@/components/ui/turnstile";
+import { FormError } from "@/components/ui/form-error";
 import {
   resendEmailCodeAction,
   verifyEmailCodeAction,
 } from "@/app/auth/verify-email/actions";
-import { INITIAL_FORM_STATE } from "@/lib/form-state";
+import { INITIAL_FORM_STATE, isRateLimitError } from "@/lib/form-state";
 
 
-// dynamic submit button, disabled when pending action or disabled prop is true
-function SubmitButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
+// dynamic submit button, disabled when pending action, disabled prop, or rate limited
+function SubmitButton({ children, disabled, isRateLimited }: { children: React.ReactNode; disabled?: boolean; isRateLimited?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending || disabled}>
+    <Button type="submit" className="w-full" disabled={pending || disabled || isRateLimited}>
       {pending ? "Working..." : children}
     </Button>
   );
@@ -77,7 +78,10 @@ export function VerifyEmailForm({
     }
   }, [verifyState.status, resendState.status]);
 
-  // determine form feedback message/color based on state/erros
+  // Check if user is rate limited
+  const isRateLimited = isRateLimitError(verifyState.error) || isRateLimitError(resendState.error);
+
+  // determine form feedback message/color based on state/errors
   const feedback = useMemo(() => {
     if (verifyState.status === "error") {
       return { tone: "error", message: verifyState.error } as const;
@@ -150,9 +154,9 @@ export function VerifyEmailForm({
             value={turnstileToken ?? ""}
           />
           {feedback && feedback.tone === "error" && (
-            <p className="text-sm text-red-500">{feedback.message}</p>
+            <FormError error={feedback.message} />
           )}
-          <SubmitButton disabled={!turnstileToken || token.length !== 6}>
+          <SubmitButton disabled={!turnstileToken || token.length !== 6} isRateLimited={isRateLimited}>
             Verify and continue
           </SubmitButton>
         </form>
@@ -171,7 +175,7 @@ export function VerifyEmailForm({
               name="turnstileToken"
               value={turnstileToken ?? ""}
             />
-            <SubmitButton disabled={!turnstileToken}>
+            <SubmitButton disabled={!turnstileToken} isRateLimited={isRateLimited}>
               Resend verification email
             </SubmitButton>
           </form>

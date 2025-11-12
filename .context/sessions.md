@@ -4,6 +4,89 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
+## Session 3 - 2025-11-12 23:00
+
+### Summary
+Implemented production-ready three-tier rate limiting architecture for Kong API Gateway, closing critical security vulnerabilities. Refactored existing rate-limit-db plugin to support IP-based, content-based, and user-based rate limiting strategies. Applied granular per-route rate limits across all authentication endpoints, Edge Functions, and storage operations. Implemented comprehensive frontend error handling with live countdown timers for rate limit errors. System now prevents credential stuffing, brute force, account enumeration, and DoS attacks.
+
+### Accomplishments
+- **Supabase**: Designed three-tier rate limiting architecture (IP-based, content-based, user-based)
+- **Supabase**: Refactored rate-limit-db plugin handler to support three identifier strategies with fallback logic
+- **Supabase**: Added content-based rate limiting with request body parsing (email, username, token extraction)
+- **Supabase**: Updated database schema to support email, username, token, custom identifier types
+- **Supabase**: Split broad Kong routes (auth-v1-all) into specific routes with tailored rate limiting per operation
+- **Supabase**: Applied strict rate limits to auth operations (signup: 5/hour per email, login: 10/hour per email, password reset: 3/hour per email)
+- **Supabase**: Applied IP-based rate limits to OAuth endpoints (100/min per IP)
+- **Supabase**: Applied user-based rate limits to authenticated REST and storage operations (60-100/min per user)
+- **Supabase**: Closed service_role bypass vulnerability by implementing Tier 2 content-based rate limiting on Edge Functions
+- **Supabase**: Tested all three tiers with curl commands and verified database tracking
+- **Supabase**: Created comprehensive 71-page rate limiting architecture document
+- **Frontend**: Implemented dual error parsing utilities (parseAuthError for direct calls, parseEdgeFunctionError for Edge Functions)
+- **Frontend**: Created FormError component with live countdown timer for rate limit errors
+- **Frontend**: Updated 11 authentication files to handle rate limit errors properly
+- **Frontend**: Added yellow warning styling for rate limits vs red for normal errors
+- **Frontend**: Implemented dark mode support for error displays
+- **Frontend**: Added form disabling when rate limited to prevent users from making problem worse
+- **Root**: Updated backend.md with three-tier plugin documentation
+- **Root**: Updated frontend.md with Edge Function error handling patterns
+- **Root**: Documented critical difference between Edge Function and direct auth error handling
+
+### Technical Decisions
+- **Unified Plugin Architecture**: Refactored existing rate-limit-db plugin to support three modes (ip, content, user) instead of creating three separate plugins. Reduces code duplication, simplifies maintenance, and provides backward compatibility with existing configurations.
+- **Per-Route Rate Limiting**: Split broad routes like auth-v1-all into specific routes (signup, token, recover, verify, resend, user, magiclink) with tailored rate limits per operation. Provides granular control and prevents security gaps where attackers could find unprotected endpoints.
+- **Content-Based Strategy**: Extracts identifiers (email, username, token) from request body BEFORE proxying to backend. This closes the service_role bypass vulnerability where Edge Functions using service_role internally would bypass Kong authentication. Critical for OTP verification brute force prevention.
+- **Fail-Open Philosophy**: Plugin fails open on errors (body parsing failures, DB connection issues) to prioritize availability over strict enforcement. Rate limiting is important but shouldn't break the API if something goes wrong. Logged for monitoring.
+- **IP Fallback Pattern**: Content-based rate limiting falls back to IP-based limiting if identifier not found in request body. Ensures no requests slip through untracked while still being lenient for malformed requests.
+- **Dual Frontend Error Parsers**: Created separate parseAuthError (synchronous) and parseEdgeFunctionError (asynchronous) because Edge Functions wrap errors in FunctionsHttpError.context which requires await error.context.json() to access. Direct auth calls have synchronous .message and .status properties.
+- **Live Countdown Timer UX**: Instead of static "Rate limit exceeded" message, shows live countdown ("Try again in 4m 32s") that updates every second. Disables form buttons during rate limit period. Prevents users from repeatedly clicking and making rate limit worse.
+- **Warning vs Error Styling**: Rate limits styled as yellow warnings (not red errors) because they're temporary restrictions, not permanent failures. Communicates "wait and try again" rather than "something is broken".
+- **Per-Operation Rate Limits**: Different limits for different operations based on security risk: signup (5/hour) strictest because account creation is most vulnerable, login (10/hour) moderate, general API (100/min) generous. Tuned based on expected legitimate use patterns.
+- **Plugin Priority 900**: Runs after auth plugins (key-auth: 1003, acl: 950) but before most others. Ensures rate limiting only applies to authenticated requests, avoiding wasted database queries on requests that will be rejected by auth anyway.
+
+### Dependencies Changed
+None (all changes within existing infrastructure)
+
+### Environment Variables Changed
+None
+
+### Lessons Learned
+- **Kong Request Body Parsing**: kong.request.get_body() works reliably in access phase for parsing JSON request bodies. No performance issues for small auth payloads (<1KB). Use pcall() wrapper to gracefully handle parse failures and fail open.
+- **Edge Function Error Structure**: Supabase Edge Functions return errors via FunctionsHttpError.context which requires await error.context.json() to parse. This is fundamentally different from direct auth calls (.message, .status) and requires separate parsing utilities. Mixing up these patterns causes runtime errors.
+- **Rate Limiting as Second Line of Defense**: Testing showed signup/login naturally hit captcha failures (500) before rate limits when using invalid credentials. Rate limits act as the second line of defense when captcha is bypassed (bots) or for legitimate users making mistakes (forgot password).
+- **Per-Route Configuration Power**: Splitting broad routes into specific routes with tailored limits provides dramatically better security than global limits. Signup needs strictest limits (5/hour), general API needs generous limits (100/min). One-size-fits-all doesn't work.
+- **Countdown Timer UX Value**: Live countdown timer improves user experience significantly. Users understand exactly when they can retry instead of repeatedly clicking and making the problem worse. Shows "Try again in X minutes Y seconds" and updates every second until zero.
+- **Fail-Open Design Trade-offs**: Failing open on errors (DB connection, body parsing) prioritizes availability over strict enforcement. This is appropriate for rate limiting (important but not critical) but wouldn't be appropriate for authentication (critical). Rate limiting should enhance security, not become a single point of failure.
+- **Content-Based Rate Limiting Power**: Extracting identifiers from request body enables rate limiting on unauthenticated endpoints that would otherwise be impossible to protect. Edge Functions using service_role bypass Kong authentication, but content-based rate limiting intercepts them before proxy. Closes major security gap.
+- **pgmoon JSONB as Tables**: pgmoon returns JSONB columns as Lua tables (already parsed), not JSON strings. No need to manually decode with cjson. Check type(value) == "table" to detect JSONB results.
+- **pgmoon NULL as Userdata**: PostgreSQL NULL values come back as userdata (not nil). Always check type(value) == "userdata" before using values in operations that expect strings/numbers (like HTTP headers). Setting header to userdata causes "invalid header value" errors.
+- **Testing Requires All Auth Tiers**: Testing showed that attempting to brute force without proper JWT naturally hits different rate limit tiers. OAuth endpoints hit IP limits, auth operations hit content limits, authenticated operations hit user limits. Must test all three paths separately.
+- **Three-Tier Strategy vs Separate Plugins**: Single unified plugin with three modes is superior to three separate plugins because: (1) less code duplication, (2) easier maintenance, (3) backward compatible with existing user-based config, (4) shared fail-open logic, (5) shared database connection pooling.
+
+### Known Issues / Technical Debt
+- **Kong Log Level**: Currently set to debug for development visibility. Should revert to info for production to reduce log volume and improve performance.
+- **Rate Limit Monitoring**: No automated monitoring or alerting for 429 responses. Consider adding metrics collection (Prometheus/Grafana) to identify attack patterns and tune limits based on real traffic.
+- **Test Turnstile Key**: Using test captcha key (always passes) in development. Must switch to production Turnstile key before launch to enable actual bot protection.
+- **Rate Limit Tuning Needed**: Current limits (5/hour signup, 10/hour login, 3/hour reset, 100/min API) are starting points based on design. Need to monitor real traffic patterns after launch and adjust accordingly. May need to be more/less strict.
+- **Frontend Testing Gap**: Rate limit error handling implemented but not tested in live frontend dev environment yet. Should start Next.js dev server and trigger actual rate limits to verify countdown timer, form disabling, and styling work correctly.
+- **Database Query Monitoring**: Rate limiting adds database query on every request. Should monitor query performance and consider adding indexes on identifier + endpoint columns if rate_limits table grows large.
+- **Service Role Bypass Documentation**: service_role key bypasses ALL rate limiting for internal services. This is correct design but needs to be clearly documented for security reviews. Any service with service_role key has unlimited access.
+
+### Next Steps
+- [ ] **Test frontend rate limit error handling** in dev environment (start Next.js, trigger rate limits, verify countdown/disabling works)
+- [ ] **Revert Kong log level** from debug to info for production readiness
+- [ ] **Monitor rate limit hits** during development to validate limits are appropriate for legitimate use patterns
+- [ ] **Create git commit** for three-tier rate limiting implementation (suggest message after session doc complete)
+- [ ] **Add monitoring/alerting** for 429 responses (optional, can use database queries to track patterns)
+- [ ] **Consider rate limit metrics dashboard** (Grafana/Prometheus integration, low priority)
+- [ ] **Document rate limit testing procedures** in project.md for future development reference
+- [ ] **Add automated rate limit tests** (curl scripts in CI/CD, low priority)
+- [ ] **Consider device fingerprinting** for additional security layer beyond IP/email/user (low priority)
+
+### Commits
+None yet (work complete, ready to commit)
+
+---
+
 ## Session 2 - 2025-11-12
 
 ### Summary

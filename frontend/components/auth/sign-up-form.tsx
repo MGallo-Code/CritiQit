@@ -13,6 +13,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Turnstile } from "@/components/ui/turnstile";
+import { FormError } from "@/components/ui/form-error";
+import { parseAuthError } from "@/lib/parse-auth-error";
+import { isRateLimitError, type RateLimitError } from "@/lib/form-state";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ComponentPropsWithoutRef } from "react";
@@ -30,10 +33,14 @@ export function SignUpForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
-  const [error, setError] = useState<string | React.ReactNode | null>(null);
+  const [error, setError] = useState<string | RateLimitError | React.ReactNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const router = useRouter();
+
+  // Check if user is rate limited
+  // Check if user is rate limited (only for RateLimitError, not ReactNode)
+  const isRateLimited = typeof error === "object" && error !== null && "type" in error && error.type === "rate_limit";
 
   const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
   
@@ -65,7 +72,7 @@ export function SignUpForm({
       });
       if (error) throw error;
       // user already exists and is verified
-      if (data.user.identities.length === 0) {
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
         // notify user that they already have an account
         setError(
           <>
@@ -91,7 +98,7 @@ export function SignUpForm({
       }
       router.push(`/auth/verify-email?email=${encodeURIComponent(email)}&${redirectToParamString}`);
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      setError(parseAuthError(error));
     } finally {
       setIsLoading(false);
     }
@@ -155,8 +162,12 @@ export function SignUpForm({
                 onExpired={() => setTurnstileToken(null)}
               />
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
+            {error && (typeof error === "string" || (typeof error === "object" && "type" in error)) ? (
+              <FormError error={error as string | RateLimitError} />
+            ) : error ? (
+              <div className="text-sm text-red-500">{error}</div>
+            ) : null}
+            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken || isRateLimited}>
               {isLoading ? "Creating an account..." : "Sign up"}
             </Button>
           </div>

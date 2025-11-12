@@ -3,6 +3,7 @@
 import { FormState } from "@/lib/form-state";
 import { createClient } from "@/lib/supabase/server";
 import { FunctionsHttpError } from "@supabase/supabase-js";
+import { parseEdgeFunctionError } from "@/lib/parse-auth-error";
 
 // base url for site redirects
 const siteUrl = process.env.SITE_URL
@@ -44,11 +45,12 @@ export async function verifyResetCodeAction(
     },
   });
 
-  if (error && error instanceof FunctionsHttpError) {
-    const errorObj = await error.context.json()
+  if (error) {
+    // IMPORTANT: Parse Edge Function errors using the async parser
+    const parsedError = await parseEdgeFunctionError(error);
     return {
       status: "error",
-      error: errorObj.error,
+      error: parsedError,
     };
   }
 

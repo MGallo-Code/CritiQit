@@ -202,69 +202,117 @@ Kong 3.9 acts as the API gateway for all Supabase services, handling authenticat
 
 ### Rate Limiting Plugin
 
-**Implementation:** Custom Kong plugin (`rate-limit-db`) with PostgreSQL backend
+**Implementation:** Custom Kong plugin (`rate-limit-db`) with three-tier rate limiting architecture
 
 **Location:** `supabase/volumes/api/kong/plugins/rate-limit-db/`
-- `handler.lua` - Plugin logic (298 lines)
+- `handler.lua` - Plugin logic with content-based extraction
 - `schema.lua` - Configuration schema
 
 **Database:**
 - Table: `public.rate_limits`
+- Supported identifier types: `user`, `ip`, `email`, `username`, `token`, `custom`
 - Function: `check_rate_limit()` - JSONB-returning stored procedure
 - Migration: `20251112000000_create_rate_limiting.sql`
 
-**Features:**
-- User-based rate limiting (extracted from JWT `sub` claim)
-- IP-based rate limiting (Cloudflare-aware)
-- Per-endpoint tracking
-- Service role bypass (SUPABASE_SERVICE_KEY)
-- Configurable time windows: second, minute, hour, day
-- Standard rate limit headers (X-RateLimit-*)
-- Retry-After header on 429 responses
+#### Three-Tier Architecture
 
-**Configuration Options:**
+**Tier 1: IP-Based Rate Limiting**
+- **Purpose**: DoS protection for public anonymous operations
+- **Identifier**: IP address (Cloudflare-aware: CF-Connecting-IP, X-Real-IP, X-Forwarded-For)
+- **Applied to**: OAuth endpoints (`/auth/v1/authorize`, `/auth/v1/callback`), public storage reads
+- **Limits**: Generous (100-200 requests/minute per IP)
+
+**Tier 2: Content-Based Rate Limiting**
+- **Purpose**: Prevent credential attacks, brute force, account enumeration
+- **Identifier**: Request body fields (email, username, token) with IP fallback
+- **Applied to**: Signup, login, OTP verification, password reset, resend email
+- **Limits**: Strict (3-10 requests/hour per email address, 50 requests/hour per IP fallback)
+- **Critical**: Closes service_role key bypass vulnerability for Edge Functions
+
+**Tier 3: User-Based Rate Limiting**
+- **Purpose**: Prevent API abuse from authenticated users
+- **Identifier**: JWT sub claim (user ID from Authorization header)
+- **Applied to**: Authenticated REST, authenticated storage, authenticated auth operations
+- **Limits**: Moderate (60-100 requests/minute per user ID)
+
+#### Configuration Examples
+
+**Tier 1 (IP-based):**
 ```yaml
-plugins:
-  - name: rate-limit-db
-    config:
-      # Time window limits (at least one required)
-      minute: 60
-      hour: 1000
-      day: 10000
+- name: rate-limit-db
+  config:
+    identifier_strategy: ip
+    minute: 100
+    hour: 1000
+    db_host: db
+    db_port: 5432
+    db_name: postgres
+    db_user: supabase_admin
+    db_password: $POSTGRES_PASSWORD
+```
 
-      # Database connection
-      db_host: db
-      db_port: 5432
-      db_name: postgres
-      db_user: supabase_admin
-      db_password: $POSTGRES_PASSWORD
+**Tier 2 (Content-based with fallback):**
+```yaml
+- name: rate-limit-db
+  config:
+    identifier_strategy: content
+    content_identifier_fields: ["email"]
+    content_identifier_type: email
+    hour: 5          # Strict: 5 signups per hour per email
+    day: 10
+    fallback_by_ip: true
+    fallback_limits:
+      hour: 50       # Fallback: 50 signups per hour per IP
+    db_host: db
+    db_port: 5432
+    db_name: postgres
+    db_user: supabase_admin
+    db_password: $POSTGRES_PASSWORD
+```
 
-      # Strategy
-      limit_anonymous_by_ip: true
-      limit_authenticated_by_user: true
-
-      # Response
-      hide_client_headers: false
-      error_code: 429
-      error_message: "Rate limit exceeded"
+**Tier 3 (User-based with IP fallback):**
+```yaml
+- name: rate-limit-db
+  config:
+    identifier_strategy: user
+    minute: 100
+    hour: 5000
+    fallback_by_ip: true
+    fallback_limits:
+      minute: 100    # For unauthenticated (anon key) requests
+    db_host: db
+    db_port: 5432
+    db_name: postgres
+    db_user: supabase_admin
+    db_password: $POSTGRES_PASSWORD
 ```
 
 **Current State (as of 2025-11-12):**
-- Status: Production-ready, currently configured globally for testing
-- Test limits: 5/min, 100/hour, 1000/day
-- Kong log level: debug (should be info for production)
-- TODO: Move to service-level configuration with appropriate limits per service
+- Status: Production-ready three-tier architecture implemented
+- Configuration: Per-route rate limiting in `kong.yml`
+- Auth routes: Split into specific endpoints (signup, token, recover, etc.)
+- Edge Functions: Content-based rate limiting on `verify-otp-securely`
+- Storage: IP-based for public reads, user-based for authenticated operations
+- Kong log level: debug (should be changed to info for production)
 
 **Plugin Priority:**
 - Priority: 900
 - Runs after auth plugins (key-auth: 1003, acl: 950)
-- Ensures only authenticated requests are rate-limited
+- Service role key bypasses ALL rate limiting
+
+**Architecture Rationale:**
+- **Single unified plugin** instead of 3 separate plugins
+- **Per-route configuration** allows different tiers for different endpoints
+- **Backward compatible** with existing `identifier_strategy: user` default
+- **Fail-open design** - allows requests if body parsing or DB connection fails
+- **Content extraction uses pcall** to gracefully handle errors
 
 **Important Notes:**
 - pgmoon returns JSONB as Lua tables (not JSON strings)
 - pgmoon returns NULL as userdata (not nil) - always type-check before using values
-- Access phase only runs for authenticated requests (key-auth rejects unauthenticated first)
-- Service role key bypasses rate limiting entirely
+- Request body parsing uses `kong.request.get_body()` wrapped in `pcall()`
+- Content identifier extraction tries fields in order, falls back to IP if configured
+- Service role key bypasses rate limiting entirely (checked before any rate limit logic)
 
 **Testing Authenticated Requests:**
 

@@ -15,17 +15,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Turnstile } from "@/components/ui/turnstile";
+import { FormError } from "@/components/ui/form-error";
 import {
   resendResetCodeAction,
   verifyResetCodeAction,
 } from "@/app/auth/verify-reset/actions";
-import { INITIAL_FORM_STATE } from "@/lib/form-state";
+import { INITIAL_FORM_STATE, isRateLimitError } from "@/lib/form-state";
 
 
-function SubmitButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
+function SubmitButton({ children, disabled, isRateLimited }: { children: React.ReactNode; disabled?: boolean; isRateLimited?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending || disabled}>
+    <Button type="submit" className="w-full" disabled={pending || disabled || isRateLimited}>
       {pending ? "Working..." : children}
     </Button>
   );
@@ -73,6 +74,9 @@ export function VerifyResetForm({
       setTurnstileKey((current) => current + 1);
     }
   }, [verifyState.status, resendState.status]);
+
+  // Check if user is rate limited
+  const isRateLimited = isRateLimitError(verifyState.error) || isRateLimitError(resendState.error);
 
   const feedback = useMemo(() => {
     if (verifyState.status === "error") {
@@ -140,9 +144,9 @@ export function VerifyResetForm({
             value={turnstileToken ?? ""}
           />
           {feedback && feedback.tone === "error" && (
-            <p className="text-sm text-red-500">{feedback.message}</p>
+            <FormError error={feedback.message} />
           )}
-          <SubmitButton disabled={!turnstileToken || token.length !== 6}>
+          <SubmitButton disabled={!turnstileToken || token.length !== 6} isRateLimited={isRateLimited}>
             Verify and continue
           </SubmitButton>
         </form>
@@ -157,7 +161,7 @@ export function VerifyResetForm({
               name="turnstileToken"
               value={turnstileToken ?? ""}
             />
-            <SubmitButton disabled={!turnstileToken}>
+            <SubmitButton disabled={!turnstileToken} isRateLimited={isRateLimited}>
               Resend reset email
             </SubmitButton>
           </form>

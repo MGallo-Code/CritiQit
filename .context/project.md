@@ -179,11 +179,33 @@ supabase db push --debug --db-url [connection-string]
 **Security:**
 - Using test Turnstile captcha key for development
 - Must restore production key before launch
-- No rate limiting implemented yet - critical for production
+- Three-tier rate limiting implemented (IP-based, content-based, user-based)
+- Rate limiting prevents credential stuffing, brute force, account enumeration, and DoS attacks
 
 **Realtime:**
 - Profile table has realtime publication enabled
 - Be mindful of subscription overhead if scaling
+
+### Cross-Workspace Integration
+
+**Error Handling Consistency:**
+- Frontend must handle different error structures from different backend sources
+- Direct Supabase auth calls: Synchronous errors with .message and .status properties
+- Edge Function calls: Asynchronous errors requiring await error.context.json()
+- Created dual parsing utilities (parseAuthError vs parseEdgeFunctionError) to handle both patterns
+- Lesson: Always verify error structure when integrating new backend services
+
+**Rate Limiting Architecture:**
+- Backend implements three-tier Kong plugin with request body parsing
+- Frontend implements countdown timers and form disabling for rate limit errors
+- Content-based rate limiting closes service_role bypass vulnerability
+- Lesson: Frontend UX can significantly improve security enforcement by preventing users from making rate limits worse
+
+**Service Role Security:**
+- Backend service_role key bypasses all authentication and rate limiting
+- Edge Functions using service_role must implement their own protection
+- Content-based rate limiting intercepts requests before proxy, closing the gap
+- Lesson: Understand the full authentication flow including internal service calls when designing security layers
 
 ---
 

@@ -13,6 +13,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Turnstile } from "@/components/ui/turnstile";
+import { FormError } from "@/components/ui/form-error";
+import { parseAuthError } from "@/lib/parse-auth-error";
+import { isRateLimitError, type RateLimitError } from "@/lib/form-state";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ComponentPropsWithoutRef } from "react";
@@ -29,10 +32,13 @@ export function LoginForm({
 }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | RateLimitError | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const router = useRouter();
+
+  // Check if user is rate limited
+  const isRateLimited = isRateLimitError(error);
 
   const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
 
@@ -66,7 +72,7 @@ export function LoginForm({
       // Update this route to redirect to an authenticated route. The user already has an active session.
       router.push(`/auth/callback?${redirectToParamString}`);
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      setError(parseAuthError(error));
     } finally {
       setIsLoading(false);
     }
@@ -126,8 +132,8 @@ export function LoginForm({
                 onExpired={() => setTurnstileToken(null)}
               />
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
+            <FormError error={error} />
+            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken || isRateLimited}>
               {isLoading ? "Logging in..." : "Login"}
             </Button>
           </div>
