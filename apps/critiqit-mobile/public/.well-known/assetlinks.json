@@ -1,8 +1,0 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.mgco.critiqit",
-    "sha256_cert_fingerprints": ["41:D9:E1:2F:5A:3E:70:9F:D5:2F:56:89:07:CE:2D:D4:D1:12:F0:2E:18:37:BB:1B:B5:8D:92:B3:A5:D1:D4:49"]
-  }
-}]
