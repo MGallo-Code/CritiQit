@@ -311,10 +311,192 @@ cd supabase
 
 **Always confirm with user before running any reset script!**
 
+## PRODUCTION-QUALITY STANDARDS
+
+### Clean Code Principles
+You write **production-grade SQL and backend config** - the kind that runs reliably at scale:
+
+**Clarity Over Cleverness:**
+- ✅ SQL should be immediately understandable
+- ✅ Table/column names are self-documenting (`created_at` not `ts`)
+- ✅ Policies have descriptive names that explain intent
+- ✅ Functions do one thing well, no god-functions
+- ✅ Comments explain business rules, not SQL syntax
+- ❌ No clever CTEs that save 2 lines but cost 10 minutes of understanding
+- ❌ No cryptic abbreviations (`usr_prfl` → use `user_profile`)
+
+**Efficiency by Default:**
+- ✅ Add indexes for common query patterns
+- ✅ Use appropriate data types (UUID not TEXT for IDs)
+- ✅ Avoid N+1 queries (use JOINs, not loops)
+- ✅ Set proper constraints (prevent bad data at DB level)
+- ✅ Use triggers sparingly (they're hard to debug)
+- ❌ No premature optimization (profile first)
+- ❌ No unnecessary denormalization
+
+**Intuitive Design:**
+- ✅ Schema follows real-world domain model
+- ✅ Foreign keys named consistently (`user_id`, `post_id`)
+- ✅ Timestamps always `timestamp with time zone`
+- ✅ Boolean columns prefixed with `is_` or `has_`
+- ✅ Error messages guide developers to solutions
+- ❌ No confusing abstractions
+- ❌ No surprising side effects in triggers
+
+**Production Mindset:**
+- ✅ Migrations are idempotent (can run multiple times safely)
+- ✅ RLS policies fail securely (deny by default)
+- ✅ Functions validate input and handle edge cases
+- ✅ Constraints prevent invalid data
+- ✅ Indexes support actual query patterns
+- ❌ No "works on my machine" assumptions
+- ❌ No swallowing errors in PL/pgSQL
+
+### What Production SQL Looks Like
+
+**Bad (amateur):**
+```sql
+CREATE TABLE tbl (
+  id text primary key,
+  nm text,
+  dt timestamp,
+  flg boolean
+);
+
+CREATE POLICY "p1" ON tbl FOR ALL USING (true);
+```
+
+**Good (production):**
+```sql
+-- Users table with proper constraints and defaults
+CREATE TABLE IF NOT EXISTS public.users (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text UNIQUE NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  is_active boolean DEFAULT true NOT NULL,
+
+  -- Constraints for data quality
+  CONSTRAINT email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+  CONSTRAINT email_length CHECK (char_length(email) <= 320)
+);
+
+-- Index for common queries
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email) WHERE is_active = true;
+
+-- Enable RLS
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- Clear, descriptive policy names
+DROP POLICY IF EXISTS "Users can read their own data" ON public.users;
+CREATE POLICY "Users can read their own data"
+  ON public.users FOR SELECT
+  TO authenticated
+  USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update their own data" ON public.users;
+CREATE POLICY "Users can update their own data"
+  ON public.users FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+-- Trigger for automatic updated_at
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO ''
+AS $function$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER set_users_updated_at
+  BEFORE UPDATE ON public.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_updated_at();
+```
+
+**Why it's better:**
+- Clear, descriptive names (not `tbl`, `nm`, `dt`, `flg`)
+- Proper types (`uuid` not `text`, `timestamp with time zone` not `timestamp`)
+- Data validation via constraints
+- IF NOT EXISTS for idempotence
+- Descriptive policy names
+- Indexes for performance
+- Security by default (RLS enabled)
+- Comments explain business intent
+
+### Kong Configuration Standards
+
+**Bad (amateur):**
+```yaml
+- name: route1
+  url: http://service:3000
+  routes:
+    - name: r1
+      paths: [/api]
+```
+
+**Good (production):**
+```yaml
+#########################################
+## User API Routes
+## Handles user profile operations
+#########################################
+
+- name: user-api-v1
+  _comment: 'User API: /api/v1/users/* -> http://user-service:3000/*'
+  url: http://user-service:3000/
+  routes:
+    - name: user-api-v1-all
+      strip_path: true
+      paths:
+        - /api/v1/users
+  plugins:
+    # CORS for browser access
+    - name: cors
+      config:
+        origins: ["*"]
+
+    # Authentication required
+    - name: key-auth
+      config:
+        hide_credentials: false
+
+    # Rate limiting to prevent abuse
+    - name: rate-limit-db
+      config:
+        checks:
+          - type: user
+            limits:
+              minute: 60
+              hour: 1000
+        db_host: db
+        db_port: 5432
+        db_name: postgres
+        db_user: supabase_admin
+        db_password: $POSTGRES_PASSWORD
+        service_role_key: $SUPABASE_SERVICE_KEY
+        hide_client_headers: false
+```
+
+**Why it's better:**
+- Comments explain purpose
+- Descriptive names
+- Self-documenting structure
+- Rate limiting configured
+- Environment variables used
+- Clean grouping by domain
+
 ## QUALITY CHECKLIST
 
 Before completing a task, verify:
-- ✅ Migration is idempotent (can run multiple times)
+- ✅ Migration is idempotent (can run multiple times safely)
+- ✅ Table/column names are clear and consistent
 - ✅ RLS policies use correct USING/WITH CHECK clauses
 - ✅ SECURITY DEFINER functions have search_path set
 - ✅ Storage policies properly restrict access
@@ -322,7 +504,10 @@ Before completing a task, verify:
 - ✅ No SQL injection vulnerabilities
 - ✅ Foreign keys have proper ON DELETE behavior
 - ✅ Indexes added for common query patterns
+- ✅ Constraints validate data at database level
 - ✅ No sensitive data in migration comments
+- ✅ Code is clean and self-documenting
+- ✅ Error messages are helpful for debugging
 
 ## TYPICAL WORKFLOWS
 

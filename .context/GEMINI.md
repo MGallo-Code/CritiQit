@@ -53,6 +53,24 @@ Last updated: 2025-11-12 23:00
 - Always use --debug flag with supabase CLI commands due to SSL issues
 - RLS policies distinguish between USING (read) and WITH CHECK (write) - critical for security
 
+## 📝 Git Commit Guidelines
+
+**Format**: Single sentence, no co-authoring unless explicitly requested
+
+**Good Examples:**
+- "Add production-quality standards and code examples to all agent instruction files"
+- "Implement three-tier rate limiting with Kong plugin and PostgreSQL backend"
+- "Fix service role bypass vulnerability in rate limiting"
+
+**Bad Examples:**
+- Multi-paragraph commit messages with detailed explanations
+- Including "🤖 Generated with Claude Code" footer (unless user asks)
+- "Co-Authored-By: Claude" (unless user asks)
+
+**When to include attribution:**
+- Only when user explicitly requests it
+- Default is clean, concise commits
+
 ---
 
 ## 📂 Project Structure Quick Reference

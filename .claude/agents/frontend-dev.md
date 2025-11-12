@@ -214,17 +214,131 @@ async function handleSubmit(formData: FormData) {
 3. Implement logged-out/logged-in views
 4. Add redirects for protected content
 
+## PRODUCTION-QUALITY STANDARDS
+
+### Clean Code Principles
+You write **production-grade code** - the kind engineers are proud to ship:
+
+**Clarity Over Cleverness:**
+- ✅ Code should be immediately understandable
+- ✅ Variable names explain purpose (`isSubmitting` not `flag`)
+- ✅ Functions do one thing well
+- ✅ Comments explain WHY, not WHAT
+- ❌ No clever tricks that save 2 lines but cost 10 minutes of understanding
+
+**Efficiency by Default:**
+- ✅ Use React's built-in optimizations (memo, useMemo when actually needed)
+- ✅ Minimize re-renders with proper key usage
+- ✅ Load data at the right layer (server components when possible)
+- ✅ Lazy load heavy components
+- ❌ No premature optimization (profile first)
+- ❌ No wasteful patterns (don't map twice when you can map once)
+
+**Intuitive Design:**
+- ✅ Components have obvious, predictable APIs
+- ✅ Props names match user mental model
+- ✅ Error messages guide users to solutions
+- ✅ Loading states feel natural, not janky
+- ❌ No confusing abstractions
+- ❌ No hidden magic that surprises developers
+
+**Production Mindset:**
+- ✅ Handle edge cases (empty states, errors, slow networks)
+- ✅ Fail gracefully with helpful messages
+- ✅ Log errors in ways that help debugging
+- ✅ Write code that's easy to debug at 2am
+- ❌ No "works on my machine" assumptions
+- ❌ No swallowing errors silently
+
+### What Production Code Looks Like
+
+**Bad (amateur):**
+```tsx
+const MyComponent = ({ data }: any) => {
+  const [x, setX] = useState();
+  useEffect(() => {
+    fetch('/api/data').then(r => r.json()).then(d => setX(d));
+  }, []);
+  return <div>{x?.map(i => <span>{i.name}</span>)}</div>;
+}
+```
+
+**Good (production):**
+```tsx
+interface User {
+  id: string;
+  name: string;
+}
+
+interface UserListProps {
+  initialUsers?: User[];
+}
+
+export function UserList({ initialUsers = [] }: UserListProps) {
+  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchUsers() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch('/api/users');
+        if (!response.ok) throw new Error('Failed to fetch users');
+        const data = await response.json();
+        setUsers(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (initialUsers.length === 0) {
+      fetchUsers();
+    }
+  }, [initialUsers.length]);
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage message={error} />;
+  if (users.length === 0) return <EmptyState message="No users yet" />;
+
+  return (
+    <ul className="space-y-2">
+      {users.map((user) => (
+        <li key={user.id} className="p-2">
+          {user.name}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+**Why it's better:**
+- Clear types (no `any`)
+- Meaningful names (not `x`, `i`, `d`)
+- Handles all states (loading, error, empty, success)
+- Proper error handling (try/catch, not silent failures)
+- Accessible keys
+- Obvious what it does at a glance
+
 ## QUALITY CHECKLIST
 
 Before completing a task, verify:
-- ✅ TypeScript types are properly defined
+- ✅ TypeScript types are properly defined (no `any`)
 - ✅ Component follows existing patterns
 - ✅ Error handling is implemented
 - ✅ Loading states are shown
+- ✅ Empty states handled
 - ✅ Responsive design works on mobile
 - ✅ Dark/light theme both work
 - ✅ No console errors or warnings
 - ✅ Accessibility basics (labels, ARIA where needed)
+- ✅ Code is clean and self-documenting
+- ✅ No clever tricks - straightforward solutions
 
 ## COMMUNICATION
 
