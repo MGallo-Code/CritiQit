@@ -39,16 +39,41 @@ basicauth_credentials:
     password: $DASHBOARD_PASSWORD
 
 ###
-### API Routes with Composite Rate Limiting (Phase 2)
+### API Routes with Three-Tier Rate Limiting
+###
+### ARCHITECTURE:
+### - Tier 1 (IP):      Baseline protection for anonymous/OAuth endpoints
+### - Tier 2 (Content): Email-based protection + IP fallback (signup/login)
+### - Tier 3 (User):    JWT sub claim protection for authenticated endpoints
+###
+### SECURITY MODEL:
+### - Composite checks run sequentially (fail-fast)
+### - If ANY check fails, request is blocked with 429
+### - Service role (internal services) bypass all rate limiting
+### - Database-backed for distributed rate limiting across Kong workers
+###
+### FAIL-OPEN POLICY:
+### - If database connection fails, requests are ALLOWED
+### - Prevents outage if PostgreSQL becomes unavailable
+### - Logs errors for monitoring/alerting
 ###
 services:
   #########################################
   ## Tier 2: Content-Based Auth Routes
-  ## (Migrated to composite configuration)
+  ##
+  ## PURPOSE: Prevent account-based abuse where attackers
+  ## use multiple IPs to target specific victim emails.
+  ##
+  ## SECURITY: Dual protection layer
+  ## - Email check: Protects individual users from spam
+  ## - IP check: Prevents distributed attacks across IPs
+  ##
+  ## CLIENT HEADERS: Exposed to help legitimate clients
+  ## implement backoff strategies (X-RateLimit-*)
   #########################################
 
   - name: auth-v1-signup
-    _comment: 'Composite rate limiting for signup (email + IP)'
+    _comment: 'Signup: 10/email/hr prevents account spam, 50/IP/hr prevents distributed abuse'
     url: http://auth:9999/signup
     routes:
       - name: auth-v1-signup
@@ -69,11 +94,17 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # Check 1: Email-based (protects individual users)
+            # - Max 10 signups per email per hour (prevents spam attacks)
+            # - Max 20 signups per email per day (allows legitimate retries)
             - type: content
               fields: ["email"]
               limits:
                 hour: 10
                 day: 20
+            # Check 2: IP-based (prevents distributed attacks)
+            # - Max 50 signups per IP per hour (allows shared networks)
+            # - Max 500 signups per IP per day (enterprise/proxy tolerance)
             - type: ip
               limits:
                 hour: 50
@@ -87,7 +118,7 @@ services:
           hide_client_headers: false
 
   - name: auth-v1-token
-    _comment: 'Composite rate limiting for login (email + IP)'
+    _comment: 'Login: 10/email/hr prevents brute force, 50/IP/hr prevents credential stuffing'
     url: http://auth:9999/token
     routes:
       - name: auth-v1-token
@@ -108,11 +139,17 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # Check 1: Email-based (prevents password brute force)
+            # - Max 10 login attempts per email per hour
+            # - Max 100 login attempts per email per day (legitimate users with typos)
             - type: content
               fields: ["email"]
               limits:
                 hour: 10
                 day: 100
+            # Check 2: IP-based (prevents credential stuffing attacks)
+            # - Max 50 login attempts per IP per hour
+            # - Max 500 login attempts per IP per day
             - type: ip
               limits:
                 hour: 50
@@ -126,7 +163,7 @@ services:
           hide_client_headers: false
 
   - name: auth-v1-recover
-    _comment: 'Composite rate limiting for password reset (email + IP)'
+    _comment: 'Password reset: 3/email/hr prevents email spam, 30/IP/hr prevents enumeration'
     url: http://auth:9999/recover
     routes:
       - name: auth-v1-recover
@@ -147,11 +184,17 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # Check 1: Email-based (prevents password reset email spam)
+            # - Max 3 resets per email per hour (tight limit - legitimate users need few)
+            # - Max 30 resets per email per day (allows for forgotten attempts)
             - type: content
               fields: ["email"]
               limits:
                 hour: 3
                 day: 30
+            # Check 2: IP-based (prevents account enumeration attacks)
+            # - Max 30 resets per IP per hour (allows some probing but not mass enumeration)
+            # - Max 300 resets per IP per day
             - type: ip
               limits:
                 hour: 30
@@ -165,7 +208,7 @@ services:
           hide_client_headers: false
 
   - name: auth-v1-resend
-    _comment: 'Composite rate limiting for resend verification (email + IP)'
+    _comment: 'Resend verification: 3/email/hr prevents email spam, 30/IP/hr prevents abuse'
     url: http://auth:9999/resend
     routes:
       - name: auth-v1-resend
@@ -186,11 +229,17 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # Check 1: Email-based (prevents verification email spam)
+            # - Max 3 resends per email per hour (tight - legitimate users need few)
+            # - Max 30 resends per email per day (allows for lost emails)
             - type: content
               fields: ["email"]
               limits:
                 hour: 3
                 day: 30
+            # Check 2: IP-based (prevents distributed resend abuse)
+            # - Max 30 resends per IP per hour
+            # - Max 300 resends per IP per day
             - type: ip
               limits:
                 hour: 30
@@ -205,11 +254,19 @@ services:
 
   #########################################
   ## Tier 1: IP-Based Auth Routes (OAuth)
-  ## (Migrated to composite configuration)
+  ##
+  ## PURPOSE: OAuth callbacks don't contain stable identifiers
+  ## (no email in body, JWT not yet issued), so we use IP-only.
+  ##
+  ## SECURITY: High limits (100/min, 1000/hr) because OAuth
+  ## redirects can spike during legitimate flows.
+  ##
+  ## RATIONALE: OAuth providers rate limit on their end,
+  ## so we only need to prevent extreme abuse here.
   #########################################
 
   - name: auth-v1-callback
-    _comment: 'IP-based rate limiting for OAuth callback'
+    _comment: 'OAuth callback: 100/IP/min allows burst traffic, 1000/IP/hr prevents abuse'
     url: http://auth:9999/callback
     routes:
       - name: auth-v1-callback
@@ -221,6 +278,9 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # IP-based only (OAuth callbacks don't have email or JWT yet)
+            # - Max 100 requests per IP per minute (handles OAuth redirect bursts)
+            # - Max 1000 requests per IP per hour (prevents abuse)
             - type: ip
               limits:
                 minute: 100
@@ -234,7 +294,7 @@ services:
           hide_client_headers: false
 
   - name: auth-v1-authorize
-    _comment: 'IP-based rate limiting for OAuth authorize'
+    _comment: 'OAuth authorize: 100/IP/min allows burst traffic, 1000/IP/hr prevents abuse'
     url: http://auth:9999/authorize
     routes:
       - name: auth-v1-authorize
@@ -246,6 +306,9 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # IP-based only (OAuth authorization redirects don't have email or JWT yet)
+            # - Max 100 requests per IP per minute (handles OAuth redirect bursts)
+            # - Max 1000 requests per IP per hour (prevents abuse)
             - type: ip
               limits:
                 minute: 100
@@ -260,11 +323,20 @@ services:
 
   #########################################
   ## Tier 3: User-Based Auth Routes
-  ## (Migrated to composite configuration)
+  ##
+  ## PURPOSE: Authenticated endpoints with valid JWT tokens
+  ## rate limit by user ID (JWT sub claim).
+  ##
+  ## SECURITY: Prevents abuse by authenticated users
+  ## who might automate actions or spam endpoints.
+  ##
+  ## RATIONALE: User-based limits are fair (per-user quotas)
+  ## and prevent users from circumventing IP-based limits
+  ## by rotating IPs (VPNs, mobile networks).
   #########################################
 
   - name: auth-v1-verify
-    _comment: 'User-based rate limiting for email verification'
+    _comment: 'Email verification: 100/user/min allows normal usage, 1000/user/hr prevents automation'
     url: http://auth:9999/verify
     routes:
       - name: auth-v1-verify
@@ -284,6 +356,9 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # User-based (JWT sub claim from Authorization header)
+            # - Max 100 verifications per user per minute (high - normally just 1)
+            # - Max 1000 verifications per user per hour (prevents automation)
             - type: user
               limits:
                 minute: 100
@@ -297,7 +372,7 @@ services:
           hide_client_headers: false
 
   - name: auth-v1-user
-    _comment: 'User-based rate limiting for user operations'
+    _comment: 'User operations: 100/user/min allows profile updates, 1000/user/hr prevents spam'
     url: http://auth:9999/user
     routes:
       - name: auth-v1-user
@@ -318,6 +393,9 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # User-based (JWT sub claim from Authorization header)
+            # - Max 100 operations per user per minute (GET/PATCH user profile)
+            # - Max 1000 operations per user per hour (prevents automated abuse)
             - type: user
               limits:
                 minute: 100
@@ -331,7 +409,7 @@ services:
           hide_client_headers: false
 
   - name: auth-v1-logout
-    _comment: 'User-based rate limiting for logout'
+    _comment: 'Logout: 10/user/min allows normal usage, 100/user/hr prevents automated spam'
     url: http://auth:9999/logout
     routes:
       - name: auth-v1-logout
@@ -352,6 +430,9 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # User-based (JWT sub claim from Authorization header)
+            # - Max 10 logouts per user per minute (normally just 1, but allows retries)
+            # - Max 100 logouts per user per hour (prevents automated logout spam)
             - type: user
               limits:
                 minute: 10
@@ -366,11 +447,20 @@ services:
 
   #########################################
   ## Auth Catch-All (for remaining endpoints)
-  ## (Migrated to composite configuration with user + IP fallback)
+  ##
+  ## PURPOSE: Fallback route for any /auth/v1/* endpoints
+  ## not explicitly configured above.
+  ##
+  ## SECURITY: Composite user + IP checks with fallback
+  ## - Try user-based first (if JWT present)
+  ## - Fall back to IP-based (if no JWT or extraction fails)
+  ##
+  ## RATIONALE: Provides baseline protection for endpoints
+  ## we haven't explicitly configured (future endpoints, misc routes).
   #########################################
 
   - name: auth-v1-remaining
-    _comment: 'Catch-all for other auth endpoints with user + IP fallback'
+    _comment: 'Auth catch-all: 60/user/min + 100/IP/min fallback for unconfigured endpoints'
     url: http://auth:9999/
     routes:
       - name: auth-v1-remaining
@@ -391,10 +481,15 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # Check 1: User-based (JWT sub claim - if present)
+            # - Max 60 requests per user per minute
+            # - Max 1000 requests per user per hour
             - type: user
               limits:
                 minute: 60
                 hour: 1000
+            # Check 2: IP-based fallback (if no JWT or extraction fails)
+            # - Max 100 requests per IP per minute
             - type: ip
               limits:
                 minute: 100
@@ -408,11 +503,16 @@ services:
 
   #########################################
   ## Edge Functions Routes
-  ## (Migrated to composite configuration)
+  ##
+  ## PURPOSE: Custom edge functions (serverless).
+  ##
+  ## SECURITY: OTP verification uses email + IP (like signup/login)
+  ## to prevent both targeted attacks and distributed abuse.
+  ## Generic functions get IP-only baseline protection.
   #########################################
 
   - name: functions-v1-verify-otp
-    _comment: 'Composite rate limiting for OTP verification (email + IP)'
+    _comment: 'OTP verification: 10/email/hr prevents spam, 50/IP/hr prevents distributed attacks'
     url: http://functions:9000/verify-otp-securely
     routes:
       - name: functions-v1-verify-otp
@@ -424,11 +524,17 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # Check 1: Email-based (prevents OTP spam to specific users)
+            # - Max 10 OTP verifications per email per hour
+            # - Max 100 OTP verifications per email per day
             - type: content
               fields: ["email"]
               limits:
                 hour: 10
                 day: 100
+            # Check 2: IP-based (prevents distributed OTP brute force)
+            # - Max 50 OTP verifications per IP per hour
+            # - Max 500 OTP verifications per IP per day
             - type: ip
               limits:
                 hour: 50
@@ -442,7 +548,7 @@ services:
           hide_client_headers: false
 
   - name: functions-v1
-    _comment: 'Edge Functions: /functions/v1/* -> http://functions:9000/* (catch-all with baseline protection)'
+    _comment: 'Functions catch-all: 100/IP/min baseline protection for all edge functions'
     url: http://functions:9000/
     routes:
       - name: functions-v1-all
@@ -454,6 +560,10 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # IP-based only (edge functions vary widely in auth requirements)
+            # - Max 100 requests per IP per minute
+            # - Max 1000 requests per IP per hour
+            # - Max 10000 requests per IP per day (generous for legitimate usage)
             - type: ip
               limits:
                 minute: 100
@@ -469,11 +579,19 @@ services:
 
   #########################################
   ## REST API Routes
-  ## (Migrated to composite configuration with user + IP fallback)
+  ##
+  ## PURPOSE: PostgREST (auto-generated REST API from PostgreSQL schema).
+  ##
+  ## SECURITY: Composite user + IP with fallback
+  ## - Authenticated requests: 100/user/min, 5000/user/hr (generous for data apps)
+  ## - Unauthenticated/fallback: 100/IP/min
+  ##
+  ## RATIONALE: High limits because legitimate apps make many data queries.
+  ## RLS policies provide the real security layer; rate limiting prevents abuse.
   #########################################
 
   - name: rest-v1
-    _comment: 'PostgREST: /rest/v1/* -> http://rest:3000/*'
+    _comment: 'PostgREST: 100/user/min + 5000/user/hr for authenticated, 100/IP/min fallback'
     url: http://rest:3000/
     routes:
       - name: rest-v1-all
@@ -494,10 +612,15 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # Check 1: User-based (JWT sub claim - if present)
+            # - Max 100 requests per user per minute (generous for data-heavy apps)
+            # - Max 5000 requests per user per hour (supports pagination, real-time polling)
             - type: user
               limits:
                 minute: 100
                 hour: 5000
+            # Check 2: IP-based fallback (if no JWT or extraction fails)
+            # - Max 100 requests per IP per minute
             - type: ip
               limits:
                 minute: 100
@@ -511,10 +634,19 @@ services:
 
   #########################################
   ## GraphQL Routes
+  ##
+  ## PURPOSE: GraphQL API via PostgREST RPC function.
+  ##
+  ## SECURITY: Composite user + IP with fallback (like REST API)
+  ## - Authenticated requests: 60/user/min, 1000/user/hr
+  ## - Unauthenticated/fallback: 100/IP/min, 1000/IP/hr
+  ##
+  ## RATIONALE: Lower than REST API limits because GraphQL queries
+  ## can be more expensive (complex joins, nested resolvers).
   #########################################
 
   - name: graphql-v1
-    _comment: 'PostgREST: /graphql/v1/* -> http://rest:3000/rpc/graphql'
+    _comment: 'GraphQL: 60/user/min + 1000/user/hr for authenticated, 100/IP/min fallback'
     url: http://rest:3000/rpc/graphql
     routes:
       - name: graphql-v1-all
@@ -540,10 +672,16 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # Check 1: User-based (JWT sub claim - if present)
+            # - Max 60 requests per user per minute (lower than REST - GraphQL is expensive)
+            # - Max 1000 requests per user per hour
             - type: user
               limits:
                 minute: 60
                 hour: 1000
+            # Check 2: IP-based fallback (if no JWT or extraction fails)
+            # - Max 100 requests per IP per minute
+            # - Max 1000 requests per IP per hour
             - type: ip
               limits:
                 minute: 100
@@ -558,11 +696,20 @@ services:
 
   #########################################
   ## Storage Routes
-  ## (Migrated to composite configuration)
+  ##
+  ## PURPOSE: File upload/download via Supabase Storage.
+  ##
+  ## SECURITY:
+  ## - Public downloads: IP-only (no auth required, high limits for CDN-like usage)
+  ## - Authenticated operations: User + IP fallback (uploads, deletes, metadata)
+  ##
+  ## RATIONALE: Public downloads need high limits (200/min, 5000/hr)
+  ## for legitimate file serving. Authenticated operations are tighter
+  ## (20/user/min, 500/user/hr) to prevent storage abuse.
   #########################################
 
   - name: storage-v1-public
-    _comment: 'IP-based rate limiting for public storage downloads'
+    _comment: 'Public storage: 200/IP/min + 5000/IP/hr allows CDN-like file serving'
     url: http://storage:5000/object/public
     routes:
       - name: storage-v1-public
@@ -576,6 +723,9 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # IP-based only (public downloads don't require auth)
+            # - Max 200 requests per IP per minute (high - supports file galleries, image loading)
+            # - Max 5000 requests per IP per hour (CDN-like usage patterns)
             - type: ip
               limits:
                 minute: 200
@@ -589,7 +739,7 @@ services:
           hide_client_headers: false
 
   - name: storage-v1
-    _comment: 'User-based rate limiting for authenticated storage operations with IP fallback'
+    _comment: 'Authenticated storage: 20/user/min + 500/user/hr prevents abuse, 50/IP/min fallback'
     url: http://storage:5000/
     routes:
       - name: storage-v1-all
@@ -601,10 +751,15 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # Check 1: User-based (JWT sub claim - if present)
+            # - Max 20 operations per user per minute (uploads, deletes, metadata)
+            # - Max 500 operations per user per hour (prevents storage abuse)
             - type: user
               limits:
                 minute: 20
                 hour: 500
+            # Check 2: IP-based fallback (if no JWT or extraction fails)
+            # - Max 50 operations per IP per minute
             - type: ip
               limits:
                 minute: 50
@@ -618,11 +773,19 @@ services:
 
   #########################################
   ## Realtime Routes
-  ## (Migrated to composite configuration)
+  ##
+  ## PURPOSE: WebSocket connections for real-time database subscriptions.
+  ##
+  ## SECURITY: User-based rate limiting (JWT required for realtime)
+  ## - WebSocket connections: 10/user/min, 100/user/hr (tight - few connections needed)
+  ## - REST API: 60/user/min, 1000/user/hr (metadata, connection management)
+  ##
+  ## RATIONALE: WebSocket connections are long-lived (not per-message).
+  ## Rate limits prevent connection spam, not message spam.
   #########################################
 
   - name: realtime-v1-ws
-    _comment: 'Realtime: /realtime/v1/* -> ws://realtime:4000/socket/*'
+    _comment: 'Realtime WS: 10/user/min + 100/user/hr prevents connection spam'
     url: http://realtime-dev.supabase-realtime:4000/socket
     protocol: ws
     routes:
@@ -644,6 +807,9 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # User-based (JWT required for realtime subscriptions)
+            # - Max 10 connections per user per minute (tight - normally just 1-2)
+            # - Max 100 connections per user per hour (prevents connection spam)
             - type: user
               limits:
                 minute: 10
@@ -657,7 +823,7 @@ services:
           hide_client_headers: false
 
   - name: realtime-v1-rest
-    _comment: 'Realtime: /realtime/v1/api/* -> http://realtime:4000/api/*'
+    _comment: 'Realtime REST: 60/user/min + 1000/user/hr for metadata and connection management'
     url: http://realtime-dev.supabase-realtime:4000/api
     protocol: http
     routes:
@@ -679,6 +845,9 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # User-based (JWT required for realtime)
+            # - Max 60 requests per user per minute (metadata, connection management)
+            # - Max 1000 requests per user per hour
             - type: user
               limits:
                 minute: 60
@@ -693,10 +862,17 @@ services:
 
   #########################################
   ## Analytics Routes
+  ##
+  ## PURPOSE: Logflare analytics and logging endpoints.
+  ##
+  ## SECURITY: IP-based only (analytics endpoints vary in auth requirements)
+  ##
+  ## RATIONALE: Moderate limits (60/min, 1000/hr) to prevent
+  ## log spam while allowing legitimate analytics collection.
   #########################################
 
   - name: analytics-v1
-    _comment: 'Analytics: /analytics/v1/* -> http://logflare:4000/*'
+    _comment: 'Analytics: 60/IP/min + 1000/IP/hr prevents log spam while allowing telemetry'
     url: http://analytics:4000/
     routes:
       - name: analytics-v1-all
@@ -707,6 +883,9 @@ services:
       - name: rate-limit-db
         config:
           checks:
+            # IP-based only (analytics endpoints vary in auth)
+            # - Max 60 requests per IP per minute
+            # - Max 1000 requests per IP per hour
             - type: ip
               limits:
                 minute: 60
@@ -721,6 +900,13 @@ services:
 
   #########################################
   ## Database Meta Routes
+  ##
+  ## PURPOSE: pg-meta (database introspection for Supabase Studio).
+  ##
+  ## SECURITY: Admin-only (ACL enforced) - no rate limiting needed.
+  ##
+  ## RATIONALE: Used by internal Studio dashboard only.
+  ## ACL restricts to admin role (service_role_key).
   #########################################
 
   - name: meta
@@ -743,10 +929,16 @@ services:
 
   #########################################
   ## Dashboard (Catch-all)
+  ##
+  ## PURPOSE: Supabase Studio web interface.
+  ##
+  ## SECURITY: Basic auth enforced (DASHBOARD_USERNAME/PASSWORD) - no rate limiting needed.
+  ##
+  ## RATIONALE: Internal development tool, basic auth provides sufficient protection.
   #########################################
 
   - name: dashboard
-    _comment: 'Studio: /* -> http://studio:3000/*'
+    _comment: 'Supabase Studio: Internal dashboard protected by basic auth'
     url: http://studio:3000/
     routes:
       - name: dashboard-all

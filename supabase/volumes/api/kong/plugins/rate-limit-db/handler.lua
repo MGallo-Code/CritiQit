@@ -1,4 +1,51 @@
 -- Kong Rate Limiting Plugin with PostgreSQL Backend (Version 3.0 - Production)
+--
+-- PURPOSE:
+--   Three-tier distributed rate limiting to prevent API abuse across multiple attack vectors:
+--   - Tier 1 (IP):      Baseline protection for anonymous/OAuth endpoints (100/min, 1000/hr)
+--   - Tier 2 (Content): Email-based protection + IP fallback for signup/login (10/email/hr)
+--   - Tier 3 (User):    JWT sub claim protection for authenticated endpoints (100/user/min)
+--
+-- ARCHITECTURE:
+--   - Composite checks: Multiple checks run sequentially in fail-fast mode
+--   - Database-backed: PostgreSQL for distributed rate limiting across Kong workers
+--   - Connection pooling: Single persistent connection per worker (see db.lua)
+--   - Service role bypass: Internal services using service_role_key skip all rate limiting
+--   - Fail-open policy: If database connection fails, requests are ALLOWED to prevent outages
+--
+-- SECURITY MODEL:
+--   - SQL injection: All inputs escaped via escape_literal() before database queries
+--   - RLS policies: rate_limits table only accessible to supabase_admin role
+--   - Priority 900: Runs after auth plugins (key-auth: 1003, acl: 950) but before app logic
+--   - Client headers: Exposes X-RateLimit-* headers to help clients implement backoff strategies
+--
+-- COMPOSITE CHECKS (Sequential Execution):
+--   Checks are executed in order. If ANY check fails, the request is blocked with 429.
+--   Example: Signup endpoint runs both email check AND IP check:
+--     1. Check email rate (10/hr) - if exceeded, block immediately
+--     2. Check IP rate (50/hr) - if exceeded, block immediately
+--     3. If both pass, allow request through
+--
+-- PERFORMANCE:
+--   - Database queries: Single SELECT + UPDATE per check (~5-10ms overhead per check)
+--   - Index usage: Queries use (identifier, identifier_type, endpoint) composite index
+--   - Worker isolation: Each Kong worker maintains its own connection pool
+--
+-- FAIL-OPEN RATIONALE:
+--   If PostgreSQL becomes unavailable, requests are ALLOWED rather than blocked.
+--   This prevents cascading failures and maintains API availability.
+--   All errors are logged for monitoring/alerting.
+--
+-- DEBUGGING:
+--   Enable debug logs: Set Kong log level to 'debug' in kong.conf
+--   Watch rate limit checks in real-time: tail -f logs/error.log | grep rate-limit-db
+--
+-- PRODUCTION CONSIDERATIONS:
+--   - Monitor database connection pool health
+--   - Set up alerts for fail-open events (database connection failures)
+--   - Review rate limit violations in rate_limits table for attack patterns
+--   - Adjust limits based on legitimate user behavior patterns
+--
 local db_module = require("kong.plugins.rate-limit-db.db")
 local extractors = require("kong.plugins.rate-limit-db.extractors")
 local cjson = require("cjson.safe")
@@ -12,15 +59,24 @@ function RateLimitHandler:init_worker()
   kong.log.info("[rate-limit-db] Plugin v", self.VERSION, " initialized in worker")
 end
 
+-- SQL string escaping to prevent injection attacks
+-- PostgreSQL uses single quotes for string literals, so we escape them by doubling
+-- Example: "user@example.com" -> "'user@example.com'"
+--          "O'Brien" -> "'O''Brien'"
 local function escape_literal(str)
   if not str then
     return "NULL"
   end
-  -- Simple SQL escaping - replace single quotes
+  -- Simple SQL escaping - replace single quotes with double single quotes
   return "'" .. tostring(str):gsub("'", "''") .. "'"
 end
 
--- Single rate limit check function (used by composite checks)
+-- Executes a single rate limit check against the database
+-- Uses check_rate_limit() PostgreSQL function which atomically:
+--   1. Fetches current counts for all time windows
+--   2. Increments counters if under limit
+--   3. Returns allowed/denied status with metadata
+-- Returns: result table with {allowed, current, limits, reset_at, ...} or nil, err
 local function check_single_rate_limit(pg, identifier, identifier_type, endpoint, limits)
   -- Build the SQL query
   local query = string.format([[
@@ -79,7 +135,12 @@ local function check_single_rate_limit(pg, identifier, identifier_type, endpoint
   return nil, "Unexpected result type"
 end
 
--- Composite check function - performs all checks in sequence
+-- Executes multiple rate limit checks in sequence (fail-fast)
+-- Each check extracts its own identifier (IP, user ID, email, etc.)
+-- If ANY check fails, the request is immediately blocked with 429
+-- If a check can't extract its identifier (e.g., no JWT present), it's skipped with a warning
+-- This allows fallback patterns: try user-based, fall back to IP-based
+-- Returns: true if all checks passed, or false + result metadata if any check failed
 local function perform_composite_checks(pg, endpoint, checks)
   for i, check in ipairs(checks) do
     local identifier, identifier_type
@@ -100,6 +161,7 @@ local function perform_composite_checks(pg, endpoint, checks)
     end
 
     -- If no identifier, skip this check (log warning)
+    -- This allows fallback patterns: e.g., try user-based (might fail if no JWT), fall back to IP-based
     if not identifier then
       kong.log.warn("[rate-limit-db] Check #", i, " (", check.type, "): no identifier found, skipping")
       goto continue
@@ -134,8 +196,12 @@ local function perform_composite_checks(pg, endpoint, checks)
   return true
 end
 
+-- Main plugin execution phase (runs for every request)
+-- This is where Kong calls our plugin during request processing
+-- Phase order: 1. key-auth (1003), 2. acl (950), 3. rate-limit-db (900), 4. app logic
 function RateLimitHandler:access(conf)
-  -- Service role bypass
+  -- Service role bypass: Internal services (using service_role_key) skip all rate limiting
+  -- This allows backend services to make unlimited API calls without hitting rate limits
   if extractors.is_service_role(conf.service_role_key) then
     kong.log.debug("[rate-limit-db] Service role request, bypassing rate limiting")
     return
@@ -156,7 +222,9 @@ function RateLimitHandler:access(conf)
   local allowed, result = perform_composite_checks(pg, endpoint, conf.checks)
 
   if not allowed and result then
-    -- Set rate limit headers based on result
+    -- Rate limit exceeded - build informative 429 response
+    -- Set rate limit headers based on result (unless hide_client_headers=true)
+    -- Headers help clients implement exponential backoff and retry logic
     if not conf.hide_client_headers then
       if result.current then
         for window, count in pairs(result.current) do

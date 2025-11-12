@@ -196,16 +196,22 @@ supabase db push --debug --db-url [connection-string]
 - Lesson: Always verify error structure when integrating new backend services
 
 **Rate Limiting Architecture:**
-- Backend implements three-tier Kong plugin with request body parsing
-- Frontend implements countdown timers and form disabling for rate limit errors
+- Backend: Kong plugin v3.0.0 (production-ready, security audited, 400+ lines inline docs)
+- Frontend: Countdown timers and form disabling for rate limit errors
 - Content-based rate limiting closes service_role bypass vulnerability
-- Lesson: Frontend UX can significantly improve security enforcement by preventing users from making rate limits worse
+- GraphQL and Analytics endpoints now protected
+- Kong log level: info (prevents sensitive data exposure in production)
+- Service role bypass fixed (passes key via config, not environment variable)
+- Lesson: Production systems need comprehensive inline documentation explaining WHY, not WHAT
+- Lesson: Log level security matters - debug logs can expose passwords, emails, and tokens
 
 **Service Role Security:**
 - Backend service_role key bypasses all authentication and rate limiting
 - Edge Functions using service_role must implement their own protection
 - Content-based rate limiting intercepts requests before proxy, closing the gap
+- Service role key must be passed via plugin config (os.getenv() doesn't work in Kong Lua)
 - Lesson: Understand the full authentication flow including internal service calls when designing security layers
+- Lesson: Environment variables are unreliable in Kong plugins - always use plugin config fields
 
 ---
 
@@ -242,7 +248,7 @@ supabase db push --debug --db-url [connection-string]
 
 ### Overview
 
-CritiQit uses a custom agent orchestration system for complex development tasks. The system is located in `.claude/agents/` and includes specialized agents for different aspects of the monorepo.
+CritiQit uses a custom agent orchestration system for complex development tasks. The system is located in `.claude/agents/` and includes specialized agents for different aspects of the monorepo. All agents follow production-quality standards emphasizing clarity over cleverness, efficiency by default, and intuitive design.
 
 ### Available Agents
 
@@ -250,17 +256,20 @@ CritiQit uses a custom agent orchestration system for complex development tasks.
 - Next.js and React specialist
 - Handles UI components, routing, state management
 - Expertise in TypeScript, Tailwind, Radix UI
+- Follows production standards: clarity over cleverness, efficiency by default, intuitive design
 
 **Backend Developer (Green)** - `backend-dev.md`
 - Supabase and PostgreSQL specialist
 - Handles database schema, RLS policies, auth, storage
 - Expertise in SQL, migrations, edge functions
+- Follows production standards: security-first, self-documenting code, fail-safe defaults
 
 **Full-Stack Integrator (Purple)** - `full-stack-integrator.md`
 - Orchestrates features spanning frontend and backend
 - Uses consultation-first pattern: asks specialists for recommendations before planning
 - Synthesizes unified API contracts and type definitions
 - Delegates implementation to appropriate specialists
+- Performs security audits and architectural reviews
 
 **Session Manager (Red)** - `session-manager.md`
 - Handles session documentation in two modes:

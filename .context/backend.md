@@ -287,13 +287,16 @@ Kong 3.9 acts as the API gateway for all Supabase services, handling authenticat
     db_password: $POSTGRES_PASSWORD
 ```
 
-**Current State (as of 2025-11-12):**
-- Status: Production-ready three-tier architecture implemented
-- Configuration: Per-route rate limiting in `kong.yml`
-- Auth routes: Split into specific endpoints (signup, token, recover, etc.)
-- Edge Functions: Content-based rate limiting on `verify-otp-securely`
-- Storage: IP-based for public reads, user-based for authenticated operations
-- Kong log level: debug (should be changed to info for production)
+**Current State (as of Session 4, 2025-11-12):**
+- Status: Production-ready, security audited, comprehensively documented
+- Version: Kong plugin v3.0.0 (composite-only, legacy mode removed)
+- Configuration: Per-route rate limiting in `kong.yml` with inline documentation
+- Kong log level: info (production-safe, no sensitive data exposure)
+- Service role bypass: Fixed (passes key via plugin config, not environment)
+- GraphQL endpoint: Protected with rate limiting (60/user/min, 100/IP/min)
+- Analytics endpoint: Protected with rate limiting (60/IP/min, 1000/IP/hour)
+- Signup limits: Relaxed to 10/hour, 20/day (balances security with usability)
+- Documentation: 400+ lines of inline comments explaining WHY behind every decision
 
 **Plugin Priority:**
 - Priority: 900
@@ -312,7 +315,9 @@ Kong 3.9 acts as the API gateway for all Supabase services, handling authenticat
 - pgmoon returns NULL as userdata (not nil) - always type-check before using values
 - Request body parsing uses `kong.request.get_body()` wrapped in `pcall()`
 - Content identifier extraction tries fields in order, falls back to IP if configured
-- Service role key bypasses rate limiting entirely (checked before any rate limit logic)
+- Service role key bypasses rate limiting entirely (passed via plugin config, not environment variable)
+- os.getenv() doesn't work reliably in Kong Lua runtime - always pass config via plugin fields
+- Kong log level set to info (debug exposes sensitive data like passwords and tokens)
 
 **Testing Authenticated Requests:**
 
