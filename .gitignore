@@ -1,7 +1,8 @@
-# GLOBAL FILES
+# GLOBAL IGNORES
 */.env
 .DS_Store
 */.DS_Store
+.vscode/
 
 # ./apps (FRONTEND)
 node_modules
@@ -10,3 +11,6 @@ node_modules
 # ./supabase (BACKEND)
 supabase/volumes/db/data
 supabase/volumes/storage
+
+# ./context (LLM CONTEXT)
+.context/
