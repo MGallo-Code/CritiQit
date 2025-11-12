@@ -39,15 +39,16 @@ basicauth_credentials:
     password: $DASHBOARD_PASSWORD
 
 ###
-### API Routes with Three-Tier Rate Limiting
+### API Routes with Composite Rate Limiting (Phase 2)
 ###
 services:
   #########################################
   ## Tier 2: Content-Based Auth Routes
+  ## (Migrated to composite configuration)
   #########################################
 
   - name: auth-v1-signup
-    _comment: 'Email-based rate limiting for signup'
+    _comment: 'Composite rate limiting for signup (email + IP)'
     url: http://auth:9999/signup
     routes:
       - name: auth-v1-signup
@@ -67,23 +68,26 @@ services:
             - anon
       - name: rate-limit-db
         config:
-          identifier_strategy: content
-          content_identifier_fields: ["email"]
-          content_identifier_type: email
-          hour: 5
-          day: 10
-          fallback_by_ip: true
-          fallback_limits:
-            hour: 50
+          checks:
+            - type: content
+              fields: ["email"]
+              limits:
+                hour: 10
+                day: 20
+            - type: ip
+              limits:
+                hour: 50
+                day: 500
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   - name: auth-v1-token
-    _comment: 'Email-based rate limiting for login'
+    _comment: 'Composite rate limiting for login (email + IP)'
     url: http://auth:9999/token
     routes:
       - name: auth-v1-token
@@ -103,23 +107,26 @@ services:
             - anon
       - name: rate-limit-db
         config:
-          identifier_strategy: content
-          content_identifier_fields: ["email"]
-          content_identifier_type: email
-          hour: 10
-          day: 100
-          fallback_by_ip: true
-          fallback_limits:
-            hour: 50
+          checks:
+            - type: content
+              fields: ["email"]
+              limits:
+                hour: 10
+                day: 100
+            - type: ip
+              limits:
+                hour: 50
+                day: 500
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   - name: auth-v1-recover
-    _comment: 'Email-based rate limiting for password reset'
+    _comment: 'Composite rate limiting for password reset (email + IP)'
     url: http://auth:9999/recover
     routes:
       - name: auth-v1-recover
@@ -139,23 +146,26 @@ services:
             - anon
       - name: rate-limit-db
         config:
-          identifier_strategy: content
-          content_identifier_fields: ["email"]
-          content_identifier_type: email
-          hour: 3
-          day: 10
-          fallback_by_ip: true
-          fallback_limits:
-            hour: 30
+          checks:
+            - type: content
+              fields: ["email"]
+              limits:
+                hour: 3
+                day: 30
+            - type: ip
+              limits:
+                hour: 30
+                day: 300
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   - name: auth-v1-resend
-    _comment: 'Email-based rate limiting for resend verification'
+    _comment: 'Composite rate limiting for resend verification (email + IP)'
     url: http://auth:9999/resend
     routes:
       - name: auth-v1-resend
@@ -175,23 +185,27 @@ services:
             - anon
       - name: rate-limit-db
         config:
-          identifier_strategy: content
-          content_identifier_fields: ["email"]
-          content_identifier_type: email
-          hour: 3
-          day: 10
-          fallback_by_ip: true
-          fallback_limits:
-            hour: 30
+          checks:
+            - type: content
+              fields: ["email"]
+              limits:
+                hour: 3
+                day: 30
+            - type: ip
+              limits:
+                hour: 30
+                day: 300
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   #########################################
   ## Tier 1: IP-Based Auth Routes (OAuth)
+  ## (Migrated to composite configuration)
   #########################################
 
   - name: auth-v1-callback
@@ -206,14 +220,17 @@ services:
       - name: cors
       - name: rate-limit-db
         config:
-          identifier_strategy: ip
-          minute: 100
-          hour: 1000
+          checks:
+            - type: ip
+              limits:
+                minute: 100
+                hour: 1000
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   - name: auth-v1-authorize
@@ -228,18 +245,22 @@ services:
       - name: cors
       - name: rate-limit-db
         config:
-          identifier_strategy: ip
-          minute: 100
-          hour: 1000
+          checks:
+            - type: ip
+              limits:
+                minute: 100
+                hour: 1000
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   #########################################
   ## Tier 3: User-Based Auth Routes
+  ## (Migrated to composite configuration)
   #########################################
 
   - name: auth-v1-verify
@@ -262,14 +283,17 @@ services:
             - anon
       - name: rate-limit-db
         config:
-          identifier_strategy: user
-          minute: 100
-          hour: 1000
+          checks:
+            - type: user
+              limits:
+                minute: 100
+                hour: 1000
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   - name: auth-v1-user
@@ -293,14 +317,17 @@ services:
             - anon
       - name: rate-limit-db
         config:
-          identifier_strategy: user
-          minute: 100
-          hour: 1000
+          checks:
+            - type: user
+              limits:
+                minute: 100
+                hour: 1000
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   - name: auth-v1-logout
@@ -324,22 +351,26 @@ services:
             - anon
       - name: rate-limit-db
         config:
-          identifier_strategy: user
-          minute: 10
-          hour: 100
+          checks:
+            - type: user
+              limits:
+                minute: 10
+                hour: 100
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   #########################################
   ## Auth Catch-All (for remaining endpoints)
+  ## (Migrated to composite configuration with user + IP fallback)
   #########################################
 
   - name: auth-v1-remaining
-    _comment: 'Catch-all for other auth endpoints with user/IP fallback'
+    _comment: 'Catch-all for other auth endpoints with user + IP fallback'
     url: http://auth:9999/
     routes:
       - name: auth-v1-remaining
@@ -359,25 +390,29 @@ services:
             - anon
       - name: rate-limit-db
         config:
-          identifier_strategy: user
-          minute: 60
-          hour: 1000
-          fallback_by_ip: true
-          fallback_limits:
-            minute: 100
+          checks:
+            - type: user
+              limits:
+                minute: 60
+                hour: 1000
+            - type: ip
+              limits:
+                minute: 100
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   #########################################
   ## Edge Functions Routes
+  ## (Migrated to composite configuration)
   #########################################
 
   - name: functions-v1-verify-otp
-    _comment: 'Content-based rate limiting for OTP verification'
+    _comment: 'Composite rate limiting for OTP verification (email + IP)'
     url: http://functions:9000/verify-otp-securely
     routes:
       - name: functions-v1-verify-otp
@@ -388,23 +423,26 @@ services:
       - name: cors
       - name: rate-limit-db
         config:
-          identifier_strategy: content
-          content_identifier_fields: ["email"]
-          content_identifier_type: email
-          hour: 10
-          day: 50
-          fallback_by_ip: true
-          fallback_limits:
-            hour: 50
+          checks:
+            - type: content
+              fields: ["email"]
+              limits:
+                hour: 10
+                day: 100
+            - type: ip
+              limits:
+                hour: 50
+                day: 500
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   - name: functions-v1
-    _comment: 'Edge Functions: /functions/v1/* -> http://functions:9000/*'
+    _comment: 'Edge Functions: /functions/v1/* -> http://functions:9000/* (catch-all with baseline protection)'
     url: http://functions:9000/
     routes:
       - name: functions-v1-all
@@ -413,9 +451,25 @@ services:
           - /functions/v1/
     plugins:
       - name: cors
+      - name: rate-limit-db
+        config:
+          checks:
+            - type: ip
+              limits:
+                minute: 100
+                hour: 1000
+                day: 10000
+          db_host: db
+          db_port: 5432
+          db_name: postgres
+          db_user: supabase_admin
+          db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
+          hide_client_headers: false
 
   #########################################
   ## REST API Routes
+  ## (Migrated to composite configuration with user + IP fallback)
   #########################################
 
   - name: rest-v1
@@ -439,17 +493,20 @@ services:
             - anon
       - name: rate-limit-db
         config:
-          identifier_strategy: user
-          minute: 100
-          hour: 5000
-          fallback_by_ip: true
-          fallback_limits:
-            minute: 100
+          checks:
+            - type: user
+              limits:
+                minute: 100
+                hour: 5000
+            - type: ip
+              limits:
+                minute: 100
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   #########################################
@@ -480,9 +537,28 @@ services:
           allow:
             - admin
             - anon
+      - name: rate-limit-db
+        config:
+          checks:
+            - type: user
+              limits:
+                minute: 60
+                hour: 1000
+            - type: ip
+              limits:
+                minute: 100
+                hour: 1000
+          db_host: db
+          db_port: 5432
+          db_name: postgres
+          db_user: supabase_admin
+          db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
+          hide_client_headers: false
 
   #########################################
   ## Storage Routes
+  ## (Migrated to composite configuration)
   #########################################
 
   - name: storage-v1-public
@@ -499,18 +575,21 @@ services:
       - name: cors
       - name: rate-limit-db
         config:
-          identifier_strategy: ip
-          minute: 200
-          hour: 5000
+          checks:
+            - type: ip
+              limits:
+                minute: 200
+                hour: 5000
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   - name: storage-v1
-    _comment: 'User-based rate limiting for authenticated storage operations'
+    _comment: 'User-based rate limiting for authenticated storage operations with IP fallback'
     url: http://storage:5000/
     routes:
       - name: storage-v1-all
@@ -521,21 +600,25 @@ services:
       - name: cors
       - name: rate-limit-db
         config:
-          identifier_strategy: user
-          minute: 20
-          hour: 500
-          fallback_by_ip: true
-          fallback_limits:
-            minute: 50
+          checks:
+            - type: user
+              limits:
+                minute: 20
+                hour: 500
+            - type: ip
+              limits:
+                minute: 50
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   #########################################
   ## Realtime Routes
+  ## (Migrated to composite configuration)
   #########################################
 
   - name: realtime-v1-ws
@@ -560,14 +643,17 @@ services:
             - anon
       - name: rate-limit-db
         config:
-          identifier_strategy: user
-          minute: 10
-          hour: 100
+          checks:
+            - type: user
+              limits:
+                minute: 10
+                hour: 100
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   - name: realtime-v1-rest
@@ -592,14 +678,17 @@ services:
             - anon
       - name: rate-limit-db
         config:
-          identifier_strategy: user
-          minute: 60
-          hour: 1000
+          checks:
+            - type: user
+              limits:
+                minute: 60
+                hour: 1000
           db_host: db
           db_port: 5432
           db_name: postgres
           db_user: supabase_admin
           db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
   #########################################
@@ -614,6 +703,21 @@ services:
         strip_path: true
         paths:
           - /analytics/v1/
+    plugins:
+      - name: rate-limit-db
+        config:
+          checks:
+            - type: ip
+              limits:
+                minute: 60
+                hour: 1000
+          db_host: db
+          db_port: 5432
+          db_name: postgres
+          db_user: supabase_admin
+          db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
+          hide_client_headers: false
 
   #########################################
   ## Database Meta Routes

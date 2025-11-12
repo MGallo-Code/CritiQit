@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormError } from "@/components/ui/form-error";
+import { parseAuthError } from "@/lib/parse-auth-error";
+import { isRateLimitError, type RateLimitError } from "@/lib/form-state";
 import { useRouter } from "next/navigation";
 import { useState, type ComponentPropsWithoutRef } from "react";
 
@@ -26,9 +29,12 @@ export function UpdatePasswordForm({
 }: UpdatePasswordFormProps) {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | RateLimitError | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  // Check if user is rate limited
+  const isRateLimited = isRateLimitError(error);
 
   const redirectToParamString = "redirectTo=" + encodeURIComponent(redirectTo);
 
@@ -49,7 +55,7 @@ export function UpdatePasswordForm({
       if (error) throw error;
       router.push(`/auth/callback?${redirectToParamString}`);
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      setError(parseAuthError(error));
     } finally {
       setIsLoading(false);
     }
@@ -86,8 +92,8 @@ export function UpdatePasswordForm({
                 onChange={(e) => setPasswordConfirm(e.target.value)}
               />
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <FormError error={error} />
+            <Button type="submit" className="w-full" disabled={isLoading || isRateLimited}>
               {isLoading ? "Saving..." : "Save new password"}
             </Button>
           </div>

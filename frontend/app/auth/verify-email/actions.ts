@@ -2,16 +2,13 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { FunctionsHttpError } from "@supabase/supabase-js";
-import { parseEdgeFunctionError } from "@/lib/parse-auth-error";
+import { parseEdgeFunctionError, parseAuthError } from "@/lib/parse-auth-error";
 import { FormState } from "@/lib/form-state";
 
-// form state for verify email code (uses the standard FormState)
-export type VerifyEmailFormState = FormState;
-
 export async function verifyEmailCodeAction(
-  _: VerifyEmailFormState,
+  _: FormState,
   formData: FormData,
-): Promise<VerifyEmailFormState> {
+): Promise<FormState> {
   const email = String(formData.get("email") ?? "").trim();
   const token = String(formData.get("token") ?? "").trim();
   const captchaToken = String(formData.get("turnstileToken") ?? "").trim();
@@ -84,9 +81,9 @@ export async function verifyEmailCodeAction(
 }
 
 export async function resendEmailCodeAction(
-  _: VerifyEmailFormState,
+  _: FormState,
   formData: FormData,
-): Promise<VerifyEmailFormState> {
+): Promise<FormState> {
   const email = String(formData.get("email") ?? "").trim();
   const captchaToken = String(formData.get("turnstileToken") ?? "").trim();
 
@@ -117,7 +114,7 @@ export async function resendEmailCodeAction(
   if (error) {
     return {
       status: "error",
-      error: error.message,
+      error: parseAuthError(error),
     };
   }
 

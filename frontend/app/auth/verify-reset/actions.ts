@@ -3,7 +3,7 @@
 import { FormState } from "@/lib/form-state";
 import { createClient } from "@/lib/supabase/server";
 import { FunctionsHttpError } from "@supabase/supabase-js";
-import { parseEdgeFunctionError } from "@/lib/parse-auth-error";
+import { parseEdgeFunctionError, parseAuthError } from "@/lib/parse-auth-error";
 
 // base url for site redirects
 const siteUrl = process.env.SITE_URL
@@ -122,7 +122,7 @@ export async function resendResetCodeAction(
   if (error) {
     return {
       status: "error",
-      error: error.message,
+      error: parseAuthError(error),
     };
   }
 
