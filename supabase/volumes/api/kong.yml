@@ -1,5 +1,26 @@
-_format_version: '2.1'
+_format_version: '3.0'
 _transform: true
+
+###
+### Global Plugins (for testing)
+###
+plugins:
+  - name: rate-limit-db
+    enabled: true
+    config:
+      minute: 5
+      hour: 100
+      day: 1000
+      db_host: db
+      db_port: 5432
+      db_name: postgres
+      db_user: supabase_admin
+      db_password: $POSTGRES_PASSWORD
+      limit_anonymous_by_ip: true
+      limit_authenticated_by_user: true
+      hide_client_headers: false
+      error_code: 429
+      error_message: "Rate limit exceeded"
 
 ###
 ### Consumers / Users

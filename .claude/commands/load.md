@@ -2,7 +2,7 @@ Read and load the project context from `.context/CLAUDE.md` to understand:
 - Current project goals and priorities
 - Recent work and momentum
 - Known issues and blockers
-- Immediate next steps
+- Immediate next steps (Check for IN PROGRESS sessions with outstanding goals)
 
 Then reference specialized documentation as needed:
 - `.context/project.md` - Tech stack, architecture, lessons learned
@@ -19,4 +19,4 @@ Important reminders:
 - Never expose actual environment variable values
 - Always note which workspace is affected (frontend/supabase/root)
 - Capture lessons learned during work
-- Use `@session-closer` agent when finishing a session
+- Use `@session-manager` agent when finishing a session

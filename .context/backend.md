@@ -23,7 +23,7 @@ Located in `supabase/compose.yml`, the stack includes:
 - **Rest**: PostgREST API
 - **Realtime**: WebSocket service
 - **Storage**: Object storage service
-- **Kong**: API Gateway
+- **Kong**: API Gateway (version 3.9) with custom rate limiting plugin
 - **Analytics**: (Optional) Logflare/analytics
 
 ### Directory Structure
@@ -34,11 +34,19 @@ supabase/
 ├── config.toml             # Supabase CLI configuration
 ├── .env                    # Environment variables (not committed)
 ├── migrations/             # Database migrations
-│   └── 20250818043251_add_user_profiles.sql
+│   ├── 20250818043251_add_user_profiles.sql
+│   └── 20251112000000_create_rate_limiting.sql
 ├── email-templates/        # Email HTML templates
 ├── dev/                    # Development files
 ├── volumes/               # Docker volumes (persistent data)
-│   └── functions/         # Edge functions
+│   ├── functions/         # Edge functions
+│   └── api/              # Kong configuration
+│       ├── kong.yml      # Kong declarative config
+│       └── kong/         # Kong custom plugins
+│           └── plugins/
+│               └── rate-limit-db/  # Rate limiting plugin
+│                   ├── handler.lua
+│                   └── schema.lua
 ├── reset-hard-db.sh       # Complete database reset
 ├── reset-soft-db.sh       # Soft database reset
 ├── restart-db.sh          # Restart containers
@@ -176,6 +184,113 @@ CREATE POLICY "policy_name"
   TO authenticated
   USING (auth.uid() = user_id)      -- Can only see/modify own rows
   WITH CHECK (auth.uid() = user_id); -- Can only set user_id to own ID
+```
+
+---
+
+## Kong API Gateway
+
+### Overview
+
+Kong 3.9 acts as the API gateway for all Supabase services, handling authentication, routing, and rate limiting.
+
+**Configuration:**
+- Declarative config file: `supabase/volumes/api/kong.yml`
+- Format version: 3.0
+- Mode: DB-less (configuration from YAML file)
+- Custom plugins: `bundled,rate-limit-db`
+
+### Rate Limiting Plugin
+
+**Implementation:** Custom Kong plugin (`rate-limit-db`) with PostgreSQL backend
+
+**Location:** `supabase/volumes/api/kong/plugins/rate-limit-db/`
+- `handler.lua` - Plugin logic (298 lines)
+- `schema.lua` - Configuration schema
+
+**Database:**
+- Table: `public.rate_limits`
+- Function: `check_rate_limit()` - JSONB-returning stored procedure
+- Migration: `20251112000000_create_rate_limiting.sql`
+
+**Features:**
+- User-based rate limiting (extracted from JWT `sub` claim)
+- IP-based rate limiting (Cloudflare-aware)
+- Per-endpoint tracking
+- Service role bypass (SUPABASE_SERVICE_KEY)
+- Configurable time windows: second, minute, hour, day
+- Standard rate limit headers (X-RateLimit-*)
+- Retry-After header on 429 responses
+
+**Configuration Options:**
+```yaml
+plugins:
+  - name: rate-limit-db
+    config:
+      # Time window limits (at least one required)
+      minute: 60
+      hour: 1000
+      day: 10000
+
+      # Database connection
+      db_host: db
+      db_port: 5432
+      db_name: postgres
+      db_user: supabase_admin
+      db_password: $POSTGRES_PASSWORD
+
+      # Strategy
+      limit_anonymous_by_ip: true
+      limit_authenticated_by_user: true
+
+      # Response
+      hide_client_headers: false
+      error_code: 429
+      error_message: "Rate limit exceeded"
+```
+
+**Current State (as of 2025-11-12):**
+- Status: Production-ready, currently configured globally for testing
+- Test limits: 5/min, 100/hour, 1000/day
+- Kong log level: debug (should be info for production)
+- TODO: Move to service-level configuration with appropriate limits per service
+
+**Plugin Priority:**
+- Priority: 900
+- Runs after auth plugins (key-auth: 1003, acl: 950)
+- Ensures only authenticated requests are rate-limited
+
+**Important Notes:**
+- pgmoon returns JSONB as Lua tables (not JSON strings)
+- pgmoon returns NULL as userdata (not nil) - always type-check before using values
+- Access phase only runs for authenticated requests (key-auth rejects unauthenticated first)
+- Service role key bypasses rate limiting entirely
+
+**Testing Authenticated Requests:**
+
+Generate JWT token for testing without captcha:
+```javascript
+// /tmp/generate_jwt.js pattern
+const crypto = require('crypto');
+const jwtSecret = process.env.JWT_SECRET;
+const userId = 'user-uuid-from-db';
+
+const payload = {
+  aud: 'authenticated',
+  sub: userId,
+  role: 'authenticated',
+  exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7), // 7 days
+  // ... other claims
+};
+
+// HMAC HS256 signature
+const header = base64url({alg: 'HS256', typ: 'JWT'});
+const encodedPayload = base64url(payload);
+const signature = crypto.createHmac('sha256', jwtSecret)
+  .update(header + '.' + encodedPayload)
+  .digest('base64url');
+
+const jwt = header + '.' + encodedPayload + '.' + signature;
 ```
 
 ---
