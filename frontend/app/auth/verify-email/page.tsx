@@ -9,8 +9,8 @@ export default async function Page({
   }>;
 }) {
   const params = await searchParams;
-  const email = params.email ?? "";
-  const redirectTo = params.redirectTo ?? "";
+  const email = params?.email ?? "";
+  const redirectTo = params?.redirectTo ?? "";
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">

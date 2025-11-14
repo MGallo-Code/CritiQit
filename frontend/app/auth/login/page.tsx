@@ -8,7 +8,7 @@ export default async function Page({
   }>;
 }) {
   const params = await searchParams;
-  const redirectTo = params.redirectTo ?? "";
+  const redirectTo = params?.redirectTo ?? "";
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">

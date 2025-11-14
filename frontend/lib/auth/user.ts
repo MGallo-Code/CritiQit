@@ -1,4 +1,9 @@
-import type { Claims } from "@supabase/supabase-js";
+// JWT claims structure from Supabase auth
+interface JWTClaims {
+  sub: string;
+  email?: string;
+  user_metadata?: Record<string, any>;
+}
 
 // interface for the user profile
 export interface UserProfile {
@@ -13,7 +18,7 @@ export interface UserProfile {
 
 // map the auth user and optional profile record to the user interface
 export const mapAuthUserToProfile = (
-  claims: Claims,
+  claims: JWTClaims,
   profile: Partial<UserProfile> | null,
 ): UserProfile => {
   const metadata = claims.user_metadata ?? {};

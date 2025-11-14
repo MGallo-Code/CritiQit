@@ -5,6 +5,10 @@ import { getCurrentUser } from "@/lib/auth/get-current-user";
 export default async function DashboardPage() {
   const { user } = await getCurrentUser();
 
+  if (!user) {
+    redirect("/auth/login");
+  }
+
   const formattedCreatedAt = user?.created_at
     ? new Intl.DateTimeFormat("en-US", {
         month: "short",

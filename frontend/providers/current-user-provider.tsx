@@ -14,10 +14,14 @@ import type { AuthChangeEvent } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { mapAuthUserToProfile, type UserProfile } from '@/lib/auth/user'
 
-// Structure passed to components
-interface CurrentUserContextValue {
+// State type (internal state without methods)
+interface CurrentUserState {
   user: UserProfile | null
   isLoading: boolean
+}
+
+// Structure passed to components
+interface CurrentUserContextValue extends CurrentUserState {
   refreshUser: () => Promise<void>
 }
 
@@ -35,7 +39,7 @@ export const CurrentUserProvider = ({
   initialUser = null,
 }: CurrentUserProviderProps) => {
   // State of the data/component
-  const [state, setState] = useState<CurrentUserContextValue>(() => ({
+  const [state, setState] = useState<CurrentUserState>(() => ({
     user: initialUser,
     isLoading: initialUser ? false : true,
   }))
@@ -124,7 +128,7 @@ export const CurrentUserProvider = ({
   // Main hook - setup auth listeners
   useEffect(() => {
     const syncEvents: AuthChangeEvent[] = ['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED']
-    const signOutEvents: AuthChangeEvent[] = ['SIGNED_OUT', 'USER_DELETED']
+    const signOutEvents = ['SIGNED_OUT', 'USER_DELETED'] as const
 
     // Sync once on mount whenever we did not render with an initial user.
     if (!hasInitialUserRef.current) {
@@ -133,7 +137,7 @@ export const CurrentUserProvider = ({
 
     // Only react to auth events that imply the user profile might have changed
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (signOutEvents.includes(event)) {
+      if ((signOutEvents as readonly string[]).includes(event)) {
         setState({ user: null, isLoading: false })
         return
       }
