@@ -41,10 +41,11 @@ CritiQit is a **multi-platform rating application** that allows users to rate, r
 - [GoTrue](https://github.com/supabase/gotrue) - Authentication service
 - Edge Functions - Serverless functions (Deno)
 
-**Infrastructure:**
-- [Docker Compose](https://docs.docker.com/compose/) - Local development environment
+**Infrastructure & Deployment:**
+- [Docker Compose](https://docs.docker.com/compose/) - Development and production orchestration
+- [Cloudflare Tunnel](https://www.cloudflare.com/products/tunnel/) - Free SSL, CDN, DDoS protection
+- Self-hosted VPS deployment - Cost-effective (~$5-20/month)
 - [GitHub Actions](https://github.com/features/actions) - CI/CD (planned)
-- Self-hosted deployment - Full control over infrastructure
 
 ### Project Structure
 
@@ -268,11 +269,146 @@ CritiQit uses a custom AI agent system for development:
 
 ---
 
+## 🚀 Production Deployment
+
+### Cost-Effective Self-Hosted Strategy
+
+CritiQit is designed for **self-hosted deployment** with predictable, minimal costs while maintaining production quality.
+
+**Deployment Cost**: ~$5-20/month for complete stack (vs $200-400/month on traditional platforms)
+
+### Quick Start (Production)
+
+**Option 1: Docker Compose (Recommended)**
+```bash
+# Uncomment frontend service in supabase/compose.yml
+cd supabase
+docker compose up -d
+```
+
+**Option 2: Standalone Docker**
+```bash
+cd frontend
+docker build -t critiqit-frontend .
+docker run -d -p 3000:3000 \
+  -e NEXT_PUBLIC_SUPABASE_URL=https://api.critiqit.io \
+  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key \
+  --name critiqit-frontend \
+  critiqit-frontend
+```
+
+### Infrastructure Stack
+
+- **VPS**: Hetzner Cloud (€4.15/month) or DigitalOcean ($6/month)
+- **Frontend**: Self-hosted Next.js via Docker (`output: 'standalone'`)
+- **Backend**: Self-hosted Supabase via Docker Compose
+- **CDN**: Cloudflare Tunnel (free SSL + DDoS + caching)
+- **Monitoring**: Cloudflare Analytics (free)
+
+### Why Self-Hosted?
+
+1. **Cost Predictability**: Fixed $5-20/month regardless of traffic
+2. **Infrastructure Unity**: Frontend + backend on same VPS or separate
+3. **Learning Value**: Full DevOps control and production experience
+4. **Cloudflare Benefits**: Free unlimited bandwidth + CDN + DDoS protection
+5. **No Vendor Lock-In**: Complete portability and control
+
+**Cloudflare replaces Vercel's edge network** - provides SSL, CDN, caching, and DDoS protection for free.
+
+### Deployment Checklist
+
+Before deploying to production:
+
+- [ ] Update `NEXT_PUBLIC_SUPABASE_URL` to production backend
+- [ ] Replace test Turnstile captcha key with production key
+- [ ] Set `NODE_ENV=production`
+- [ ] Configure Cloudflare Tunnel for domain (`critiqit.io`)
+- [ ] Test production build locally: `yarn build && yarn start`
+- [ ] Verify all authentication flows work end-to-end
+- [ ] Test rate limiting with real requests
+- [ ] Check mobile responsiveness on real devices
+- [ ] Verify dark mode in production build
+- [ ] Configure monitoring and error tracking
+- [ ] Set up automated backups for database
+
+### Resource Requirements
+
+**Minimum** (1000 concurrent users):
+- 2GB RAM
+- 2 CPU cores
+- 20GB disk space
+
+**Recommended** (10,000 concurrent users):
+- 4GB RAM
+- 4 CPU cores
+- 40GB disk space
+
+**Scaling**: Horizontal with load balancer when exceeding 10k users
+
+### Cloudflare Tunnel Setup
+
+```bash
+# Install cloudflared
+brew install cloudflare/cloudflare/cloudflared
+
+# Authenticate
+cloudflared tunnel login
+
+# Create tunnel
+cloudflared tunnel create critiqit
+
+# Configure tunnel (~/.cloudflared/config.yml)
+tunnel: <tunnel-id>
+credentials-file: /path/to/<tunnel-id>.json
+
+ingress:
+  - hostname: critiqit.io
+    service: http://localhost:3000
+  - hostname: api.critiqit.io
+    service: http://localhost:8000
+  - service: http_status:404
+
+# Run tunnel
+cloudflared tunnel run critiqit
+```
+
+### Alternative: Cloudflare Pages
+
+If you prefer serverless:
+- **Free tier**: Unlimited bandwidth
+- **Setup**: Use `@cloudflare/next-on-pages` adapter
+- **Limitations**: Some Next.js features need workarounds (ISR, Middleware)
+- **Cost**: $0/month (free tier) or $20/month (pro features)
+
+### Continuous Deployment
+
+**Simple Git-Based Deployment:**
+```bash
+#!/bin/bash
+# deploy.sh
+git pull origin main
+cd supabase
+docker compose up -d --build
+```
+
+Or use GitHub Actions for automated deployments (see `.github/workflows/` when available).
+
+### Monitoring
+
+- **Cloudflare Analytics**: Traffic, requests, bandwidth (free)
+- **Docker Logs**: `docker logs critiqit-frontend -f`
+- **Health Checks**: Built into Docker containers
+- **Optional**: Grafana + Prometheus for detailed metrics
+
+For detailed deployment instructions, see [Frontend Documentation](.context/frontend.md#deployment).
+
+---
+
 ## 🎯 Roadmap
 
 ### Phase 1: Core Rating System ✅ (Complete)
-- [x] Simple star ratings (0-10)
-- [x] Movie/show data structure
+- [ ] Simple star ratings (0-10)
+- [ ] Movie/show data structure
 - [x] User authentication
 - [x] Basic profile pages
 

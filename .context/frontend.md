@@ -538,16 +538,238 @@ OAuth callbacks may take a moment to process. The callback page should show a lo
 
 ## Deployment
 
-**Target Platform**: Vercel (recommended for Next.js)
+### Cost-Effective Self-Hosted Strategy
 
-**Build Configuration:**
-- Output: Standalone (for Docker if needed)
-- Image optimization: Vercel's image service or custom
+**Philosophy**: CritiQit uses self-hosted infrastructure for predictable, minimal costs while maintaining production-quality performance and security.
 
-**Environment Variables:**
-- Set in Vercel dashboard
-- Use production Supabase URL and keys
-- Use production Turnstile key
+**Target Platform**: Self-hosted VPS (Hetzner, DigitalOcean, or same server as Supabase)
+
+**Why Self-Hosted?**
+- **Cost**: $5-20/month total vs $200-400/month on Vercel at scale
+- **Predictability**: Fixed monthly cost regardless of traffic
+- **Control**: Full access to logs, metrics, and configuration
+- **Integration**: Colocation with self-hosted Supabase backend
+- **Cloudflare Protection**: Free SSL, DDoS protection, and CDN via Cloudflare Tunnel
+
+### Production Deployment Options
+
+**Option 1: Docker Compose (Recommended)**
+
+Uncomment the frontend service in `supabase/compose.yml`:
+
+```bash
+# Edit supabase/compose.yml, uncomment the frontend service section
+cd supabase
+docker compose up -d
+```
+
+Frontend runs on port 3000 alongside Supabase services.
+
+**Option 2: Standalone Docker**
+
+```bash
+cd frontend
+docker build -t critiqit-frontend .
+docker run -d -p 3000:3000 \
+  -e NEXT_PUBLIC_SUPABASE_URL=https://api.critiqit.io \
+  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key \
+  -e NEXT_PUBLIC_TURNSTILE_SITE_KEY=your_key \
+  --name critiqit-frontend \
+  critiqit-frontend
+```
+
+**Option 3: Direct Node.js**
+
+```bash
+cd frontend
+yarn install --production
+yarn build
+yarn start  # Runs on port 3001 by default
+```
+
+### Build Configuration
+
+**Next.js Config** (`next.config.ts`):
+```typescript
+output: 'standalone'  // Creates minimal production build in .next/standalone/
+```
+
+**Dockerfile**: Multi-stage build for minimal image size (~150MB final image)
+- Stage 1: Install dependencies
+- Stage 2: Build application
+- Stage 3: Run production server (non-root user, security hardened)
+
+**Image Optimization**: Next.js built-in optimization (no external service needed)
+
+### Cloudflare Tunnel Setup
+
+```bash
+# Already configured for development, use same pattern for production
+cloudflared tunnel --config ~/.cloudflared/critiqit.yml run
+```
+
+**Tunnel Config** (`~/.cloudflared/critiqit.yml`):
+```yaml
+url: http://localhost:3000
+tunnel: <your-tunnel-id>
+credentials-file: /path/to/credentials.json
+```
+
+Cloudflare automatically provides:
+- SSL/TLS certificates
+- DDoS protection
+- CDN caching for static assets
+- Web Application Firewall (WAF)
+- Analytics
+
+### Environment Variables
+
+**Development** (`frontend/.env.local`):
+```bash
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:8000
+NEXT_PUBLIC_SUPABASE_ANON_KEY=test_key
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=test_key
+```
+
+**Production** (Docker environment or system env):
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://api.critiqit.io
+NEXT_PUBLIC_SUPABASE_ANON_KEY=production_anon_key
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=production_turnstile_key
+NODE_ENV=production
+NEXT_TELEMETRY_DISABLED=1
+```
+
+**Security Notes**:
+- `NEXT_PUBLIC_*` variables are embedded in client bundle (safe for public values)
+- Never use `NEXT_PUBLIC_` prefix for sensitive keys (service_role, JWT secrets)
+- Supabase ANON key is safe to expose (protected by RLS policies)
+
+### Health Checks
+
+The Docker container includes a health check:
+```bash
+curl http://localhost:3000/api/health
+```
+
+Returns 200 when application is healthy. Useful for:
+- Docker health monitoring
+- Load balancer health checks
+- Uptime monitoring services
+
+### Deployment Checklist
+
+Before production deployment:
+
+- [ ] Update `NEXT_PUBLIC_SUPABASE_URL` to production backend URL
+- [ ] Replace test Turnstile key with production key
+- [ ] Set `NODE_ENV=production`
+- [ ] Verify Cloudflare Tunnel is configured for domain
+- [ ] Test build locally: `yarn build && yarn start`
+- [ ] Verify image optimization works
+- [ ] Check bundle size: `yarn build` output
+- [ ] Test on mobile devices (responsive design)
+- [ ] Verify dark mode works correctly
+- [ ] Test all authentication flows
+- [ ] Verify rate limiting error handling (countdown timers)
+- [ ] Check CSP headers and security policies
+- [ ] Configure monitoring/alerting for errors
+
+### Resource Requirements
+
+**Minimum** (development/testing):
+- 1GB RAM
+- 1 CPU core
+- 10GB disk space
+
+**Recommended** (production):
+- 2GB RAM (handles 1000+ concurrent users)
+- 2 CPU cores
+- 20GB disk space (includes logs, caching)
+
+**At Scale** (10,000+ concurrent users):
+- 4GB RAM
+- 4 CPU cores
+- Consider horizontal scaling with load balancer
+
+### Cost Analysis
+
+**Self-Hosted Stack** (CritiQit's Choice):
+- Hetzner VPS (2GB RAM): €4.15/month (~$4.50)
+- Cloudflare Tunnel: Free
+- Cloudflare CDN: Free (unlimited bandwidth!)
+- **Total: ~$5-10/month** for complete stack
+
+**Alternative: Vercel**:
+- Free tier: 100GB bandwidth (covers ~10k visitors)
+- Pro tier: $20/month for 1TB bandwidth
+- Bandwidth overage: $40 per 100GB
+- **At 1M visitors: $200-400/month**
+
+**Alternative: Cloudflare Pages**:
+- Free tier: Unlimited bandwidth (!)
+- Pro: $20/month (advanced features only)
+- Works with Next.js via `@cloudflare/next-on-pages`
+- **Good free option if self-hosting not desired**
+
+### Performance Optimization
+
+**Cloudflare Caching**:
+```typescript
+// Public assets cached automatically
+// API routes bypass cache (dynamic content)
+```
+
+**Next.js Built-in**:
+- Automatic code splitting
+- Image optimization
+- Font optimization
+- Static generation where possible
+
+**Monitoring**:
+- Cloudflare Analytics (free)
+- Docker logs: `docker logs critiqit-frontend`
+- Optional: Grafana + Prometheus for detailed metrics
+
+### Continuous Deployment
+
+**Simple Git-Based Pattern**:
+```bash
+#!/bin/bash
+# deploy.sh
+git pull origin main
+cd frontend
+docker build -t critiqit-frontend .
+docker stop critiqit-frontend || true
+docker rm critiqit-frontend || true
+docker run -d -p 3000:3000 \
+  --env-file .env.production \
+  --name critiqit-frontend \
+  critiqit-frontend
+```
+
+**Or with Docker Compose**:
+```bash
+cd supabase
+git pull origin main
+docker compose up -d --build frontend
+```
+
+### Why NOT Vercel?
+
+While Vercel is excellent for Next.js, CritiQit prioritizes:
+
+1. **Cost Predictability**: Fixed $5-10/month vs unpredictable bandwidth costs
+2. **Infrastructure Unity**: Colocation with self-hosted Supabase backend
+3. **Learning Value**: Full control teaches DevOps and production patterns
+4. **Cloudflare Benefits**: Free CDN + DDoS protection replaces Vercel's edge network
+5. **Professional Experience**: Self-hosting is valuable skill for engineering career
+
+Vercel makes sense for:
+- Rapid prototyping without DevOps
+- Teams without infrastructure expertise
+- Projects needing serverless functions at scale
+- Businesses prioritizing time-to-market over cost optimization
 
 ---
 

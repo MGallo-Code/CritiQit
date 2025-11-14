@@ -61,10 +61,68 @@ The Cloudflare tunnel setup allows consistent domain usage across development an
 - **Extensions**: pgjwt for JWT handling
 
 ### DevOps & Tools
-- **Containerization**: Docker Compose
-- **Tunneling**: Cloudflare cloudflared
+- **Containerization**: Docker Compose (development + production)
+- **Tunneling**: Cloudflare cloudflared (free SSL + CDN + DDoS protection)
 - **Package Manager**: Yarn (workspaces)
 - **Version Control**: Git
+
+### Deployment Philosophy
+
+**CritiQit prioritizes cost-effective, self-hosted infrastructure over managed platforms.**
+
+**Core Principles:**
+1. **Cost Predictability**: Fixed monthly costs ($5-20/month) vs unpredictable bandwidth charges
+2. **Full Control**: Direct access to logs, metrics, configuration, and troubleshooting
+3. **Learning Value**: DevOps experience with production-ready infrastructure
+4. **Professional Quality**: Production-grade security and scalability at fraction of cost
+5. **No Vendor Lock-In**: Complete portability and infrastructure ownership
+
+**Why NOT Vercel/Managed Platforms:**
+- Vercel: $200-400/month at scale due to bandwidth costs ($40 per 100GB overage)
+- Managed platforms charge for convenience, not resources
+- CritiQit's lightweight design doesn't justify managed platform costs
+- Self-hosting teaches valuable DevOps skills for engineering career
+
+**Infrastructure Stack (Production):**
+- **VPS**: Hetzner Cloud (€4.15/month for 2GB RAM) or DigitalOcean ($6/month)
+- **Frontend**: Docker container running Next.js with `output: 'standalone'` (~150MB image)
+- **Backend**: Self-hosted Supabase via Docker Compose (existing setup)
+- **CDN**: Cloudflare Tunnel provides free SSL, DDoS protection, unlimited bandwidth, caching
+- **Monitoring**: Cloudflare Analytics (free) + Docker logs
+
+**Total Monthly Cost**: ~$5-20/month for complete stack
+- VPS: €4-8/month (depending on RAM)
+- Cloudflare: $0/month (free tier covers everything)
+- Domain: ~$15/year (separate)
+
+**Cost Comparison:**
+- Self-Hosted Stack: $5-20/month (fixed)
+- Vercel (at 1M visitors): $200-400/month (variable, unpredictable)
+- Savings: ~$180-380/month ($2,160-4,560/year)
+
+**Cloudflare Tunnel Replaces:**
+- Vercel Edge Network ($0 cost)
+- SSL/TLS certificates (Let's Encrypt integration)
+- DDoS protection (automatic)
+- CDN caching for static assets (unlimited bandwidth)
+- Web Application Firewall (basic)
+
+**Deployment Options:**
+1. **Docker Compose** (recommended): Uncomment frontend service in `supabase/compose.yml`
+2. **Standalone Docker**: Build and run frontend container separately
+3. **Direct Node.js**: Run `yarn build && yarn start` on VPS
+
+**Resource Requirements:**
+- Minimum (1,000 users): 2GB RAM, 2 CPU cores
+- Recommended (10,000 users): 4GB RAM, 4 CPU cores
+- Scaling: Horizontal with load balancer beyond 10k users
+
+**Design Decisions Impacted by Self-Hosting:**
+- Next.js `output: 'standalone'` for minimal production build
+- No Vercel-specific features (Edge Functions, Edge Middleware variants)
+- Image optimization uses Next.js built-in (works self-hosted)
+- All services colocated or on separate VPS (no serverless functions)
+- Direct Docker access for logs, metrics, debugging
 
 ---
 

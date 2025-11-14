@@ -20,11 +20,11 @@ You work exclusively in the `frontend/` workspace:
 ## DEVELOPMENT ENVIRONMENT AWARENESS
 
 ### Frontend Dev Server (Next.js)
-The frontend development server is **TYPICALLY ALREADY RUNNING** at `http://localhost:3001`:
-- Command: `npm run dev` (uses `next dev --turbopack -p 3001`)
+The frontend development server is **TYPICALLY ALREADY RUNNING** at `http://localhost:3000`:
+- Command: `npm run dev` (uses `next dev --turbopack -p 3000`)
 - **Hot-reload enabled**: Most changes auto-refresh without restart
 - **DO NOT start the server** unless you verify it's not already running
-- **Check if running**: Use `lsof -i :3001` or `ps aux | grep "next dev"`
+- **Check if running**: Use `lsof -i :3000` or `ps aux | grep "next dev"`
 
 **When restart IS required:**
 - ✅ Changes to `.env` or `.env.local` files
@@ -41,7 +41,7 @@ The frontend development server is **TYPICALLY ALREADY RUNNING** at `http://loca
 - ❌ Most TypeScript changes
 
 **Safe restart procedure:**
-1. Check if running: `lsof -i :3001`
+1. Check if running: `lsof -i :3000`
 2. If running: Stop with Ctrl+C or `kill <PID>`
 3. Navigate to frontend: `cd frontend`
 4. Start: `npm run dev`
@@ -518,6 +518,124 @@ Before completing a task, verify:
 - ✅ Code is clean and self-documenting
 - ✅ No clever tricks - straightforward solutions
 
+## DEPLOYMENT STRATEGY
+
+### Cost-Effective Self-Hosted Production
+
+**CritiQit Philosophy**: Self-hosted infrastructure for predictable costs, full control, and professional DevOps experience.
+
+**Target Platform**: Self-hosted VPS
+- Hetzner Cloud: €4.15/month (~$4.50)
+- DigitalOcean: $6/month
+- Or colocated with Supabase backend (same VPS)
+
+**Why Self-Hosted?**
+1. **Cost**: $5-20/month total
+2. **Predictability**: Fixed cost regardless of traffic
+3. **Cloudflare Tunnel**: Provides free SSL, CDN, DDoS protection, unlimited bandwidth
+4. **Learning**: Full control teaches valuable DevOps skills
+5. **Integration**: Colocated with self-hosted Supabase backend
+
+### Next.js Production Configuration
+
+**next.config.ts must include**:
+```typescript
+output: 'standalone'  // Creates minimal production build in .next/standalone/
+```
+
+This is CRITICAL for Docker deployment. Without it, Docker image will be bloated and inefficient.
+
+### Docker Production Build
+
+**frontend/Dockerfile**:
+- Multi-stage build (deps → builder → runner)
+- Final image: ~150MB (Alpine-based Node 20)
+- Non-root user (security hardened)
+- Health check included
+- Runs on port 3000
+
+**frontend/.dockerignore**:
+- Excludes node_modules, .next, .env files
+- Keeps Docker build context small
+
+### Deployment Options
+
+**Docker Compose (Recommended)**
+```bash
+# Uncomment frontend service in supabase/compose.yml
+cd supabase
+docker compose up -d
+```
+
+### Environment Variables (Production)
+
+**Safe to embed** (NEXT_PUBLIC_ prefix):
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://api.critiqit.io
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...  # Safe - protected by RLS
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=prod_key
+```
+
+**Never expose**:
+- Service role key (backend only)
+- JWT secrets (backend only)
+- Database credentials (backend only)
+
+### Cloudflare Tunnel
+
+Already configured for development - use same pattern for production:
+```bash
+cloudflared tunnel run critiqit
+# Routes critiqit.io → localhost:3000
+```
+
+Cloudflare provides:
+- Free SSL/TLS certificates
+- DDoS protection
+- CDN caching for static assets
+- Web Application Firewall
+- Unlimited bandwidth (!)
+
+### Deployment Checklist
+
+When deploying to production:
+- [ ] `output: 'standalone'` in next.config.ts
+- [ ] Production environment variables set
+- [ ] Test build locally: `yarn build && yarn start`
+- [ ] Verify bundle size is reasonable (check build output)
+- [ ] Test mobile responsiveness
+- [ ] Verify dark mode works
+- [ ] Test all auth flows end-to-end
+- [ ] Check rate limiting UI (countdown timers)
+- [ ] Verify image optimization works
+- [ ] No console errors in production build
+
+### Performance Considerations
+
+**Image Optimization**:
+- Use Next.js `<Image />` component
+- Built-in optimization works with self-hosted (no external service needed)
+- Set proper width/height to avoid layout shift
+
+**Bundle Size**:
+- Monitor "First Load JS" in build output
+- Keep client components minimal
+- Use dynamic imports for heavy components
+
+**Caching**:
+- Static assets cached by Cloudflare automatically
+- No special configuration needed
+
+### Resource Requirements
+
+**Minimum** (1000 concurrent users):
+- 1-2GB RAM
+- 1-2 CPU cores
+
+**Recommended** (10,000 concurrent users):
+- 4GB RAM
+- 4 CPU cores
+
 ## COMMUNICATION
 
 When returning results:
@@ -526,6 +644,7 @@ When returning results:
 - Note any frontend-specific gotchas discovered
 - Suggest testing steps
 - Flag if backend changes are needed (defer to backend-dev)
+- IF discussing deployment, remind user: "CritiQit uses self-hosted deployment via Docker, NOT Vercel"
 
 ## IMPORTANT NOTES
 
