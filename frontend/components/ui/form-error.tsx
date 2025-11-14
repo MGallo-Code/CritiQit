@@ -37,13 +37,14 @@ export function FormError({ error }: FormErrorProps) {
     const seconds = timeRemaining ? timeRemaining % 60 : 0;
 
     return (
-      <div className="rounded-md border border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/30 p-4">
+      <div className="rounded-md border border-warning/30 bg-warning/10 p-4" role="alert" aria-live="polite">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
             <svg
-              className="h-5 w-5 text-yellow-600 dark:text-yellow-400"
+              className="h-5 w-5 text-warning"
               fill="currentColor"
               viewBox="0 0 20 20"
+              aria-hidden="true"
             >
               <path
                 fillRule="evenodd"
@@ -53,20 +54,20 @@ export function FormError({ error }: FormErrorProps) {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+            <h3 className="text-sm font-semibold text-foreground">
               Too many attempts
             </h3>
-            <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+            <div className="mt-2 text-sm text-text-secondary">
               <p>{error.message}</p>
               {timeRemaining !== null && timeRemaining > 0 && (
-                <p className="mt-2 font-medium">
+                <p className="mt-2 font-medium text-foreground" aria-live="polite">
                   Please wait{" "}
                   {minutes > 0 && `${minutes}m `}
                   {seconds}s before trying again.
                 </p>
               )}
               {timeRemaining === 0 && (
-                <p className="mt-2 font-medium text-green-600 dark:text-green-400">
+                <p className="mt-2 font-medium text-success" aria-live="polite">
                   You can try again now.
                 </p>
               )}
@@ -79,6 +80,6 @@ export function FormError({ error }: FormErrorProps) {
 
   // Standard error display
   return (
-    <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+    <p className="text-sm text-error" role="alert" aria-live="polite">{error}</p>
   );
 }

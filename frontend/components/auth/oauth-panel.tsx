@@ -66,21 +66,25 @@ export function OAuthPanel({
   };
 
   return (
-    <div className="mt-7 flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {oauthProviders.map((provider) => (
-        <button
-          className="inline-flex h-16 w-full items-center justify-center gap-4 rounded border border-slate-300 bg-primary p-2 text-med font-medium text-primary-foreground outline-none focus:ring-2 focus:ring-[#333] focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60 rounded-lg"
+        <Button
+          key={provider.provider}
+          variant="default"
+          size="lg"
+          className="h-12 w-full gap-3"
           onClick={() => handleOAuthSignIn(provider.provider)}
           disabled={isPending !== null || isRateLimited}
-          key={provider.provider}>
+          aria-label={`Continue with ${provider.name}`}
+        >
           <img
             src={provider.iconUrl}
-            alt={provider.name}
-            className="rounded-full"
-            style={{ height: '28px', width: '28px' }}
+            alt=""
+            aria-hidden="true"
+            className="h-5 w-5 rounded-full"
           />
           {isPending === provider.provider ? 'Redirecting...' : `Continue with ${provider.name}`}
-        </button>
+        </Button>
       ))}
       <FormError error={error} />
     </div>

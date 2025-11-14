@@ -88,10 +88,10 @@ export function LoginForm({
       </CardHeader>
       <CardContent>
         <OAuthPanel redirectTo={redirectTo} />
-        <div className="flex w-full items-center gap-2 p-6 text-sm text-slate-600">
-            <div className="h-px w-full bg-primary"></div>
+        <div className="flex w-full items-center gap-2 p-6 text-sm text-text-tertiary">
+            <div className="h-px w-full bg-border"></div>
             OR
-            <div className="h-px w-full bg-primary"></div>
+            <div className="h-px w-full bg-border"></div>
         </div>
         <form onSubmit={handleLogin}>
           <div className="flex flex-col gap-6">
