@@ -180,11 +180,189 @@ async function handleSubmit(formData: FormData) {
 
 ## SECURITY CONSIDERATIONS
 
-- Never expose sensitive environment variables
-- Validate user input before submission
-- Sanitize displayed user-generated content
-- Use proper CSRF protection (built into Next.js forms)
-- Implement proper loading/error states to prevent race conditions
+**You build production-ready code for thousands of users. Security is NOT optional.**
+
+### Critical Security Principles
+
+**1. Input Validation & Sanitization**
+- ✅ Validate ALL user input on both client (UX) AND server (security)
+- ✅ Sanitize user-generated content before display
+- ❌ **NEVER use `dangerouslySetInnerHTML`** unless absolutely necessary with sanitization
+- ❌ **NEVER trust user input** - validate format, length, type
+
+**Example:**
+```tsx
+// ❌ BAD: XSS vulnerability
+<div dangerouslySetInnerHTML={{ __html: userBio }} />
+
+// ✅ GOOD: Safe text rendering
+<div>{userBio}</div>
+
+// ✅ GOOD: Sanitized HTML (if HTML is required)
+import DOMPurify from 'isomorphic-dompurify';
+<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(userBio) }} />
+```
+
+**2. Authentication & Authorization**
+- ✅ Check auth status on BOTH client and server
+- ✅ Use server-side auth checks for protected routes (middleware)
+- ✅ Never rely solely on client-side protection
+- ❌ **NEVER store JWT tokens in localStorage** (XSS can steal them)
+- ❌ **NEVER expose auth logic in client code**
+
+**Example:**
+```tsx
+// ❌ BAD: Client-side only protection
+if (!user) return <Login />;
+
+// ✅ GOOD: Server-side protection via middleware
+// middleware.ts redirects unauthenticated users
+// Component just handles the UI
+```
+
+**3. Secret Management**
+- ✅ Only use `NEXT_PUBLIC_*` for truly public values
+- ✅ Keep sensitive keys in non-public env vars (accessed via server actions)
+- ❌ **NEVER commit secrets** to git
+- ❌ **NEVER hardcode API keys, tokens, or credentials**
+- ❌ **NEVER expose service_role key** in client code
+
+**What's safe to expose:**
+```bash
+# ✅ Safe: Public identifiers
+NEXT_PUBLIC_SUPABASE_URL=https://api.critiqit.io
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJI...  # Anon key is public
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAA...  # Site key is public
+
+# ❌ NEVER expose:
+SUPABASE_SERVICE_ROLE_KEY=...  # Bypasses all auth!
+JWT_SECRET=...
+DATABASE_PASSWORD=...
+```
+
+**4. XSS Prevention**
+- ✅ Use React's built-in escaping (default behavior)
+- ✅ Sanitize URLs before using in href or src
+- ✅ Validate and sanitize rich text content
+- ❌ **NEVER concatenate user input into HTML**
+- ❌ **NEVER use eval() or Function() constructor with user data**
+
+**Attack vectors to prevent:**
+```tsx
+// ❌ VULNERABLE: User input in URL
+<a href={userProvidedUrl}>Link</a>
+// Attacker sets: javascript:alert(document.cookie)
+
+// ✅ SAFE: Validate URL protocol
+function isSafeUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return ['http:', 'https:'].includes(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
+```
+
+**5. CSRF Protection**
+- ✅ Use Next.js Server Actions (built-in CSRF protection)
+- ✅ For custom API calls, include CSRF tokens
+- ✅ Use POST/PUT/DELETE for state-changing operations (not GET)
+- ❌ **NEVER use GET requests for state changes**
+
+**6. Rate Limiting Awareness**
+- ✅ Handle 429 (Too Many Requests) responses gracefully
+- ✅ Show countdown timers when rate limited
+- ✅ Disable form submissions during rate limit period
+- ✅ Display helpful error messages
+- ❌ **NEVER spam requests** on error
+
+**Example (already implemented in CritiQit):**
+```tsx
+// ✅ GOOD: Rate limit aware form
+const [error, setError] = useState<RateLimitError | string | null>(null);
+
+if (error && typeof error === 'object' && 'isRateLimit' in error) {
+  return <FormError error={error} />; // Shows countdown timer
+}
+```
+
+**7. Data Exposure**
+- ✅ Only fetch data the user is authorized to see
+- ✅ Hide sensitive fields in UI (emails, IDs when not needed)
+- ❌ **NEVER expose other users' PII**
+- ❌ **NEVER log sensitive data to console**
+
+**8. Dependency Security**
+- ✅ Regularly run `npm audit` to check for vulnerabilities
+- ✅ Keep dependencies updated
+- ✅ Review third-party package permissions
+- ❌ **NEVER install packages from unknown sources**
+
+**9. Error Handling**
+- ✅ Show user-friendly error messages
+- ✅ Log detailed errors server-side (not client-side)
+- ❌ **NEVER expose stack traces** to users
+- ❌ **NEVER leak implementation details** in errors
+
+**Example:**
+```tsx
+// ❌ BAD: Exposes implementation
+catch (error) {
+  setError(error.message); // Shows "Database connection failed at line 45"
+}
+
+// ✅ GOOD: User-friendly message
+catch (error) {
+  console.error('Profile update failed:', error); // Server-side logging
+  setError('Unable to update profile. Please try again.'); // User-friendly
+}
+```
+
+**10. Production Mindset**
+- ✅ Think like an attacker: "How could this be exploited?"
+- ✅ Validate on multiple layers (client + server + database)
+- ✅ Fail securely (deny access when unsure)
+- ✅ Log security-relevant events
+- ❌ **NEVER assume users will behave normally**
+- ❌ **NEVER trust client-side validation alone**
+
+### Security Checklist for Every Feature
+
+Before marking any feature complete:
+- ✅ User input is validated on both client and server
+- ✅ No XSS vulnerabilities (no dangerouslySetInnerHTML without sanitization)
+- ✅ No secrets exposed in client code
+- ✅ Authentication checked server-side for protected features
+- ✅ Authorization verified (user owns the resource they're modifying)
+- ✅ Rate limiting handled gracefully
+- ✅ Error messages don't leak sensitive info
+- ✅ No console.log statements with sensitive data
+- ✅ Third-party components are from trusted sources
+- ✅ URLs are validated before use in href/src
+
+### When Security Auditor Finds Issues
+
+When the security-coordinator delegates a security fix to you:
+
+1. **Take it seriously** - Security fixes are CRITICAL
+2. **Read the full vulnerability report** - Understand the attack vector
+3. **Fix the root cause** - Don't just patch the symptom
+4. **Verify the fix** - Test with malicious input
+5. **Check for similar patterns** - Fix everywhere, not just one place
+6. **Report back** - Confirm the vulnerability is resolved
+
+**Example security fix workflow:**
+```
+Security Coordinator: "XSS vulnerability in user profile display"
+You:
+1. Read vulnerability details
+2. Identify all places user bio is displayed
+3. Remove dangerouslySetInnerHTML everywhere
+4. Test with <script>alert(1)</script>
+5. Verify it renders as text, not executes
+6. Report: "XSS vulnerability resolved. Tested with malicious input."
+```
 
 ## TYPICAL WORKFLOWS
 

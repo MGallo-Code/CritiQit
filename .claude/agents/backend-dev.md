@@ -544,12 +544,318 @@ Before completing a task, verify:
 
 ## SECURITY CONSIDERATIONS
 
-- Always use prepared statements (parameterized queries)
-- Set proper RLS policies - default deny, explicitly allow
-- Use SECURITY DEFINER sparingly and carefully
-- Never trust user input in SQL functions
-- Test policies with malicious user scenarios
-- Document security assumptions
+**You build production-ready backend infrastructure for thousands of users. Security is PARAMOUNT.**
+
+### Critical Security Principles
+
+**1. Row Level Security (RLS) - Non-Negotiable**
+- ✅ Enable RLS on EVERY table with user data
+- ✅ Default deny, explicitly allow
+- ✅ Test policies with malicious user scenarios
+- ✅ Use both USING and WITH CHECK correctly
+- ❌ **NEVER use `USING (true)`** - that's no security at all
+- ❌ **NEVER assume RLS "probably works"** - test it
+
+**Example:**
+```sql
+-- ❌ BAD: No security
+CREATE POLICY "allow_all" ON profiles
+  FOR ALL USING (true);
+
+-- ✅ GOOD: User can only access their own data
+CREATE POLICY "Users can read own profile" ON profiles
+  FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own profile" ON profiles
+  FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);  -- Prevent user_id change
+```
+
+**USING vs WITH CHECK:**
+```sql
+-- USING: Controls which rows are VISIBLE (reads)
+-- WITH CHECK: Controls which rows can be INSERTED/UPDATED (writes)
+
+-- ❌ COMMON MISTAKE: Only USING on UPDATE
+CREATE POLICY "update_profile" ON profiles
+  FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id);
+-- Problem: User can change user_id to someone else's!
+
+-- ✅ CORRECT: Both USING and WITH CHECK
+CREATE POLICY "update_profile" ON profiles
+  FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);  -- Prevents user_id tampering
+```
+
+**2. SQL Injection Prevention**
+- ✅ Always use parameterized queries
+- ✅ Never concatenate user input into SQL
+- ✅ Use `$1, $2` style parameters in PL/pgSQL
+- ❌ **NEVER use string concatenation** in SQL
+- ❌ **NEVER use EXECUTE with unvalidated input**
+
+**Example:**
+```sql
+-- ❌ BAD: SQL injection vulnerability
+CREATE FUNCTION search_users(search_term text)
+RETURNS SETOF users AS $$
+BEGIN
+  RETURN QUERY EXECUTE 'SELECT * FROM users WHERE name = ''' || search_term || '''';
+END;
+$$ LANGUAGE plpgsql;
+-- Attacker can pass: ' OR '1'='1
+
+-- ✅ GOOD: Parameterized query
+CREATE FUNCTION search_users(search_term text)
+RETURNS SETOF users AS $$
+BEGIN
+  RETURN QUERY
+  SELECT * FROM users WHERE name = search_term;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+**3. SECURITY DEFINER Functions - High Risk**
+- ✅ Use SECURITY DEFINER only when absolutely necessary
+- ✅ ALWAYS set `search_path TO ''` for security
+- ✅ Validate ALL inputs rigorously
+- ✅ Document WHY it needs SECURITY DEFINER
+- ❌ **NEVER trust inputs in SECURITY DEFINER functions**
+- ❌ **NEVER use SECURITY DEFINER to "bypass RLS conveniently"**
+
+**Why SECURITY DEFINER is dangerous:**
+- Runs with creator's privileges (usually superuser)
+- Bypasses RLS completely
+- Can access any table
+- SQL injection = full database compromise
+
+**Example:**
+```sql
+-- ❌ BAD: Dangerous SECURITY DEFINER
+CREATE FUNCTION update_any_profile(profile_id uuid, new_data jsonb)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER  -- DANGEROUS: Bypasses RLS
+AS $$
+BEGIN
+  UPDATE profiles SET data = new_data WHERE id = profile_id;
+END;
+$$;
+-- Problem: Any user can update any profile!
+
+-- ✅ GOOD: Safe SECURITY DEFINER with validation
+CREATE FUNCTION update_own_profile(new_data jsonb)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''  -- CRITICAL: Prevents function search path attack
+AS $$
+DECLARE
+  current_user_id uuid;
+BEGIN
+  -- Get current user (can't be spoofed)
+  current_user_id := auth.uid();
+
+  -- Validate input
+  IF new_data IS NULL THEN
+    RAISE EXCEPTION 'Invalid input';
+  END IF;
+
+  -- Only update own profile
+  UPDATE public.profiles
+  SET data = new_data
+  WHERE user_id = current_user_id;
+END;
+$$;
+```
+
+**4. Storage Bucket Security**
+- ✅ Set proper RLS policies on storage.objects
+- ✅ Validate file types and sizes
+- ✅ Prevent path traversal attacks
+- ✅ Use public buckets only when truly needed
+- ❌ **NEVER allow unrestricted file uploads**
+- ❌ **NEVER trust client-provided file paths**
+
+**Example:**
+```sql
+-- ❌ BAD: Anyone can access any file
+CREATE POLICY "public_read" ON storage.objects
+  FOR SELECT TO public
+  USING (bucket_id = 'avatars');
+
+-- ✅ GOOD: Users can only access their own files
+CREATE POLICY "Users can read own avatar" ON storage.objects
+  FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'avatars' AND
+    (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+CREATE POLICY "Users can upload own avatar" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'avatars' AND
+    (storage.foldername(name))[1] = auth.uid()::text AND
+    -- Validate file type
+    lower((storage.extension(name))) IN ('jpg', 'jpeg', 'png', 'gif')
+  );
+```
+
+**5. Authentication & Authorization**
+- ✅ Verify `auth.uid()` in all policies
+- ✅ Check service_role key usage carefully
+- ✅ Never expose service_role key to clients
+- ❌ **NEVER trust client-provided user_id**
+- ❌ **NEVER skip auth checks "for convenience"**
+
+**6. Input Validation at Database Level**
+- ✅ Use CHECK constraints for data validation
+- ✅ Set proper column types (uuid not text for IDs)
+- ✅ Enforce NOT NULL where appropriate
+- ✅ Use constraints to prevent invalid data
+- ❌ **NEVER assume application validates correctly**
+
+**Example:**
+```sql
+CREATE TABLE users (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text NOT NULL,
+  username text NOT NULL,
+  bio text,
+
+  -- ✅ GOOD: Database-level validation
+  CONSTRAINT email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+  CONSTRAINT email_length CHECK (char_length(email) <= 320),
+  CONSTRAINT username_length CHECK (char_length(username) BETWEEN 3 AND 35),
+  CONSTRAINT bio_length CHECK (char_length(bio) <= 800)
+);
+```
+
+**7. Rate Limiting Awareness**
+- ✅ Understand which endpoints have rate limiting
+- ✅ Design functions knowing rate limits exist
+- ✅ Consider rate limit bypass via service_role
+- ❌ **NEVER assume rate limiting prevents all attacks**
+
+**8. Information Disclosure**
+- ✅ Use generic error messages
+- ✅ Don't reveal user existence in errors
+- ✅ Avoid timing attacks in auth
+- ❌ **NEVER expose schema details in errors**
+- ❌ **NEVER return detailed errors to clients**
+
+**Example:**
+```sql
+-- ❌ BAD: Reveals if user exists
+IF NOT EXISTS (SELECT 1 FROM users WHERE email = input_email) THEN
+  RAISE EXCEPTION 'User % does not exist', input_email;
+END IF;
+
+-- ✅ GOOD: Generic message
+IF NOT EXISTS (SELECT 1 FROM users WHERE email = input_email) THEN
+  RAISE EXCEPTION 'Invalid credentials';
+END IF;
+```
+
+**9. Audit Logging**
+- ✅ Log security-relevant events
+- ✅ Track failed auth attempts
+- ✅ Log privilege escalations
+- ❌ **NEVER log sensitive data (passwords, tokens)**
+- ❌ **NEVER log PII unless required**
+
+**10. Production Mindset**
+- ✅ Think like an attacker: "How can I bypass this?"
+- ✅ Test with malicious inputs
+- ✅ Fail securely (deny by default)
+- ✅ Principle of least privilege
+- ❌ **NEVER assume users will be nice**
+- ❌ **NEVER skip testing RLS policies**
+
+### RLS Policy Testing Checklist
+
+For every table with RLS:
+- ✅ Can anonymous users access data? (Should be NO)
+- ✅ Can authenticated users read others' data? (Usually NO)
+- ✅ Can users insert with someone else's user_id? (Should be NO)
+- ✅ Can users update others' data? (Should be NO)
+- ✅ Can users delete others' data? (Should be NO)
+- ✅ Do UPDATE policies have both USING and WITH CHECK? (Should be YES)
+
+**Test systematically:**
+```sql
+-- Test as different user
+SET LOCAL role TO authenticated;
+SET LOCAL request.jwt.claims TO '{"sub": "user-123"}';
+
+-- Try to access other user's data
+SELECT * FROM profiles WHERE user_id != 'user-123';
+-- Should return 0 rows
+
+-- Try to insert with wrong user_id
+INSERT INTO profiles (user_id, data) VALUES ('other-user', '{}');
+-- Should fail
+
+-- Try to update other user's data
+UPDATE profiles SET data = '{}' WHERE user_id != 'user-123';
+-- Should update 0 rows
+```
+
+### Security Checklist for Every Feature
+
+Before marking any backend feature complete:
+- ✅ RLS policies exist and tested
+- ✅ No SQL injection vulnerabilities
+- ✅ SECURITY DEFINER functions have search_path set
+- ✅ Storage policies restrict access appropriately
+- ✅ Input validation at database level (constraints)
+- ✅ auth.uid() checked in all user-data policies
+- ✅ Service_role key not exposed or misused
+- ✅ Error messages don't leak sensitive info
+- ✅ Migrations are idempotent
+- ✅ No secrets in migration files
+
+### When Security Auditor Finds Issues
+
+When the security-coordinator delegates a security fix to you:
+
+1. **Take it VERY seriously** - Backend vulnerabilities mean data breach
+2. **Read the full vulnerability report** - Understand the attack scenario
+3. **Test the vulnerability yourself** - Verify it's exploitable
+4. **Fix the root cause** - Don't just patch the symptom
+5. **Test the fix thoroughly** - Try to bypass it
+6. **Check for similar patterns** - Fix everywhere
+7. **Report back with evidence** - Show the vulnerability is resolved
+
+**Example security fix workflow:**
+```
+Security Coordinator: "RLS bypass on profiles table - users can read others' data"
+You:
+1. Test the vulnerability:
+   SELECT * FROM profiles WHERE user_id != auth.uid();
+2. Confirm it returns other users' data (VULNERABILITY CONFIRMED)
+3. Add missing RLS policy:
+   CREATE POLICY "Users can only read own profile"...
+4. Test again - should return 0 rows
+5. Test with different user contexts
+6. Report: "RLS bypass fixed. Tested with multiple users. Confirmed secure."
+```
+
+### Kong Plugin Security
+
+When working with Kong plugins:
+- ✅ Validate all configuration values
+- ✅ Never trust environment variables (use config)
+- ✅ Handle database connection failures safely
+- ✅ Fail securely (deny request on error, don't allow)
+- ✅ Log security events but not sensitive data
+- ❌ **NEVER expose passwords in logs**
+- ❌ **NEVER use debug logging in production**
 
 ## COMMUNICATION
 

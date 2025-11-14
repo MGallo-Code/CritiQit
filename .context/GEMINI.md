@@ -6,48 +6,288 @@
 >
 > **🤖 See [agents-guide.md](./agents-guide.md) for custom agent system documentation**
 
-Last updated: 2025-11-12
+Last updated: 2025-11-14 17:30
 
 ---
 
 ## 🎯 Current Goals
 
-1. **Production Readiness**: Three-tier rate limiting is production-ready - test frontend UI and monitor limits
-2. **Agent System Testing**: Test custom agent system with real feature implementation
-3. **Code Quality**: Maintain production-quality standards across all development
-4. **Ongoing**: Document patterns and maintain context for cross-session continuity
+1. **Security Infrastructure**: Complete security audit system with 4 specialized auditors + coordinator
+2. **Design System Implementation**: Movie theater aesthetic (deep red + pastel yellow) ready for Tailwind config
+3. **Component Library**: Build UI components following design system specifications
+4. **Production Quality**: All agents optimized with production-ready standards and IF-THEN logic
+5. **Ongoing**: Document patterns and maintain context for cross-session continuity
 
 ## 📋 Immediate Next Steps
 
-- [ ] **High Priority**: Test frontend rate limit UI in browser (verify countdown timer, form disabling)
-- [ ] **High Priority**: Monitor rate limit hits in production to validate limits
-- [ ] **Medium Priority**: Test agent system with real feature (user profile editing, avatar upload)
-- [ ] **Low Priority**: Add Prometheus/Grafana monitoring for 429 responses
+- [ ] **High Priority**: Configure Tailwind with design system colors (deep red, pastel yellow)
+- [ ] **High Priority**: Add spacing scale and typography scale to Tailwind config
+- [ ] **High Priority**: Create component library starter in frontend/components/ui/ (Star rating, Buttons, Cards, Badges)
+- [ ] **High Priority**: Test security audit system - run `/audit` command on codebase
+- [ ] **Medium Priority**: Build first CritiQit components using design system (MovieCard, rating display)
+- [ ] **Medium Priority**: Validate security-coordinator workflow with real findings
+- [ ] **Low Priority**: Test `/implement` command with real feature implementation
 
 ## 🔄 Recent Context (Last 2-3 Sessions)
 
+**Session 5 (2025-11-14)**: Major infrastructure session establishing comprehensive security and design systems. Created 4 security auditor agents (frontend, backend, infrastructure) with security coordinator for orchestration. Built complete design system with movie theater aesthetic (deep red curtains + pastel yellow stars) including color palette, typography, spacing, rating systems, and accessibility standards (WCAG AAA). Created design-reviewer agent for quality assurance. Enhanced all implementation agents with production security standards. Optimized all agents for LLM comprehension using IF-THEN logic. Completely rewrote README.md. Created `/audit` and `/implement` commands. Added security tracking files. Project now has enterprise-grade security infrastructure and complete design specifications ready for implementation.
+
 **Session 4 (2025-11-12)**: Production cleanup and documentation. Removed 168 lines of legacy code from Kong plugin (v3.0.0), fixed critical security issues (Kong log level exposure, service role bypass), added rate limiting to GraphQL and Analytics endpoints, relaxed overly restrictive signup limits, added 400+ lines of production-quality inline documentation. Enhanced all agent files with production standards. System is production-ready.
 
-**Session 3**: Implemented three-tier rate limiting (IP, content, user strategies). Closed service_role bypass with content-based limiting. Added frontend countdown timers and error handling. Applied per-route limits.
+**Session 3 (2025-11-12)**: Implemented three-tier rate limiting (IP, content, user strategies). Closed service_role bypass with content-based limiting. Added frontend countdown timers and error handling. Applied per-route limits. Refactored to composite plugin architecture.
 
 ## 🚧 Known Issues & Blockers
 
-None blocking production. System is production-ready and secure.
+None blocking production. Security and design infrastructure complete and ready for implementation.
 
-**Optional improvements:**
-- Frontend rate limit UI not visually tested yet (code implemented)
-- Rate limits are starting points (monitor and tune based on real traffic)
-- Using test Turnstile key (switch to production before launch)
+**Work Ready for Implementation:**
+- Design system documented but not yet implemented in Tailwind config
+- Component library specifications ready but components not built
+- Security audit system created but not yet tested with real codebase
+- Security tracking files created but empty
 
 ## ⚡ Important Notes for Next Session
 
-- **Rate Limiting is Production-Ready**: Kong plugin v3.0.0, all security issues fixed, comprehensive inline documentation
-- **Service Role Bypass Fixed**: Now passes key via plugin config (not environment variable)
-- **Log Level Fixed**: Changed from debug to info (prevents sensitive data exposure)
-- **GraphQL & Analytics Protected**: Added rate limiting to previously unprotected endpoints
-- **Documentation Strategy**: Self-documenting code with inline comments (explains WHY, not WHAT)
-- **Agent Production Standards**: All agents enhanced with clarity over cleverness principles
-- New agent system available: Use /agents/full-stack-integrator for features spanning frontend and backend
+- **Complete Design System Available**: See `.context/design-system.md` for full specifications (colors, typography, spacing, components, accessibility)
+- **Movie Theater Aesthetic**: Deep red hsl(355 70% 45%) + pastel yellow hsl(45 85% 75%) for warm, inviting brand
+- **Security Audit System Ready**: Use `/audit` command for comprehensive vulnerability scanning across all layers
+- **4 Security Auditors**: Frontend (XSS, secrets, auth bypass), Backend (SQL injection, RLS bypass), Infrastructure (exposed ports, weak secrets), Coordinator (orchestration)
+- **Design Reviewer Agent**: Validates components against design system, ensures accessibility and brand consistency
+- **All Agents Optimized**: IF-THEN decision logic for better LLM reliability, production standards embedded
+- **Feature Implementation**: Use `/implement` command for features spanning frontend and backend
+- **Agent Authority**: full-stack-integrator is now "Production-Quality Gatekeeper" with decision-making power
+- **Security Mindset Separation**: Security auditors (critical) vs implementation agents (constructive) have clean separation
+
+## 🎯 Production-Ready Development Standards
+
+**PROJECT SCOPE**: Building for thousands of concurrent users. Every line of code must be production-ready, secure, and scalable.
+
+### Security Requirements (Non-Negotiable)
+
+**1. Input Validation**
+- ALWAYS validate on frontend (UX) AND backend (security) AND database (constraints)
+- NEVER trust user input
+- Frontend validation improves UX but provides ZERO security
+- Backend validation is mandatory for all user input
+- Database constraints are the final defense
+
+**2. Authentication & Authorization**
+- Frontend checks auth for UI/UX (show/hide elements)
+- Backend enforces auth for security (RLS policies, middleware)
+- NEVER rely on client-side auth checks alone
+- ALWAYS verify `auth.uid()` in RLS policies
+- NEVER expose service_role key to clients
+
+**3. XSS Prevention**
+- Use React's built-in escaping (default behavior)
+- NEVER use `dangerouslySetInnerHTML` without DOMPurify sanitization
+- Validate URLs before using in `href` or `src` attributes
+- Escape user-generated content in ALL contexts
+
+**4. SQL Injection Prevention**
+- ALWAYS use parameterized queries
+- NEVER concatenate user input into SQL
+- Use `$1, $2, $3` parameters in PL/pgSQL functions
+- Validate inputs in SECURITY DEFINER functions
+
+**5. Secret Management**
+- NEVER commit secrets to git (.env files in .gitignore)
+- NEVER hardcode API keys, passwords, or tokens
+- NEVER expose service_role key in client code
+- Only use `NEXT_PUBLIC_*` for truly public values
+- Rotate secrets regularly (JWT secrets, database passwords)
+
+**6. Row Level Security (RLS)**
+- Enable RLS on EVERY table with user data
+- Default deny, explicitly allow
+- Use BOTH `USING` and `WITH CHECK` on UPDATE policies
+- Test policies with malicious user scenarios
+- NEVER use `USING (true)` - that's no security
+
+**7. Error Handling**
+- Frontend: User-friendly messages ("Unable to save changes")
+- Backend: Detailed logging (server-side only)
+- NEVER expose stack traces to users
+- NEVER leak implementation details in errors
+- Use generic messages for auth failures (prevent user enumeration)
+
+**8. Rate Limiting**
+- Backend enforces rate limits (Kong plugin)
+- Frontend handles 429 responses gracefully
+- Show countdown timers when rate limited
+- Disable form submissions during rate limit period
+- NEVER spam requests on error
+
+### Type Safety Requirements
+
+**1. TypeScript Everywhere**
+- NEVER use `any` type (use `unknown` if truly unknown)
+- Define explicit interfaces for all data structures
+- Ensure backend schema matches frontend types EXACTLY
+- Use strict TypeScript configuration
+- No type casting hacks (`as any`)
+
+**2. API Contracts**
+- Define TypeScript interfaces BEFORE implementation
+- Document all fields with types and constraints
+- Specify all possible error codes
+- Include nullability explicitly (`string | null`)
+- Version API interfaces when making breaking changes
+
+**3. Cross-Layer Type Consistency**
+- Backend database types → TypeScript interfaces
+- TypeScript interfaces → Frontend component props
+- Verify types match at integration points
+- Use code generation if maintaining manually becomes error-prone
+
+### Performance Requirements
+
+**1. Database Efficiency**
+- Add indexes for all common query patterns
+- Avoid N+1 queries (use JOINs, not loops)
+- Implement pagination (50-100 items per page)
+- Use connection pooling for high-traffic endpoints
+- Profile queries before deploying
+
+**2. Frontend Performance**
+- Use server components by default (Next.js App Router)
+- Lazy load heavy components
+- Minimize bundle size (analyze with `next build`)
+- Optimize images (next/image component)
+- Implement loading states (prevent janky UX)
+
+**3. Scalability**
+- Design for 10,000+ concurrent users
+- No unbounded loops or recursion
+- Set resource limits on containers
+- Implement caching where appropriate
+- Test with realistic load
+
+### Code Quality Standards
+
+**1. Clarity Over Cleverness**
+- Code should be immediately understandable
+- Variable names explain purpose (`isSubmitting` not `flag`)
+- Functions do one thing well (single responsibility)
+- Comments explain WHY, not WHAT
+- No clever tricks that save 2 lines but cost 10 minutes of understanding
+
+**2. Error Handling Everywhere**
+- Handle ALL error cases (not just happy path)
+- Provide fallbacks for failures
+- Log errors for debugging (server-side)
+- Display helpful messages to users
+- Fail securely (deny access when unsure)
+
+**3. Testing Requirements**
+- Test with malicious inputs (security testing)
+- Test error cases (not just success)
+- Test edge cases (empty state, max length, null values)
+- Test cross-browser compatibility (Chrome, Firefox, Safari)
+- Test mobile responsive design
+
+**4. Production Mindset**
+- Think: "How could this be exploited?"
+- Think: "What happens at 2am when this breaks?"
+- Think: "Can this scale to 10,000 users?"
+- NEVER assume users will behave normally
+- NEVER assume "it'll probably be fine"
+
+### Architecture Principles
+
+**1. Defense in Depth**
+- Multiple layers of security (frontend, backend, database)
+- Each layer assumes others might fail
+- Example: Validate input on all three layers
+
+**2. Fail Securely**
+- When in doubt, deny access
+- On error, default to safe state
+- Log security-relevant failures
+- Don't leak information in errors
+
+**3. Least Privilege**
+- Give minimum permissions necessary
+- Users access only their own data (RLS)
+- Service accounts have specific scopes
+- Regular security audits
+
+**4. Explicit Over Implicit**
+- Make security decisions visible in code
+- Document WHY security choices were made
+- No "security through obscurity"
+- Clear error messages (without leaking details)
+
+### When to Use Agents vs Direct Implementation
+
+**Use `/implement` (full-stack-integrator) when:**
+- Feature spans frontend AND backend
+- Requires database schema changes
+- Needs type safety coordination
+- Involves security considerations across layers
+- Complexity requires architectural planning
+
+**Use specialized agents directly when:**
+- Frontend-only changes (UI, components, styling)
+- Backend-only changes (migrations, RLS policies)
+- Infrastructure changes (Docker, Kong config)
+- Design quality review (use design-reviewer)
+
+**Implement directly (without agents) when:**
+- Simple bug fixes (typos, styling tweaks)
+- Quick updates to existing patterns
+- Changes localized to 1-2 files
+- No architectural decisions needed
+
+**Use `/audit` regularly:**
+- Before major feature launches
+- After implementing auth/security features
+- Weekly during active development
+- Before production deployments
+- When adding third-party integrations
+
+### Code Review Checklist
+
+Before committing ANY code:
+- [ ] All user input validated on frontend, backend, and database
+- [ ] No secrets exposed or hardcoded
+- [ ] No XSS vulnerabilities (no unsafe HTML rendering)
+- [ ] No SQL injection risks (parameterized queries only)
+- [ ] RLS policies tested (if database changes)
+- [ ] Error handling implemented (all error cases)
+- [ ] Loading states shown (no janky UX)
+- [ ] TypeScript types explicit (no `any`)
+- [ ] Rate limiting handled (frontend gracefully handles 429)
+- [ ] Mobile responsive (test on small screens)
+- [ ] Dark mode works (if applicable)
+- [ ] No console.log with sensitive data
+- [ ] Performance acceptable (no N+1 queries, no memory leaks)
+
+### Common Vulnerabilities to Avoid
+
+**OWASP Top 10:**
+1. Broken Access Control → RLS policies + auth checks
+2. Cryptographic Failures → Proper secrets management
+3. Injection → Parameterized queries + input validation
+4. Insecure Design → Security by design, not afterthought
+5. Security Misconfiguration → Proper Kong/Docker config
+6. Vulnerable Components → Regular `npm audit`, dependency updates
+7. Auth Failures → Strong passwords, rate limiting, secure tokens
+8. Data Integrity Failures → Validate inputs, use constraints
+9. Logging Failures → Log security events, not sensitive data
+10. SSRF → Validate external URLs, restrict network access
+
+### Project-Specific Patterns
+
+**CritiQit Conventions:**
+- Three-tier rate limiting (IP, content, user) via Kong plugin
+- RLS policies on ALL user data tables
+- httpOnly cookies for JWT storage (NOT localStorage)
+- Server-side auth checks via middleware
+- Inline documentation explains WHY decisions were made
+- Self-documenting code preferred over separate docs
+- Idempotent database migrations (can run multiple times)
+- Connection pooling for database-connected services
 
 ## 📝 Git Commit Guidelines
 
@@ -73,13 +313,14 @@ None blocking production. System is production-ready and secure.
 
 - **Frontend**: `frontend/` (Next.js workspace)
 - **Backend**: `supabase/` (Supabase + PostgreSQL)
-- **Custom Agents**: `.claude/agents/` (frontend-dev, backend-dev, full-stack-integrator, session-manager)
+- **Custom Agents**: `.claude/agents/` (7 agents: frontend-dev, backend-dev, full-stack-integrator, session-manager, 4 security auditors)
 - **Domains**:
   - Frontend: `critiqit.io` (dev: localhost:3001)
   - Backend: `api.critiqit.io` (dev: localhost:8000)
 
 For detailed information:
 - Agent system usage → [agents-guide.md](./agents-guide.md)
+- Design system specs → [design-system.md](./design-system.md)
 - Backend details → [backend.md](./backend.md)
 - Frontend details → [frontend.md](./frontend.md)
 - Lessons & gotchas → [project.md](./project.md)

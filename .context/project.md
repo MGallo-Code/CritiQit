@@ -300,8 +300,73 @@ This prevents rework and ensures domain expertise is applied from the start.
 
 ---
 
+---
+
+## Project-Wide Lessons Learned
+
+### Agent System & LLM Optimization
+
+**1. LLM Instruction Format - IF-THEN Logic (Session 5)**
+- Prose descriptions are for humans, structured conditionals are for LLMs
+- Format: "IF condition THEN action ELSE alternative" improves agent reliability significantly
+- Execution protocols with clear role definitions remove ambiguity
+- Remove poetic language like "conductor of orchestra" - LLMs need precision, not metaphors
+- Example transformation:
+  - Before: "You coordinate work between specialists like a conductor leading an orchestra"
+  - After: "IF feature spans frontend AND backend THEN consult both specialists in parallel"
+
+**2. Agent Scope Clarity & Mindset Separation (Session 5)**
+- Security auditors: Critical mindset, assume everything is vulnerable, find problems
+- Implementation agents: Constructive mindset, security-aware but focused on building
+- Design reviewers: Quality mindset, provide feedback without implementing
+- Clear separation prevents cognitive dissonance and mixed messages
+- Can't audit and implement simultaneously without role confusion
+- Separate agents allow full commitment to each mindset
+
+**3. Agent Authority Matters (Session 5)**
+- Coordinator without authority becomes messenger (not valuable)
+- Gatekeeper with decision-making power enforces quality
+- Authority must be explicit in agent instructions
+- "Architectural Authority" role for full-stack-integrator enables hard decisions
+- True synthesis of specialist knowledge vs simple delegation
+
+**4. Documentation Hierarchy (Session 5)**
+- README.md: Newcomer onboarding and project overview
+- CLAUDE.md/GEMINI.md/AGENTS.md: Session-to-session continuity and immediate context
+- design-system.md: Implementation reference and specifications
+- backend.md/frontend.md: Deep dives into domain-specific patterns
+- sessions.md: Historical record of decisions and lessons
+- Specialized files reduce clutter in main context while preserving detail
+
+### Design & Development Standards
+
+**5. Design System Completeness (Session 5)**
+- Comprehensive specifications prevent interpretation gaps during implementation
+- Include rationale (e.g., "movie theater aesthetic") to aid consistency decisions
+- Mobile-first breakpoints crucial for responsive design from start
+- Accessibility (WCAG AAA) baked in from beginning, not retrofitted
+- Color palette needs semantic names AND values for developer clarity
+
+**6. Production-Ready Documentation (Sessions 4-5)**
+- Self-documenting code with inline comments superior to separate architecture docs
+- Documentation explains WHY decisions were made, not WHAT code does
+- Inline docs stay in sync with code, visible during 2am debugging
+- Focus on rationale: "Why this design?" "Why this rate limit?" "Why fail-open?"
+- 400+ lines of inline documentation in Kong plugin demonstrates value
+
+### Development Workflow
+
+**7. Command-Based Workflows (Session 5)**
+- Create slash commands for common complex workflows (`/audit`, `/implement`)
+- Reduces cognitive load and ensures consistent execution
+- Streamlines multi-agent orchestration
+- Better than always invoking agents manually
+
+---
+
 ## Related Documentation
 
+- **Design system**: [design-system.md](./design-system.md)
 - **Agent system guide**: [agents-guide.md](./agents-guide.md)
 - **Backend specifics**: [backend.md](./backend.md)
 - **Frontend specifics**: [frontend.md](./frontend.md)
