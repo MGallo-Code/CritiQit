@@ -1011,6 +1011,86 @@ Legend: ░ 0-2  ▓ 3-5  █ 6+ ratings
 
 ---
 
+## 🔗 Link Styling Patterns
+
+### Gold/Yellow Links (`.link-gold`)
+
+**Use for:** Call-to-action links, important navigation (forgot password, sign up, login, etc.)
+
+**Styling:**
+- Color: `text-star-yellow` (pastel yellow hsl(45 85% 75%))
+- Decoration: Always underlined with 50% opacity decoration
+- Hover: Brightens to `star-yellow-bright` (hsl(45 90% 65%)) with full opacity underline
+- Visited: Maintains `star-yellow` (no purple)
+- Focus: 2px outline for keyboard navigation
+- Accessibility: 11.07:1 contrast on dark backgrounds (WCAG AAA)
+
+**Usage:**
+```tsx
+<Link href="/auth/sign-up" className="link-gold">
+  Sign up
+</Link>
+```
+
+**Implementation:** Utility class in `globals.css`
+
+**Applied to:**
+- Forgot password link (login form)
+- Sign up link (login form)
+- Login link (sign-up form)
+- Password reset links (sign-up form error messages)
+
+---
+
+## 🎴 Card Styling Guidelines
+
+### Shadows
+- **Elevated cards** (profile, modals): `shadow-lg`
+- **Standard cards** (home page features, dashboard items): `shadow-md`
+- **Subtle cards** (info boxes): `shadow-sm`
+
+### Opacity
+- **Primary content cards**: `bg-card` (100% opacity) for maximum readability
+- **Secondary/decorative cards**: `bg-card/90` (90% opacity) for glass effect (use sparingly)
+- **Avoid**: `bg-card/50` or lower on curtain backgrounds (causes readability issues)
+
+### Borders
+- Standard: `border border-border` (full opacity for clear definition)
+- Subtle variant: `border-border/60` (only for less prominent cards)
+- On curtain backgrounds: Always use full opacity borders for clear separation
+
+### Hover States
+- Subtle elevation: `hover:shadow-lg` (when base is `shadow-md`)
+- Transform: `hover:-translate-y-1` (lift effect)
+- Combined: `transition` for smooth animation
+
+### Current Implementation
+**Home Page Cards:**
+- Feature highlights: `bg-card border border-border shadow-md` → `hover:shadow-lg`
+- CTA card: `bg-card border border-border shadow-md`
+
+**Profile Card:**
+- `bg-card shadow-lg` (elevated, prominent)
+
+**Dashboard Cards (to be implemented):**
+- Should use `shadow-md` for standard cards
+- Hero/stat cards should use `shadow-lg`
+
+---
+
+## 🎨 Navigation Styling
+
+### Nav Bar
+**Background:** Solid `bg-background` (no transparency)
+- Ensures readability against any page content
+- Provides clear visual separation
+
+**Border:** `border-b border-border` for subtle bottom separation
+
+**Rationale:** Transparent nav bars can clash with curtain backgrounds and reduce text readability. Solid background ensures consistent appearance across all pages.
+
+---
+
 ## 📝 Design Principles (Summary)
 
 1. **Progressive Disclosure**: Don't overwhelm - show basics, reveal depth on demand

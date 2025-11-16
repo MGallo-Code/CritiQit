@@ -45,7 +45,7 @@ export default function Home() {
           {featureHighlights.map(({ title, description, icon: Icon }) => (
             <div
               key={title}
-              className="rounded-lg border border-border/60 bg-card/40 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              className="rounded-lg border border-border bg-card p-6 text-left shadow-md transition hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" />
@@ -56,7 +56,7 @@ export default function Home() {
           ))}
         </section>
 
-        <section className="rounded-xl border border-border/60 bg-card/60 p-6 shadow-sm sm:p-8">
+        <section className="rounded-xl border border-border bg-card p-6 shadow-md sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-xl space-y-3 text-left">
               <h2 className="text-2xl font-semibold sm:text-3xl">

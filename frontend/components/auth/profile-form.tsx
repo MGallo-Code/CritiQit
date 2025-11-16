@@ -289,21 +289,21 @@ export function ProfileForm({
   }
 
   return (
-      <Card {...props} className={cn("w-full max-w-4xl overflow-hidden", className)}>
+      <Card {...props} className={cn("w-full max-w-4xl overflow-hidden shadow-lg", className)}>
         <div
           className="h-36 transition-colors duration-500"
           style={{ background: headerGradient }}
         />
         <CardHeader className="px-6 pb-6 pt-0">
-          <div className="-mt-24 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="-mt-24 md:mt-0 flex flex-col gap-6 md:flex-row md:items-end md:justify-between md:pt-6">
             <div className="flex flex-col gap-4 items-center md:flex-row md:items-end md:gap-6">
-              <Avatar className="h-40 w-40 border-4 border-background shadow-xl md:h-48 md:w-48">
+              <Avatar className="h-40 w-40 border-4 border-background shadow-xl md:h-32 md:w-32">
                 <AvatarImage
                   src={currentUser.avatar_url ?? undefined}
                   alt={avatarAlt}
                 />
               </Avatar>
-              <div className="space-y-2">
+              <div className="space-y-2 text-center md:text-left">
                 <h1 className="text-3xl font-semibold">
                   {displayName}
                 </h1>

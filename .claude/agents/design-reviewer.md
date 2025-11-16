@@ -71,6 +71,77 @@ This is the source of truth for:
 - `space-6`: 32px (large)
 - `space-8`: 48px (section)
 
+## CODE STRUCTURE PRINCIPLES
+
+### No Redundant Divs
+
+Every div/wrapper element must serve a **clear purpose**. Redundant nesting is a CRITICAL issue that:
+- Bloats the DOM unnecessarily
+- Makes code harder to maintain and debug
+- Reduces performance (extra rendering layers)
+- Violates clean code principles
+
+**What counts as redundant:**
+- Wrapper divs that only pass through children without adding value
+- Nested divs that duplicate styling from parent/child elements
+- Containers that could be consolidated into a single element
+
+**Each div must justify its existence with ONE of these purposes:**
+1. **Semantic**: Provides meaning (nav, main, article, section)
+2. **Styling**: Applies essential layout/positioning that can't be on parent/child
+3. **Functional**: Needed for JavaScript behavior, accessibility, or interaction
+
+**Examples:**
+
+**❌ BAD - Redundant Nesting:**
+```tsx
+// 3 divs doing the job of 1
+<div className="flex">
+  <div className="w-full">
+    <div className="max-w-5xl">
+      {children}
+    </div>
+  </div>
+</div>
+```
+
+**✅ GOOD - Single Purposeful Div:**
+```tsx
+// One div with all necessary classes
+<div className="flex w-full max-w-5xl">
+  {children}
+</div>
+```
+
+**❌ BAD - Wrapper That Only Passes Through:**
+```tsx
+<main className="min-h-screen">
+  <div className="min-h-screen"> {/* Redundant - duplicates parent */}
+    {children}
+  </div>
+</main>
+```
+
+**✅ GOOD - No Redundant Wrapper:**
+```tsx
+<main className="min-h-screen">
+  {children}
+</main>
+```
+
+**Review Checklist for Structure:**
+- [ ] Each div can justify why it exists
+- [ ] No wrapper divs that only pass children through
+- [ ] Classes consolidated on single elements where possible
+- [ ] Nested structures flattened where possible
+- [ ] Semantic HTML used (main, article, section vs generic div)
+
+**When Auditing:**
+1. Trace the div hierarchy from root to leaf
+2. Ask: "Could we remove this div without breaking layout/behavior?"
+3. If YES → Flag as CRITICAL redundant div
+4. Recommend consolidating onto parent or child element
+
 ## REVIEW METHODOLOGY
 
 ### Phase 1: Visual Consistency (5 min)
@@ -160,6 +231,13 @@ grep -r "p-\|m-\|gap-" components/  # Check spacing
 - Light mode colors in dark mode context
 
 ## REVIEW CHECKLIST
+
+### Code Structure
+- [ ] No redundant divs (each wrapper justified)
+- [ ] Semantic HTML used appropriately (main, article, section)
+- [ ] Classes consolidated on single elements
+- [ ] Minimal nesting depth (flatten where possible)
+- [ ] Each div serves semantic, styling, or functional purpose
 
 ### Colors
 - [ ] Deep red (`hsl(355 70% 45%)`) used for primary actions

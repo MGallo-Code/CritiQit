@@ -79,14 +79,14 @@ export function SignUpForm({
             An account with this email already exists. Please{' '}
             <Link
               href={`/auth/login?${redirectToParamString}`}
-              className="underline underline-offset-4"
+              className="link-gold"
             >
               login
             </Link>{' '}
             or{' '}
             <Link
               href={`/auth/forgot-password?email=${encodeURIComponent(email)}&${redirectToParamString}`}
-              className="underline underline-offset-4"
+              className="link-gold"
             >
               reset your password
             </Link>
@@ -154,7 +154,7 @@ export function SignUpForm({
                 onChange={(e) => setRepeatPassword(e.target.value)}
               />
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2 justify-center">
               <Label>Security Verification</Label>
               <Turnstile
                 onTokenReceived={setTurnstileToken}
@@ -175,7 +175,7 @@ export function SignUpForm({
             Already have an account?{" "}
             <Link
               href={`/auth/login?${redirectToParamString}`}
-              className="underline underline-offset-4"
+              className="link-gold"
             >
               Login
             </Link>

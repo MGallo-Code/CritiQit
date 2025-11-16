@@ -251,4 +251,12 @@
       );
     background-size: 120px 100%;
   }
+
+  /* Gold/Yellow Link Styling (Call-to-Action Links) */
+  .link-gold {
+    @apply text-star-yellow underline decoration-star-yellow/50 underline-offset-4 transition-colors;
+    @apply hover:text-star-yellow-bright hover:decoration-star-yellow-bright;
+    @apply visited:text-star-yellow;
+    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-star-yellow;
+  }
 }

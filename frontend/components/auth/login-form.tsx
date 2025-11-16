@@ -111,7 +111,7 @@ export function LoginForm({
                 <Label htmlFor="password">Password</Label>
                 <Link
                   href={`/auth/forgot-password?${redirectToParamString}`}
-                  className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                  className="ml-auto inline-block text-sm link-gold"
                 >
                   Forgot your password?
                 </Link>
@@ -124,7 +124,7 @@ export function LoginForm({
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2 justify-center">
               <Label>Security Verification</Label>
               <Turnstile
                 onTokenReceived={setTurnstileToken}
@@ -141,7 +141,7 @@ export function LoginForm({
             Don&apos;t have an account?{" "}
             <Link
               href={`/auth/sign-up?${redirectToParamString}`}
-              className="underline underline-offset-4"
+              className="link-gold"
             >
               Sign up
             </Link>

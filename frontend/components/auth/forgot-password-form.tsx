@@ -93,7 +93,7 @@ export function ForgotPasswordForm({
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2 justify-center">
               <Label>Security Verification</Label>
               <Turnstile
                 onTokenReceived={setTurnstileToken}

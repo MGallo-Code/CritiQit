@@ -139,7 +139,7 @@ export function VerifyEmailForm({
               onChange={(event) => setToken(event.target.value)}
             />
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-2 justify-center">
             <Label>Security verification</Label>
             <Turnstile
               key={turnstileKey}

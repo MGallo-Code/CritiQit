@@ -29,7 +29,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.className} antialiased`}>
+      <body className={`${geistSans.className} antialiased min-h-screen flex flex-col bg-curtain-folds`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -37,11 +37,9 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <CurrentUserProvider initialUser={currentUser}>
-            <div className="min-h-screen flex flex-col">
-              <Nav />
-              <main className="flex-1 flex flex-col">{children}</main>
-              <Footer />
-            </div>
+            <Nav />
+            <main className="flex-1 flex flex-col">{children}</main>
+            <Footer />
           </CurrentUserProvider>
         </ThemeProvider>
       </body>

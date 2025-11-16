@@ -49,18 +49,16 @@ export function Turnstile({
   }
 
   return (
-    <div className={className}>
-      <ReactTurnstile
-        siteKey={siteKey}
-        onSuccess={handleSuccess}
-        onError={handleError}
-        onExpire={handleExpired}
-        onLoad={handleLoad}
-        options={{
-          theme: "light",
-          size: "normal",
-        }}
-      />
-    </div>
+    <ReactTurnstile
+      siteKey={siteKey}
+      onSuccess={handleSuccess}
+      onError={handleError}
+      onExpire={handleExpired}
+      onLoad={handleLoad}
+      options={{
+        theme: "light",
+        size: "normal",
+      }}
+    />
   );
 }
