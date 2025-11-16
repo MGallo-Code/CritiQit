@@ -5,14 +5,6 @@ import { useEffect, useMemo, useState, type ComponentPropsWithoutRef } from "rea
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCurrentUser } from "@/providers/current-user-provider";
@@ -34,7 +26,7 @@ const EMPTY_PROFILE: EditableProfile = {
 const textareaClasses =
   "flex min-h-[128px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
-type ProfileFormProps = ComponentPropsWithoutRef<typeof Card>;
+type ProfileFormProps = ComponentPropsWithoutRef<"div">;
 
 export function ProfileForm({
   className,
@@ -166,32 +158,32 @@ export function ProfileForm({
     ? `${currentUser.username}'s profile image`
     : "User profile image";
 
-  // if user is loading, show a loading card
+  // if user is loading, show a loading message
   if (isUserLoading) {
     return (
-      <Card {...props} className={cn("w-full max-w-md", className)}>
-        <CardContent className="p-6 text-center text-sm text-muted-foreground">
+      <div {...props} className={cn("w-full max-w-md", className)}>
+        <div className="p-6 text-center text-sm text-muted-foreground bg-card/50 backdrop-blur-sm rounded-xl">
           Loading profile…
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
-  // if no current user, show an error card
+  // if no current user, show an error message
   if (!currentUser) {
     return (
-      <Card {...props} className={cn("w-full max-w-md", className)}>
-        <CardContent className="p-6 text-center text-sm text-muted-foreground">
+      <div {...props} className={cn("w-full max-w-md", className)}>
+        <div className="p-6 text-center text-sm text-muted-foreground bg-card/50 backdrop-blur-sm rounded-xl">
           We couldn&apos;t load your profile details.
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-      <Card {...props} className={cn("w-full max-w-4xl overflow-hidden", className)}>
-        <div className="h-36 bg-gradient-to-r from-primary/70 via-primary to-primary/80 dark:from-primary/30 dark:via-primary/40 dark:to-primary/20" />
-        <CardHeader className="px-6 pb-6 pt-0">
+      <div {...props} className={cn("w-full max-w-4xl", className)}>
+        <div className="h-36" />
+        <div className="bg-card rounded-t-xl px-6 pb-6 pt-0">
           <div className="-mt-24 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="flex flex-col gap-4 items-center md:flex-row md:items-end md:gap-6">
               <Avatar className="h-40 w-40 border-4 border-background shadow-xl md:h-48 md:w-48">
@@ -201,13 +193,13 @@ export function ProfileForm({
                 />
               </Avatar>
               <div className="space-y-2">
-                <CardTitle className="text-3xl font-semibold">
+                <h1 className="text-3xl font-semibold">
                   {displayName}
-                </CardTitle>
-                <CardDescription className="text-base text-muted-foreground">
+                </h1>
+                <p className="text-base text-muted-foreground">
                   {currentUser.username ? `@${currentUser.username}` : "Set your username"} ·{" "}
                   {currentUser.email}
-                </CardDescription>
+                </p>
                 {joinedAt && (
                   <p className="text-sm text-muted-foreground">
                     Member since {joinedAt}
@@ -230,11 +222,11 @@ export function ProfileForm({
               </Button>
             )}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-8 px-6 pb-8">
+        </div>
+        <div className="space-y-8 px-6 pb-8 bg-card">
           {mode === "view" ? (
             <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-lg border border-border/70 p-5">
+              <div className="rounded-lg border border-border p-5">
                 <h2 className="text-sm font-semibold uppercase text-muted-foreground">
                   Full name
                 </h2>
@@ -242,7 +234,7 @@ export function ProfileForm({
                   {formData.full_name || "Add your full name"}
                 </p>
               </div>
-              <div className="rounded-lg border border-border/70 p-5">
+              <div className="rounded-lg border border-border p-5">
                 <h2 className="text-sm font-semibold uppercase text-muted-foreground">
                   Username
                 </h2>
@@ -251,7 +243,7 @@ export function ProfileForm({
                 </p>
               </div>
               <div className="md:col-span-2">
-                <div className="rounded-lg border border-border/70 p-5">
+                <div className="rounded-lg border border-border p-5">
                   <h2 className="text-sm font-semibold uppercase text-muted-foreground">
                     Bio
                   </h2>
@@ -313,7 +305,7 @@ export function ProfileForm({
                 />
               </div>
               {error && (
-                <p className="text-sm text-red-500">{error}</p>
+                <p className="text-sm text-error" role="alert" aria-live="polite">{error}</p>
               )}
               <div className="flex flex-wrap gap-3">
                 <Button type="submit" size="lg" disabled={isSaving || !hasChanges}>
@@ -322,13 +314,13 @@ export function ProfileForm({
               </div>
             </form>
           )}
-        </CardContent>
-        <CardFooter className="flex flex-col justify-between gap-4 border-t border-border/60 bg-muted/30 px-6 py-5 sm:flex-row sm:items-center">
+        </div>
+        <div className="flex flex-col justify-between gap-4 border-t border-border bg-card rounded-b-xl px-6 py-5 sm:flex-row sm:items-center">
           <p className="text-sm text-muted-foreground">
             Need to switch accounts?
           </p>
           <LogoutButton />
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
   );
 }

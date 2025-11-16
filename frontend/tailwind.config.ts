@@ -69,11 +69,25 @@ export default {
           light: "hsl(var(--warm-red-light))",
           dark: "hsl(var(--warm-red-dark))",
           muted: "hsl(var(--warm-red-muted))",
+          icon: "hsl(var(--warm-red-icon))",
         },
         "star-yellow": {
           DEFAULT: "hsl(var(--star-yellow))",
           bright: "hsl(var(--star-yellow-bright))",
           muted: "hsl(var(--star-yellow-muted))",
+        },
+
+        // Curtain background colors
+        curtain: {
+          DEFAULT: "hsl(var(--curtain-bg))",
+          highlight: "hsl(var(--curtain-highlight))",
+          shadow: "hsl(var(--curtain-shadow))",
+          text: {
+            primary: "hsl(var(--curtain-text-primary))",
+            secondary: "hsl(var(--curtain-text-secondary))",
+            tertiary: "hsl(var(--curtain-text-tertiary))",
+            muted: "hsl(var(--curtain-text-muted))",
+          },
         },
 
         // Rating score colors

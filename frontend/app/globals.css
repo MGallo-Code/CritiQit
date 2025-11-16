@@ -69,6 +69,17 @@
     --star-yellow-bright: 45 85% 50%;
     --star-yellow-muted: 45 40% 60%;
 
+    /* Curtain Background Colors (Light Mode) */
+    --curtain-bg: 355 60% 92%;
+    --curtain-highlight: 355 65% 95%;
+    --curtain-shadow: 355 55% 88%;
+
+    /* Curtain Text Colors (Light Mode) */
+    --curtain-text-primary: 240 10% 8%;
+    --curtain-text-secondary: 0 0% 30%;
+    --curtain-text-tertiary: 0 0% 50%;
+    --curtain-text-muted: 355 20% 40%;
+
     /* Rating Score Colors */
     --rating-excellent: 140 60% 40%;
     --rating-good: 140 50% 35%;
@@ -158,6 +169,20 @@
     --star-yellow-bright: 45 90% 65%;
     --star-yellow-muted: 45 40% 60%;
 
+    /* Curtain Background Colors (Dark Mode) */
+    --curtain-bg: 355 45% 15%;
+    --curtain-highlight: 355 50% 20%;
+    --curtain-shadow: 355 40% 10%;
+
+    /* Curtain Text Colors (Dark Mode - WCAG AA compliant) */
+    --curtain-text-primary: 0 0% 98%;
+    --curtain-text-secondary: 0 0% 85%;
+    --curtain-text-tertiary: 0 0% 65%;
+    --curtain-text-muted: 355 20% 70%;
+
+    /* Icon Colors for Curtain Backgrounds */
+    --warm-red-icon: 355 70% 65%;
+
     /* Rating Score Colors */
     --rating-excellent: 140 60% 50%;
     --rating-good: 140 50% 45%;
@@ -186,5 +211,44 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Royal Red Curtain Background (Movie Theater Aesthetic) */
+  .bg-curtain {
+    background: radial-gradient(
+      ellipse at center,
+      hsl(var(--curtain-highlight)) 0%,
+      hsl(var(--curtain-bg)) 50%,
+      hsl(var(--curtain-shadow)) 100%
+    );
+  }
+
+  /* Optional: Curtain with subtle fabric texture overlay */
+  .bg-curtain-textured {
+    background:
+      radial-gradient(
+        ellipse at center,
+        hsl(var(--curtain-highlight)) 0%,
+        hsl(var(--curtain-bg)) 50%,
+        hsl(var(--curtain-shadow)) 100%
+      ),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.08"/></svg>');
+    background-blend-mode: overlay;
+  }
+
+  /* Vertical Curtain Folds Pattern (Theater Drapes) */
+  .bg-curtain-folds {
+    background:
+      repeating-linear-gradient(
+        90deg,
+        hsl(var(--curtain-shadow)) 0px,
+        hsl(var(--curtain-bg)) 30px,
+        hsl(var(--curtain-highlight)) 60px,
+        hsl(var(--curtain-bg)) 90px,
+        hsl(var(--curtain-shadow)) 120px
+      );
+    background-size: 120px 100%;
   }
 }
