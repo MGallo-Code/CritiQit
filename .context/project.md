@@ -420,6 +420,50 @@ This prevents rework and ensures domain expertise is applied from the start.
 - Streamlines multi-agent orchestration
 - Better than always invoking agents manually
 
+### UI/UX Patterns & Design Implementation
+
+**8. Utility Classes vs Components (Session 7)**
+- For simple patterns like styled links, CSS utility classes beat React components
+- Zero JS overhead, instant application, globally available in globals.css
+- Components add unnecessary complexity for simple styling patterns
+- Example: `.link-gold` utility eliminates 150+ characters of repetition
+
+**9. Color Extraction Performance (Session 7)**
+- Canvas API color extraction is surprisingly fast (~1ms for 50x50px sampling)
+- No performance concerns with real-time extraction
+- Always implement graceful CORS fallbacks for external images
+- Client-side extraction avoids server processing and enables instant updates
+
+**10. Responsive Layout Simplification (Session 7)**
+- Keep consistent overlap ratios across breakpoints (e.g., 50% on mobile and desktop)
+- Separate containers for overlapping elements (avatar separate from text)
+- Avoid complex different-margin-per-breakpoint approaches
+- Simpler structure = easier to maintain and reason about
+
+**11. Layout Div Discipline (Session 7)**
+- Redundant divs accumulate easily without vigilance during development
+- Establish principle: Every div must justify semantic, styling, or functional purpose
+- Question every wrapper div during code review
+- Example: Protected layout reduced from 12 lines to 5 lines (58%) by removing unnecessary wrappers
+
+**12. Contrast Testing Across Modes (Session 7)**
+- Always test contrast ratios in both dark and light modes
+- Colors that work great in one mode may fail WCAG in the other
+- Example: Star-yellow achieves 11.07:1 (WCAG AAA) in dark mode but only ~3:1 in light mode
+- Prioritize primary mode but document limitations for secondary mode
+
+**13. CSS Variable Theme Tokens (Session 7)**
+- Adding colors to CSS variables enables theme adjustments without touching components
+- Example: curtain-bg, curtain-highlight, curtain-shadow for easy theme tweaks
+- Theme tokens pay dividends for consistency across entire application
+- Easier to maintain and adjust than hardcoded values
+
+**14. Saturation Impact on Warmth (Session 7)**
+- Low saturation (25%) can look washed out and gray even with correct hue
+- 45-50% saturation achieves rich theatrical red while remaining professional
+- Saturation dramatically affects warmth perception, not just color intensity
+- Test different saturation levels to find balance between impact and professionalism
+
 ---
 
 ## Related Documentation

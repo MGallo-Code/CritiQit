@@ -211,10 +211,42 @@ Located in `components/auth/`:
 ### Tailwind CSS
 
 **Configuration:**
-- Custom theme with CSS variables for colors
+- Custom theme with CSS variables for colors (warm-red, star-yellow, curtain colors)
 - Dark mode support via `next-themes`
 - Animation utilities via `tailwindcss-animate`
-- Custom utilities in `globals.css`
+- Custom utilities in `globals.css` (`.bg-curtain-folds`, `.link-gold`)
+
+**Design System Tokens:**
+- Color variables: `--warm-red`, `--star-yellow`, `--curtain-bg`, etc.
+- Semantic colors: `text-error`, `text-warning`, `text-success`, `bg-card`, `border-border`
+- Extended Tailwind config with movie theater color palette
+- Spacing scale (4px to 64px) and typography scale (12px to 48px)
+
+**Custom Utility Classes:**
+```css
+/* Royal red curtain background with vertical theater drape pattern */
+.bg-curtain-folds {
+  background: linear-gradient(
+    90deg,
+    var(--curtain-bg) 0%,
+    var(--curtain-highlight) 10%,
+    var(--curtain-shadow) 20%,
+    var(--curtain-bg) 30%,
+    /* ...pattern repeats... */
+  );
+}
+
+/* Reusable link styling (star-yellow, always underlined, 11.07:1 contrast) */
+.link-gold {
+  color: hsl(var(--star-yellow));
+  text-decoration: underline;
+  text-decoration-color: hsl(var(--star-yellow) / 0.5);
+  transition: all 0.2s ease;
+}
+.link-gold:hover {
+  filter: brightness(1.2);
+}
+```
 
 **Utilities:**
 ```typescript
@@ -366,6 +398,58 @@ From `profile-form.tsx`:
 - Upload to Supabase Storage
 - Update profile with new URL
 - Cache busting with version parameter
+
+### Dynamic Avatar Gradient Pattern
+
+Extracts dominant color from user's avatar using Canvas API to create personalized profile header gradients:
+
+```typescript
+// Color extraction using Canvas API
+const img = new Image();
+img.crossOrigin = "anonymous";
+img.src = avatarUrl;
+
+img.onload = () => {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = 50;
+  canvas.height = 50;
+  ctx.drawImage(img, 0, 0, 50, 50);
+
+  // Sample center pixel
+  const pixel = ctx.getImageData(25, 25, 1, 1).data;
+  const [r, g, b] = pixel;
+
+  // Convert RGB to HSL, boost lightness to 60% minimum
+  const hsl = rgbToHsl(r, g, b);
+  hsl.l = Math.max(hsl.l, 0.6);
+
+  // Apply gradient with smooth transition
+  setGradientColor(hslToString(hsl));
+};
+
+// Graceful CORS fallback
+img.onerror = () => {
+  setGradientColor("hsl(355, 70%, 60%)"); // Warm red fallback
+};
+```
+
+**Features:**
+- ~1ms sampling time (50x50px canvas)
+- Smooth 500ms CSS transitions
+- Minimum 60% lightness for visibility
+- CORS-aware with graceful fallback
+- Personalized gradient per user
+
+**Usage:**
+```tsx
+<div
+  className="h-32 transition-colors duration-500"
+  style={{
+    background: `linear-gradient(to bottom, ${gradientColor}, transparent)`
+  }}
+/>
+```
 
 ---
 

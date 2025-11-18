@@ -69,16 +69,16 @@
     --star-yellow-bright: 45 85% 50%;
     --star-yellow-muted: 45 40% 60%;
 
-    /* Curtain Background Colors (Light Mode) */
-    --curtain-bg: 355 60% 92%;
-    --curtain-highlight: 355 65% 95%;
-    --curtain-shadow: 355 55% 88%;
+    /* Curtain Background Colors (Light Mode - Slightly lighter for subtle difference) */
+    --curtain-bg: 355 50% 20%;
+    --curtain-highlight: 355 55% 25%;
+    --curtain-shadow: 355 45% 15%;
 
-    /* Curtain Text Colors (Light Mode) */
-    --curtain-text-primary: 240 10% 8%;
-    --curtain-text-secondary: 0 0% 30%;
-    --curtain-text-tertiary: 0 0% 50%;
-    --curtain-text-muted: 355 20% 40%;
+    /* Curtain Text Colors (Light Mode - Same as Dark Mode for dark curtain) */
+    --curtain-text-primary: 0 0% 98%;
+    --curtain-text-secondary: 0 0% 85%;
+    --curtain-text-tertiary: 0 0% 65%;
+    --curtain-text-muted: 355 20% 70%;
 
     /* Rating Score Colors */
     --rating-excellent: 140 60% 40%;
@@ -169,10 +169,10 @@
     --star-yellow-bright: 45 90% 65%;
     --star-yellow-muted: 45 40% 60%;
 
-    /* Curtain Background Colors (Dark Mode) */
-    --curtain-bg: 355 45% 15%;
-    --curtain-highlight: 355 50% 20%;
-    --curtain-shadow: 355 40% 10%;
+    /* Curtain Background Colors (Dark Mode - More vibrant) */
+    --curtain-bg: 355 52% 18%;
+    --curtain-highlight: 355 58% 23%;
+    --curtain-shadow: 355 48% 13%;
 
     /* Curtain Text Colors (Dark Mode - WCAG AA compliant) */
     --curtain-text-primary: 0 0% 98%;
