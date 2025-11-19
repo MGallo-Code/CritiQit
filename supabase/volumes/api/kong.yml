@@ -738,6 +738,44 @@ services:
           service_role_key: $SUPABASE_SERVICE_KEY
           hide_client_headers: false
 
+  - name: storage-v1-avatar-upload
+    _comment: 'Avatar uploads: 5/user/hr + 20/user/day prevents abuse, allows legitimate updates'
+    url: http://storage:5000/object/avatars
+    routes:
+      - name: storage-v1-avatar-upload
+        strip_path: false
+        paths:
+          - ~/storage/v1/object/avatars/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg$
+        methods:
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: cors
+      - name: rate-limit-db
+        config:
+          checks:
+            # Check 1: User-based (JWT sub claim)
+            # - Max 5 avatar uploads per user per hour (prevents spam)
+            # - Max 20 avatar uploads per user per day (allows testing/adjustments)
+            - type: user
+              limits:
+                hour: 5
+                day: 20
+            # Check 2: IP-based fallback (if JWT missing or extraction fails)
+            # - Max 10 avatar uploads per IP per hour (prevents distributed attacks)
+            - type: ip
+              limits:
+                hour: 10
+          db_host: db
+          db_port: 5432
+          db_name: postgres
+          db_user: supabase_admin
+          db_password: $POSTGRES_PASSWORD
+          service_role_key: $SUPABASE_SERVICE_KEY
+          hide_client_headers: false
+
   - name: storage-v1
     _comment: 'Authenticated storage: 20/user/min + 500/user/hr prevents abuse, 50/IP/min fallback'
     url: http://storage:5000/

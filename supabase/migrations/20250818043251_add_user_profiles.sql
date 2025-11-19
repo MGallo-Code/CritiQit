@@ -64,6 +64,12 @@ INSERT INTO storage.buckets (id, name, public)
   VALUES ('avatars', 'avatars', true)
   on conflict (id) do nothing; -- prevent errors on subsequent runs
 
+UPDATE storage.buckets
+SET
+  file_size_limit = 5242880,  -- 5MB in bytes
+  allowed_mime_types = ARRAY['image/jpeg']  -- Accept common formats (frontend converts to JPEG)
+WHERE id = 'avatars';
+
 -- Create the 'email.templates' bucket
 INSERT INTO storage.buckets (id, name, public)
   VALUES ('email-templates', 'email-templates', true)
@@ -121,7 +127,9 @@ CREATE POLICY "Users can upload an avatar to their own folder."
   FOR insert
   TO authenticated
   WITH CHECK (
-    (bucket_id = 'avatars'::text) AND (owner = auth.uid())
+    (bucket_id = 'avatars'::text)
+    AND (owner = auth.uid())
+    AND (name = auth.uid()::text || '.jpg') 
   );
 
 CREATE POLICY "Users can update their own avatars."
@@ -130,10 +138,14 @@ CREATE POLICY "Users can update their own avatars."
   FOR update
   TO authenticated
   using (
-    (bucket_id = 'avatars'::text) AND (owner = auth.uid())
+    (bucket_id = 'avatars'::text)
+    AND (owner = auth.uid())
+    AND (name = auth.uid()::text || '.jpg')
   )
   with check (
-    (bucket_id = 'avatars'::text) AND (owner = auth.uid())
+    (bucket_id = 'avatars'::text)
+    AND (owner = auth.uid())
+    AND (name = auth.uid()::text || '.jpg')
   );
 
 CREATE POLICY "Users can delete their own avatars."
@@ -142,7 +154,9 @@ CREATE POLICY "Users can delete their own avatars."
   FOR delete
   TO authenticated
   USING (
-    (bucket_id = 'avatars'::text) AND (owner = auth.uid())
+    (bucket_id = 'avatars'::text)
+    AND (owner = auth.uid())
+    AND (name = auth.uid()::text || '.jpg')
   );
 
 -- ~~~~~~~ Email Templates ~~~~~~~
