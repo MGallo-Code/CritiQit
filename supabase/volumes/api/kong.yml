@@ -778,13 +778,13 @@ services:
             # - Max 20 avatar uploads per user per day (allows legitimate changes)
             - type: user
               limits:
-                hour: 20
+                hour: 5
                 day: 20
             # Check 2: IP-based fallback (if JWT missing or extraction fails)
             # - Max 10 avatar uploads per IP per hour (prevents distributed attacks)
             - type: ip
               limits:
-                hour: 1
+                hour: 10
           db_host: db
           db_port: 5432
           db_name: postgres
