@@ -73,7 +73,17 @@ export function AvatarUpload({
    * - Catches corrupted files before upload attempt
    */
   const validateImageFile = async (file: File): Promise<{ valid: boolean; error?: string }> => {
-    // Step 1: Basic checks (MIME type and size)
+    // Step 1: Check for HEIC/HEIF files (iOS default camera format)
+    // These crash the browser during processing, so catch them early with helpful message
+    if (file.type === 'image/heic' || file.type === 'image/heif' ||
+        file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+      return {
+        valid: false,
+        error: "HEIC format isn't supported yet. Please convert to JPEG, PNG, or WebP first. On iOS: Open the photo, tap Share → Save to Files, then select it here.",
+      };
+    }
+
+    // Step 2: Basic checks (MIME type and size)
     if (!ALLOWED_TYPES.includes(file.type)) {
       return {
         valid: false,
@@ -88,45 +98,65 @@ export function AvatarUpload({
       };
     }
 
-    // Step 2: Verify it's actually an image by loading it
-    // This prevents MIME type spoofing attacks
-    return new Promise((resolve) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-
-      img.onload = () => {
-        URL.revokeObjectURL(url); // Clean up memory
-
-        // Step 3: Validate dimensions
-        if (img.width < 50 || img.height < 50) {
-          resolve({
-            valid: false,
-            error: "Image is too small. Minimum 50x50 pixels required.",
-          });
-          return;
-        }
-
-        if (img.width > 4096 || img.height > 4096) {
-          resolve({
-            valid: false,
-            error: "Image is too large. Maximum 4096x4096 pixels allowed.",
-          });
-          return;
-        }
-
-        // All checks passed
-        resolve({ valid: true });
+    // Step 2.5: Check for suspiciously large files that might crash during processing
+    // Safari's HEIC-to-JPEG conversion can create very large files (>2MB)
+    if (file.size > 3 * 1024 * 1024 && file.name.includes('tempImages')) {
+      console.warn('Large Safari-converted image detected:', file.size, 'bytes');
+      return {
+        valid: false,
+        error: "This image is too large to process (Safari converted it from HEIC). Please use a smaller image or convert to JPEG using another app.",
       };
+    }
 
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
+    // Step 3: Verify it's actually an image by loading it
+    // This prevents MIME type spoofing attacks
+    // Wrapped in try-catch to prevent page crashes from unsupported formats
+    return new Promise((resolve) => {
+      try {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = () => {
+          URL.revokeObjectURL(url); // Clean up memory
+
+          // Step 4: Validate dimensions
+          if (img.width < 50 || img.height < 50) {
+            resolve({
+              valid: false,
+              error: "Image is too small. Minimum 50x50 pixels required.",
+            });
+            return;
+          }
+
+          if (img.width > 4096 || img.height > 4096) {
+            resolve({
+              valid: false,
+              error: "Image is too large. Maximum 4096x4096 pixels allowed.",
+            });
+            return;
+          }
+
+          // All checks passed
+          resolve({ valid: true });
+        };
+
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve({
+            valid: false,
+            error: "File is not a valid image. Please try another file.",
+          });
+        };
+
+        img.src = url;
+      } catch (err) {
+        // Catch crashes from unsupported formats (HEIC, corrupted files, etc.)
+        console.error('Image validation crashed:', err);
         resolve({
           valid: false,
-          error: "File is not a valid image. Please try another file.",
+          error: "This image format isn't supported. Please try a JPEG, PNG, or WebP file.",
         });
-      };
-
-      img.src = url;
+      }
     });
   };
 
@@ -144,7 +174,7 @@ export function AvatarUpload({
       maxSizeMB: 0.1, // Target 100KB
       fileType: 'image/jpeg' as const,
       initialQuality: 0.85,
-      useWebWorker: true,
+      useWebWorker: false, // Disable web worker - can cause crashes with large Safari-converted images
     };
 
     try {
@@ -168,10 +198,19 @@ export function AvatarUpload({
       return compressedBlob;
     } catch (err) {
       console.error('Image compression failed:', err);
+
       // Re-throw with original message if it's already a user-friendly error
       if (err instanceof Error && err.message.includes('processing')) {
         throw err;
       }
+
+      // Check if it's an unsupported format error (HEIC often causes this)
+      const errorMessage = err instanceof Error ? err.message.toLowerCase() : '';
+      if (errorMessage.includes('heic') || errorMessage.includes('heif') ||
+          errorMessage.includes('unsupported') || errorMessage.includes('format')) {
+        throw new Error('This image format isn\'t supported. Please use JPEG, PNG, or WebP.');
+      }
+
       throw new Error('Failed to process image. Please try a different image.');
     }
   };
@@ -323,10 +362,17 @@ export function AvatarUpload({
       }
 
       // Validation passed - show preview
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
+      // Wrap createObjectURL in try-catch to prevent crashes from malformed files
+      try {
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewUrl(objectUrl);
+      } catch (urlError) {
+        console.error('Failed to create object URL:', urlError);
+        throw new Error('Unable to load image preview. The file may be corrupted.');
+      }
     } catch (err) {
-      setError('Failed to validate image. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to validate image. Please try again.';
+      setError(errorMessage);
       console.error('Validation error:', err);
       // Clear file input on error
       if (fileInputRef.current) {
