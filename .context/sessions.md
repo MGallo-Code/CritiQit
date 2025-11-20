@@ -4,6 +4,87 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
+## Session 9 - 2025-11-20 04:33
+
+### Summary
+Short focused session improving OTP input styling and implementing global golden focus outline system. Replaced default blue borders on OTP digit inputs with movie theater design system colors (warm-red and star-yellow). Created global CSS rules for golden focus outlines on all inputs, textareas, and selects across the application (bright gold in dark mode, darker gold in light mode). User tested padding changes and reverted to original sizing for optimal visual balance.
+
+### Accomplishments
+
+- **Frontend**: Created new OTP input component with movie theater design system styling
+- **Frontend**: Implemented global golden focus outline system for all form inputs
+- **Frontend**: Applied design system colors to OTP digit inputs (warm-red borders, star-yellow focus)
+- **Frontend**: Added theme-aware focus states (bright gold in dark mode, darker gold in light mode)
+- **Frontend**: Removed inline style object from OTP inputs that was overriding Tailwind classes
+
+### Technical Decisions
+
+**1. Global Focus Outline Pattern**
+- Decision: Use `@layer base` in globals.css to apply golden focus states universally
+- Rationale: Ensures consistency across all form inputs without component-by-component implementation
+- Implementation: CSS rules targeting `input:focus`, `textarea:focus`, `select:focus` with theme-aware variants
+- Result: All inputs now have consistent golden focus outline matching movie theater aesthetic
+
+**2. Theme-Aware Focus States**
+- Decision: Different gold shades for light vs dark mode
+- Rationale: Bright star-yellow works in dark mode but needs muted variant in light mode for visibility
+- Implementation: `:root` selector for light mode, `.dark` selector for dark mode
+- Result: Optimal contrast and visibility in both themes
+
+**3. Design System Color Application**
+- Decision: Replace default blue borders with warm-red and star-yellow from movie theater palette
+- Rationale: Maintain consistent theatrical aesthetic across all UI components
+- Implementation: OTP inputs use `border-warm-red-muted/40` normal state, `border-star-yellow` focus state
+- Result: OTP inputs now visually align with rest of application design
+
+**4. Padding Reversion Based on Testing**
+- Decision: User reverted padding changes after visual testing
+- Rationale: Original `h-12` sizing provided better visual balance than `pt-3 pb-5`
+- Implementation: Kept original height, removed experimental padding adjustments
+- Result: OTP inputs maintain optimal proportions and spacing
+
+### Dependencies Changed
+
+None
+
+### Environment Variables Changed
+
+None
+
+### Lessons Learned
+
+**1. Global CSS for Design System Consistency**
+- Using `@layer base` for focus states ensures no component is missed
+- Theme-aware variants in CSS are cleaner than component-by-component implementation
+- Universal focus outline improves accessibility and brand consistency
+
+**2. User Testing Drives Final Decisions**
+- Developer intuition about padding was overridden by actual visual testing
+- "All fixed!" confirmation came after user verified changes in browser
+- Quick iteration and reversion is normal - not all experiments ship
+
+**3. Design System Colors on Component Primitives**
+- Even basic input components benefit from design system integration
+- Replacing default browser colors (blue focus) with brand colors creates polish
+- Consistency compounds - each component aligned adds to overall quality
+
+### Known Issues / Technical Debt
+
+None
+
+### Next Steps
+
+- [ ] Test avatar upload flow end-to-end (validation, upload, retrieval, error cases)
+- [ ] Verify rate limiting with countdown timer
+- [ ] Mobile testing on real iOS/Android devices (especially HEIC uploads)
+- [ ] Begin component library: Star rating component or movie card component
+
+### Commits
+
+- `f8415d4` - Update OTP verification styling, keep context up-to-date.
+
+---
+
 ## Session 8 - 2025-11-20 00:45
 
 ### Summary

@@ -248,6 +248,39 @@ Located in `components/auth/`:
 }
 ```
 
+**Global Focus Outline System:**
+
+All form inputs, textareas, and selects use a golden focus outline matching the movie theater design system (Session 9):
+
+```css
+/* In @layer base (globals.css) - applies universally */
+input:focus,
+textarea:focus,
+select:focus {
+  @apply outline-none ring-2 ring-star-yellow/30 border-star-yellow;
+}
+
+/* Light mode variant - darker gold for better visibility */
+:root input:focus,
+:root textarea:focus,
+:root select:focus {
+  @apply ring-star-yellow-muted/40 border-star-yellow-muted;
+}
+
+/* Dark mode variant - bright gold */
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  @apply ring-star-yellow/30 border-star-yellow;
+}
+```
+
+**Benefits:**
+- Consistent focus states across all form inputs
+- Theme-aware (bright gold in dark mode, darker gold in light mode)
+- Improves accessibility with clear, visible focus indicators
+- No component-by-component implementation needed
+
 **Utilities:**
 ```typescript
 import { cn } from "@/lib/utils";
@@ -272,6 +305,7 @@ Using shadcn/ui pattern with Radix UI primitives:
 - `Card` - Content cards
 - `DropdownMenu` - Dropdown menus
 - `Checkbox` - Checkboxes
+- `OTPInput` - 6-digit verification code input with design system styling (Session 9)
 
 ### Theme Switching
 

@@ -6,7 +6,7 @@
 >
 > **🤖 See [agents-guide.md](./agents-guide.md) for custom agent system documentation**
 
-Last updated: 2025-11-20 03:37
+Last updated: 2025-11-20 04:45
 
 ---
 
@@ -30,11 +30,11 @@ Last updated: 2025-11-20 03:37
 
 ## 🔄 Recent Context (Last 2-3 Sessions)
 
-**Session 8 (2025-11-20)**: Avatar upload feature complete and production-ready after comprehensive debugging. Fixed PostgreSQL corruption (checkpoint request failed loop), Next.js version mismatch, Kong path routing causing 400 errors, critical race condition in upload flow (changed from delete-then-upload to atomic upsert), and HEIC image upload crash (Safari's auto-conversion to JPEG was crashing Web Workers). Improved error messages (removed technical jargon). Restored production rate limits (5/hour, 20/day). All critical bugs resolved. Avatar upload now fail-safe with atomic operations preserving existing data on failure.
+**Session 9 (2025-11-20)**: Short focused session improving OTP input styling and implementing global golden focus outline system. Replaced default blue borders with movie theater design system colors (warm-red and star-yellow). Created global CSS rules for consistent golden focus outlines on all form inputs (theme-aware: bright gold in dark mode, darker gold in light mode). User tested and refined visual balance.
 
-**Session 7 (2025-11-16)**: Visual polish implementing royal red curtain background with theatrical drape pattern. Applied design system to dashboard and profile pages (85% compliance). Created dynamic avatar-based gradient extraction using Canvas API. Built `.link-gold` utility class (11.07:1 contrast, WCAG AAA). Removed redundant layout divs. Responsive profile layout with 50% avatar overlap. WCAG AA compliant, production-ready.
+**Session 8 (2025-11-20)**: Avatar upload feature complete and production-ready after comprehensive debugging. Fixed PostgreSQL corruption, Next.js version mismatch, Kong path routing causing 400 errors, critical race condition in upload flow (changed from delete-then-upload to atomic upsert), and HEIC image upload crash (Safari's auto-conversion to JPEG was crashing Web Workers). Improved error messages (removed technical jargon). Restored production rate limits (5/hour, 20/day).
 
-**Session 6 (2025-11-14)**: Configured Tailwind with movie theater design system. Applied to authentication pages. Fixed touch targets (44px WCAG AA), prevented iOS auto-zoom (16px minimum), replaced hardcoded colors. Rewrote FormError with ARIA. Fixed 9 TypeScript errors. Auth flow 95% design system compliant, WCAG AA accessible, mobile-optimized.
+**Session 7 (2025-11-16)**: Visual polish implementing royal red curtain background with theatrical drape pattern. Applied design system to dashboard and profile pages (85% compliance). Created dynamic avatar-based gradient extraction using Canvas API. Built `.link-gold` utility class (11.07:1 contrast, WCAG AAA). Removed redundant layout divs. Responsive profile layout with 50% avatar overlap.
 
 ## 🚧 Known Issues & Blockers
 
