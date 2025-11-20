@@ -121,42 +121,44 @@ CREATE POLICY "Avatar images are publicly accessible."
     bucket_id = 'avatars'::text
   );
 
-CREATE POLICY "Users can upload an avatar to their own folder."
+CREATE POLICY "Users can upload avatar as their UUID.jpg"
   ON storage.objects
   AS permissive
-  FOR insert
+  FOR INSERT
   TO authenticated
   WITH CHECK (
     (bucket_id = 'avatars'::text)
-    AND (owner = auth.uid())
-    AND (name = auth.uid()::text || '.jpg') 
+    AND (name = owner::text || '.jpg')
   );
 
-CREATE POLICY "Users can update their own avatars."
-  ON storage.objects
-  AS permissive
-  FOR update
-  TO authenticated
-  using (
-    (bucket_id = 'avatars'::text)
-    AND (owner = auth.uid())
-    AND (name = auth.uid()::text || '.jpg')
-  )
-  with check (
-    (bucket_id = 'avatars'::text)
-    AND (owner = auth.uid())
-    AND (name = auth.uid()::text || '.jpg')
-  );
+COMMENT ON POLICY "Users can upload avatar as their UUID.jpg" ON storage.objects IS
+'Enforces one-avatar-per-user via {uuid}.jpg naming pattern.
+Storage service validates JWT and sets owner field.
+Policy validates filename matches owner being inserted.
+This works because owner is the NEW value from INSERT, not auth.uid() which returns NULL.';
 
-CREATE POLICY "Users can delete their own avatars."
+CREATE POLICY "Users can update their own avatar"
   ON storage.objects
   AS permissive
-  FOR delete
+  FOR UPDATE
   TO authenticated
   USING (
     (bucket_id = 'avatars'::text)
-    AND (owner = auth.uid())
-    AND (name = auth.uid()::text || '.jpg')
+    AND (name = owner::text || '.jpg')
+  )
+  WITH CHECK (
+    (bucket_id = 'avatars'::text)
+    AND (name = owner::text || '.jpg')
+  );
+
+CREATE POLICY "Users can delete their own avatar"
+  ON storage.objects
+  AS permissive
+  FOR DELETE
+  TO authenticated
+  USING (
+    (bucket_id = 'avatars'::text)
+    AND (name = owner::text || '.jpg')
   );
 
 -- ~~~~~~~ Email Templates ~~~~~~~

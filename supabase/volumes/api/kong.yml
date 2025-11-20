@@ -185,18 +185,22 @@ services:
         config:
           checks:
             # Check 1: Email-based (prevents password reset email spam)
+            # - Max 1 reset per email per minute (prevents email spam)
             # - Max 3 resets per email per hour (tight limit - legitimate users need few)
             # - Max 30 resets per email per day (allows for forgotten attempts)
             - type: content
               fields: ["email"]
               limits:
+                minute: 1
                 hour: 3
                 day: 30
             # Check 2: IP-based (prevents account enumeration attacks)
+            # - Max 1 reset per IP per minute (prevents account enumeration attacks)
             # - Max 30 resets per IP per hour (allows some probing but not mass enumeration)
             # - Max 300 resets per IP per day
             - type: ip
               limits:
+                minute: 1
                 hour: 30
                 day: 300
           db_host: db
@@ -230,18 +234,22 @@ services:
         config:
           checks:
             # Check 1: Email-based (prevents verification email spam)
+            # - Max 1 resend per email per minute (prevents email spam)
             # - Max 3 resends per email per hour (tight - legitimate users need few)
             # - Max 30 resends per email per day (allows for lost emails)
             - type: content
               fields: ["email"]
               limits:
+                minute: 1
                 hour: 3
                 day: 30
             # Check 2: IP-based (prevents distributed resend abuse)
+            # - Max 1 resend per IP per minute (prevents distributed resend abuse)
             # - Max 30 resends per IP per hour
             # - Max 300 resends per IP per day
             - type: ip
               limits:
+                minute: 1
                 hour: 30
                 day: 300
           db_host: db
@@ -336,7 +344,7 @@ services:
   #########################################
 
   - name: auth-v1-verify
-    _comment: 'Email verification: 100/user/min allows normal usage, 1000/user/hr prevents automation'
+    _comment: 'Email verification: 5/user/min, 20/user/hr, 50/user/day prevents brute force on OTPs'
     url: http://auth:9999/verify
     routes:
       - name: auth-v1-verify
@@ -356,13 +364,22 @@ services:
       - name: rate-limit-db
         config:
           checks:
-            # User-based (JWT sub claim from Authorization header)
-            # - Max 100 verifications per user per minute (high - normally just 1)
-            # - Max 1000 verifications per user per hour (prevents automation)
+            # Check 1: User-based (prevents single user from spamming)
+            # - Max 5 verifications per user per minute (allows typo retries)
+            # - Max 20 verifications per user per hour (prevents sustained brute force)
+            # - Max 50 verifications per user per day (allows multiple verification sessions)
             - type: user
               limits:
-                minute: 100
-                hour: 1000
+                minute: 5
+                hour: 20
+                day: 50
+            # Check 2: IP-based fallback (prevents distributed attacks)
+            # - Max 10 verifications per IP per minute (allows multiple users on same IP)
+            # - Max 50 verifications per IP per hour (prevents automation from single source)
+            - type: ip
+              limits:
+                minute: 10
+                hour: 50
           db_host: db
           db_port: 5432
           db_name: postgres
@@ -710,12 +727,12 @@ services:
 
   - name: storage-v1-public
     _comment: 'Public storage: 200/IP/min + 5000/IP/hr allows CDN-like file serving'
-    url: http://storage:5000/object/public
+    url: http://storage:5000/
     routes:
       - name: storage-v1-public
-        strip_path: false
+        strip_path: true
         paths:
-          - /storage/v1/object/public/
+          - /storage/v1/
         methods:
           - GET
     plugins:
@@ -740,12 +757,12 @@ services:
 
   - name: storage-v1-avatar-upload
     _comment: 'Avatar uploads: 5/user/hr + 20/user/day prevents abuse, allows legitimate updates'
-    url: http://storage:5000/object/avatars
+    url: http://storage:5000/object/avatars/
     routes:
       - name: storage-v1-avatar-upload
-        strip_path: false
+        strip_path: true
         paths:
-          - ~/storage/v1/object/avatars/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg$
+          - ~/storage/v1/object/avatars/
         methods:
           - POST
           - PUT
@@ -757,17 +774,17 @@ services:
         config:
           checks:
             # Check 1: User-based (JWT sub claim)
-            # - Max 5 avatar uploads per user per hour (prevents spam)
-            # - Max 20 avatar uploads per user per day (allows testing/adjustments)
+            # - Max 5 avatar uploads per user per hour (prevents profile pic spam)
+            # - Max 20 avatar uploads per user per day (allows legitimate changes)
             - type: user
               limits:
-                hour: 5
+                hour: 20
                 day: 20
             # Check 2: IP-based fallback (if JWT missing or extraction fails)
             # - Max 10 avatar uploads per IP per hour (prevents distributed attacks)
             - type: ip
               limits:
-                hour: 10
+                hour: 1
           db_host: db
           db_port: 5432
           db_name: postgres

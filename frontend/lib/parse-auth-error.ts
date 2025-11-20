@@ -17,7 +17,7 @@ export function parseAuthError(error: unknown): string | RateLimitError {
         const parsed = JSON.parse(message);
         if (parsed && typeof parsed === "object" && "retry_after" in parsed) {
           return {
-            message: parsed.message || "Rate limit exceeded. Please try again later.",
+            message: "You've made too many changes recently. Please slow down.",
             type: "rate_limit",
             retry_after: parsed.retry_after || 60,
             limit_hit: parsed.limit_hit || "hour",
@@ -30,7 +30,7 @@ export function parseAuthError(error: unknown): string | RateLimitError {
 
       // Return default rate limit error
       return {
-        message: message || "Rate limit exceeded. Please try again later.",
+        message: "You've made too many changes recently. Please slow down.",
         type: "rate_limit",
         retry_after: 60, // Default fallback
         limit_hit: "hour",
@@ -66,7 +66,7 @@ export async function parseEdgeFunctionError(error: unknown): Promise<string | R
     // Check if it's a 429 rate limit error
     if (context.status === 429) {
       return {
-        message: errorObj.message || "Rate limit exceeded. Please try again later.",
+        message: "You've made too many changes recently. Please slow down.",
         type: "rate_limit",
         retry_after: errorObj.retry_after || 60,
         limit_hit: errorObj.limit_hit || "hour",

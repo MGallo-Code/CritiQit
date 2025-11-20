@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useCurrentUser } from "@/providers/current-user-provider";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { AvatarUpload } from "@/components/auth/avatar-upload";
 
 type EditableProfile = {
   full_name: string;
@@ -295,12 +296,25 @@ export function ProfileForm({
           style={{ background: headerGradient }}
         />
         <CardHeader className="px-6 pb-6 pt-0">
-          <Avatar className="h-40 w-40 -mt-20 border-4 border-background shadow-xl md:h-64 md:w-64 md:-mt-32 mx-auto">
-            <AvatarImage
-              src={currentUser.avatar_url ?? undefined}
-              alt={avatarAlt}
-            />
-          </Avatar>
+          {mode === "edit" ? (
+            <div className="-mt-20 md:-mt-32 mx-auto">
+              <AvatarUpload
+                userId={currentUser.id}
+                currentAvatarUrl={currentUser.avatar_url}
+                onUploadSuccess={async (newUrl) => {
+                  // Refresh user context to update avatar everywhere
+                  await refreshUser();
+                }}
+              />
+            </div>
+          ) : (
+            <Avatar className="h-40 w-40 -mt-20 border-4 border-background shadow-xl md:h-64 md:w-64 md:-mt-32 mx-auto">
+              <AvatarImage
+                src={currentUser.avatar_url ?? undefined}
+                alt={avatarAlt}
+              />
+            </Avatar>
+          )}
           <div className="mt-4 flex flex-col gap-6 w-full md:flex-row md:items-center md:justify-between">
             <div className="space-y-2 text-center md:text-left">
               <h1 className="text-3xl font-semibold">

@@ -4,6 +4,98 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
+## Session 8 - 2025-11-19 [IN PROGRESS]
+
+### Summary
+Implementing user profile picture upload functionality with frontend-backend integration. Created avatar-upload component and modified profile form for avatar integration. Fixed PostgreSQL database startup failure, Next.js dependency version mismatch, and Kong path routing issues causing 400 errors. Successfully resolved all blockers and avatar uploads now work. Currently refining error handling and user experience for upload failures.
+
+### Accomplishments
+
+- **Supabase**: Fixed PostgreSQL database startup failure (checkpoint request failed → ran reset-hard-db.sh)
+- **Frontend**: Fixed Next.js dependency version mismatch (`"next": "latest"` → `"next": "15.3.1"`)
+- **Root**: Updated all context documentation to use npm instead of yarn
+- **Supabase**: Fixed Kong path routing issues causing 400 errors:
+  - storage-v1-avatar-upload route: Fixed path duplication for POST requests
+  - storage-v1-public route: Fixed path duplication for GET requests
+  - Root cause: Incorrect `strip_path` and URL configuration in kong.yml
+- **Supabase**: Restored production rate limits (100/hour → 5/hour, 200/day → 20/day)
+- **Frontend**: Improved user-facing error messages (removed technical jargon)
+- **Frontend**: Created `avatar-upload.tsx` component for upload UI
+- **Frontend**: Modified `profile-form.tsx` to integrate avatar upload functionality
+- **Supabase**: Updated Kong configuration (`kong.yml`) with rate-limit protections for upload routes
+- **Supabase**: Modified database migration `20250818043251_add_user_profiles.sql`
+- **Root**: Package configuration updates (`package.json`, `tsconfig.json`)
+
+### Technical Decisions
+
+**1. Kong Path Routing Configuration**
+- Decision: Use `strip_path: true` with base URL `http://storage:5000/` to avoid path duplication
+- Problem: Routes were configured with `strip_path: false` and URLs like `http://storage:5000/storage/v1/object/public`, causing Kong to forward requests to `/storage/v1/object/public/storage/v1/object/public` (path duplication)
+- Solution: Changed `strip_path: true` and base URL to `http://storage:5000/` so Kong strips `/storage/v1/object/public` and forwards clean paths to storage service
+- Impact: Fixed all 400 "Malformed request" errors for avatar uploads and public file access
+
+**2. Error Message Philosophy for End Users**
+- Decision: Remove technical jargon from user-facing error messages
+- Rationale: Users don't need to know about "mime type validation" or "storage buckets" - they need actionable guidance
+- Examples:
+  - Before: "Failed to upload avatar. Rate limit exceeded."
+  - After: "You've made too many changes recently. Please slow down."
+  - Before: "Invalid mime type. Only JPEG images are allowed."
+  - After: "Please use a JPEG image (.jpg or .jpeg)"
+- Impact: More user-friendly experience, reduced confusion
+
+**3. Rate Limit Restoration**
+- Decision: Restored production rate limits (5 uploads/hour, 20/day) after debugging
+- Rationale: Testing required higher limits temporarily, but production security requires strict limits to prevent abuse
+- Trade-off: Stricter limits improve security but may frustrate legitimate users making multiple quick edits
+
+### Dependencies Changed
+
+- **Updated**: `next` (latest → 15.3.1) (workspace: frontend) - Fixed version mismatch causing peer dependency errors
+
+### Environment Variables Changed
+
+None
+
+### Lessons Learned
+
+**1. Kong Path Routing Gotcha: strip_path and URL Duplication**
+- Kong's `strip_path` setting determines whether the route path is stripped before forwarding
+- If `strip_path: false`, the route path is prepended to the upstream URL
+- Example: Route `/storage/v1/object/public` with `strip_path: false` and upstream `http://storage:5000/storage/v1/object/public` results in request to `/storage/v1/object/public/storage/v1/object/public`
+- Solution: Use `strip_path: true` with base URL only (`http://storage:5000/`)
+- This took significant debugging because 400 errors didn't indicate path duplication explicitly
+
+**2. PostgreSQL "checkpoint request failed" Error**
+- Can occur when database state becomes inconsistent or corrupted
+- Running `reset-hard-db.sh` resolves by recreating database from migrations
+- Trade-off: Lose all data, but acceptable in development environment
+
+**3. Package Manager Consistency Matters**
+- Documentation referencing yarn when project uses npm causes confusion
+- Worth investing time to update all docs for consistency
+- Small details like this improve developer experience significantly
+
+### Known Issues / Technical Debt
+
+- **Avatar Upload Error Handling**: If avatar upload fails after validation, user might lose existing profile picture (needs UX investigation and potential fix)
+- **Technical Debt**: Avatar upload flow needs comprehensive end-to-end testing
+- **Technical Debt**: Error recovery flow for failed uploads not yet implemented
+
+### Next Steps
+
+- [ ] **URGENT**: Investigate and fix avatar upload error handling - ensure existing avatar is preserved on upload failure
+- [ ] Test avatar upload flow comprehensively (success cases, failure cases, edge cases)
+- [ ] Verify rate limiting works correctly for upload endpoints
+- [ ] Consider implementing optimistic UI updates with rollback on failure
+- [ ] Document final technical decisions once error handling is complete
+
+### Commits
+
+[None yet - work in progress]
+
+---
+
 ## Session 7 - 2025-11-16
 
 ### Summary

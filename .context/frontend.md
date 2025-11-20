@@ -6,7 +6,7 @@ This file documents the Next.js frontend architecture, patterns, components, and
 
 ## Overview
 
-CritiQit's frontend is built with Next.js 15 using the App Router architecture. It's structured as a yarn workspace within the monorepo and communicates with the self-hosted Supabase backend.
+CritiQit's frontend is built with Next.js 15 using the App Router architecture. It uses npm for package management and communicates with the self-hosted Supabase backend.
 
 **Tech Stack:**
 - Next.js 15 (App Router)
@@ -475,8 +475,8 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY=test_key_or_production_key
 
 ```bash
 cd frontend
-yarn install
-yarn dev
+npm install
+npm run dev
 ```
 
 Runs on `http://localhost:3001` (port 3001 to avoid conflicts)
@@ -491,8 +491,8 @@ Development server uses Turbopack (`--turbopack` flag in dev script):
 ### Building for Production
 
 ```bash
-yarn build
-yarn start
+npm run build
+npm start
 ```
 
 ---
@@ -583,7 +583,7 @@ if (result?.error) {
 
 ### Bundle Size
 
-- Check with: `yarn build`
+- Check with: `npm run build`
 - Monitor First Load JS
 - Keep client components minimal
 
@@ -666,9 +666,9 @@ docker run -d -p 3000:3000 \
 
 ```bash
 cd frontend
-yarn install --production
-yarn build
-yarn start  # Runs on port 3001 by default
+npm install --omit=dev
+npm run build
+npm start  # Runs on port 3001 by default
 ```
 
 ### Build Configuration
@@ -749,9 +749,9 @@ Before production deployment:
 - [ ] Replace test Turnstile key with production key
 - [ ] Set `NODE_ENV=production`
 - [ ] Verify Cloudflare Tunnel is configured for domain
-- [ ] Test build locally: `yarn build && yarn start`
+- [ ] Test build locally: `npm run build && npm start`
 - [ ] Verify image optimization works
-- [ ] Check bundle size: `yarn build` output
+- [ ] Check bundle size: `npm run build` output
 - [ ] Test on mobile devices (responsive design)
 - [ ] Verify dark mode works correctly
 - [ ] Test all authentication flows

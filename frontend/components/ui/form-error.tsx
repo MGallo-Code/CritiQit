@@ -54,16 +54,13 @@ export function FormError({ error }: FormErrorProps) {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-foreground">
-              Too many attempts
-            </h3>
-            <div className="mt-2 text-sm text-text-secondary">
-              <p>{error.message}</p>
+            <div className="text-sm text-text-secondary">
+              <p className="font-medium text-foreground">{error.message}</p>
               {timeRemaining !== null && timeRemaining > 0 && (
-                <p className="mt-2 font-medium text-foreground" aria-live="polite">
-                  Please wait{" "}
+                <p className="mt-2" aria-live="polite">
+                  Try again in{" "}
                   {minutes > 0 && `${minutes}m `}
-                  {seconds}s before trying again.
+                  {seconds}s
                 </p>
               )}
               {timeRemaining === 0 && (

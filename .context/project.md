@@ -16,12 +16,12 @@ CritiQit is a critique and review platform built as a monorepo with a self-hoste
 
 ```
 CritiQit/
-├── frontend/           # Next.js workspace (yarn workspace)
-├── supabase/          # Self-hosted Supabase backend (not a workspace)
+├── frontend/           # Next.js app (managed with npm)
+├── supabase/          # Self-hosted Supabase backend (Docker Compose)
 └── .context/          # Documentation and context files
 ```
 
-**Important**: Only `frontend/` is a yarn workspace. The `supabase/` directory operates independently with Docker Compose.
+**Important**: Use npm for all package management. The `supabase/` directory operates independently with Docker Compose.
 
 ### Domain Configuration
 
@@ -63,7 +63,7 @@ The Cloudflare tunnel setup allows consistent domain usage across development an
 ### DevOps & Tools
 - **Containerization**: Docker Compose (development + production)
 - **Tunneling**: Cloudflare cloudflared (free SSL + CDN + DDoS protection)
-- **Package Manager**: Yarn (workspaces)
+- **Package Manager**: npm (NOT yarn - always use npm)
 - **Version Control**: Git
 
 ### Deployment Philosophy
@@ -110,7 +110,7 @@ The Cloudflare tunnel setup allows consistent domain usage across development an
 **Deployment Options:**
 1. **Docker Compose** (recommended): Uncomment frontend service in `supabase/compose.yml`
 2. **Standalone Docker**: Build and run frontend container separately
-3. **Direct Node.js**: Run `yarn build && yarn start` on VPS
+3. **Direct Node.js**: Run `npm run build && npm start` on VPS
 
 **Resource Requirements:**
 - Minimum (1,000 users): 2GB RAM, 2 CPU cores
@@ -164,7 +164,7 @@ docker compose up -d
 **Frontend:**
 ```bash
 cd frontend
-yarn dev
+npm run dev
 # Runs on localhost:3001 with Turbopack
 ```
 
