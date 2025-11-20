@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { FunctionsHttpError } from "@supabase/supabase-js";
 import { parseEdgeFunctionError, parseAuthError } from "@/lib/parse-auth-error";
 import { FormState } from "@/lib/form-state";
 

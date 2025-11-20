@@ -6,23 +6,23 @@
 >
 > **🤖 See [agents-guide.md](./agents-guide.md) for custom agent system documentation**
 
-Last updated: 2025-11-20 00:45
+Last updated: 2025-11-20 03:37
 
 ---
 
 ## 🎯 Current Goals
 
 1. **Component Library Development**: Build CritiQit-specific UI components (star rating, movie cards)
-2. **Avatar Upload Testing**: Comprehensive end-to-end testing of new avatar upload feature
+2. **Avatar Upload Testing**: Comprehensive end-to-end testing of production-ready avatar upload feature
 3. **Mobile Testing**: Verify design system and avatar upload on real devices (iOS/Android)
 4. **Security Testing**: Run `/audit` command for comprehensive vulnerability scanning
 5. **Ongoing**: Maintain design system consistency and document patterns
 
 ## 📋 Immediate Next Steps
 
-- [ ] **High Priority**: Test avatar upload flow end-to-end (validation, upload, retrieval, error scenarios)
+- [ ] **High Priority**: Test avatar upload flow end-to-end (validation, upload, retrieval, error scenarios, HEIC files)
 - [ ] **High Priority**: Verify rate limiting with countdown timer (test hitting limits)
-- [ ] **High Priority**: Mobile testing for avatar upload (file picker, touch targets, iOS/Android)
+- [ ] **High Priority**: Mobile testing for avatar upload (file picker, touch targets, iOS/Android, HEIC support)
 - [ ] **High Priority**: Build star rating component (first CritiQit-specific UI component)
 - [ ] **Medium Priority**: Create movie card component (grid + list variants per design system)
 - [ ] **Medium Priority**: Run `/audit` security command to scan for vulnerabilities
@@ -30,7 +30,7 @@ Last updated: 2025-11-20 00:45
 
 ## 🔄 Recent Context (Last 2-3 Sessions)
 
-**Session 8 (2025-11-20)**: Avatar upload feature implementation with critical debugging. Fixed PostgreSQL corruption (checkpoint request failed loop), Next.js version mismatch, Kong path routing causing 400 errors, and critical race condition in upload flow. Changed from delete-then-upload to atomic upsert operations preventing data loss on failure. Improved error messages (removed technical jargon). Restored production rate limits (5/hour, 20/day). Kong routing pattern: strip_path true with base URLs for clean path transformation. Avatar upload is production-ready with fail-safe behavior.
+**Session 8 (2025-11-20)**: Avatar upload feature complete and production-ready after comprehensive debugging. Fixed PostgreSQL corruption (checkpoint request failed loop), Next.js version mismatch, Kong path routing causing 400 errors, critical race condition in upload flow (changed from delete-then-upload to atomic upsert), and HEIC image upload crash (Safari's auto-conversion to JPEG was crashing Web Workers). Improved error messages (removed technical jargon). Restored production rate limits (5/hour, 20/day). All critical bugs resolved. Avatar upload now fail-safe with atomic operations preserving existing data on failure.
 
 **Session 7 (2025-11-16)**: Visual polish implementing royal red curtain background with theatrical drape pattern. Applied design system to dashboard and profile pages (85% compliance). Created dynamic avatar-based gradient extraction using Canvas API. Built `.link-gold` utility class (11.07:1 contrast, WCAG AAA). Removed redundant layout divs. Responsive profile layout with 50% avatar overlap. WCAG AA compliant, production-ready.
 
@@ -46,9 +46,9 @@ None! Avatar upload feature complete and production-ready. All critical bugs res
 - Auth components (PasswordRequirements, AuthDivider) ready for extraction
 
 **Testing Needed:**
-- Avatar upload end-to-end testing (success, failure, edge cases)
+- Avatar upload end-to-end testing (success, failure, edge cases, HEIC files)
 - Rate limiting verification with countdown timer
-- Mobile testing on real iOS/Android devices
+- Mobile testing on real iOS/Android devices (especially HEIC uploads)
 
 **Minor Improvements (Low Priority):**
 - Light mode link contrast (star-yellow ~3:1, need 4.5:1 for WCAG AA)
@@ -58,7 +58,8 @@ None! Avatar upload feature complete and production-ready. All critical bugs res
 
 - **Avatar Upload Production-Ready**: Atomic upsert operations prevent data loss on failure
 - **Kong Path Routing Pattern**: Use `strip_path: true` with base URLs to avoid duplication (e.g., `http://storage:5000/` not `http://storage:5000/storage/v1/object/public`)
-- **Atomic Storage Operations**: Always use `upsert: true` instead of delete-then-upload patterns
+- **Atomic Storage Operations**: Always use `upsert: true` instead of delete-then-upload patterns to prevent race conditions
+- **HEIC/Safari Image Processing**: Disable Web Workers (`useWebWorker: false`) in browser-image-compression to prevent crashes with Safari's HEIC-to-JPEG conversions
 - **Error Message Philosophy**: User-friendly messages without technical jargon (no "RLS violation" or "mime type validation")
 - **Complete Design System**: See `.context/design-system.md` for full specifications
 - **Security Audit System**: Use `/audit` command for vulnerability scanning

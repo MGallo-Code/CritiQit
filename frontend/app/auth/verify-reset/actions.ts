@@ -2,7 +2,6 @@
 
 import { FormState } from "@/lib/form-state";
 import { createClient } from "@/lib/supabase/server";
-import { FunctionsHttpError } from "@supabase/supabase-js";
 import { parseEdgeFunctionError, parseAuthError } from "@/lib/parse-auth-error";
 
 // base url for site redirects

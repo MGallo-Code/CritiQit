@@ -212,6 +212,27 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Golden focus outline for all inputs (design system standard) */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply outline-none ring-2 ring-star-yellow/30 border-star-yellow;
+  }
+
+  /* Light mode: use darker gold for better visibility */
+  :root input:focus,
+  :root textarea:focus,
+  :root select:focus {
+    @apply ring-star-yellow-muted/40 border-star-yellow-muted;
+  }
+
+  /* Dark mode: use bright gold */
+  .dark input:focus,
+  .dark textarea:focus,
+  .dark select:focus {
+    @apply ring-star-yellow/30 border-star-yellow;
+  }
 }
 
 @layer utilities {

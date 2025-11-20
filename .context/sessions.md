@@ -30,6 +30,12 @@ Comprehensive session implementing avatar upload feature with critical debugging
   - User identified risk: "If it fails to upload, the user now will have no new profile picture"
   - Solution: Changed to atomic `upsert: true` operation
   - Result: Existing avatar preserved on upload failure (fail-safe behavior)
+- **Frontend**: Fixed HEIC image upload crash by disabling Web Worker in browser-image-compression:
+  - Problem: Safari auto-converts HEIC to JPEG when selecting from photo library, creating files like `tempImagesijlJK.jpg`
+  - Root cause: `useWebWorker: true` in browser-image-compression crashed when processing Safari's HEIC-to-JPEG converted files
+  - Solution: Changed `useWebWorker: false` in processImage options
+  - Result: HEIC uploads now work perfectly without page crashes ("This webpage was reloaded because a problem occurred")
+  - Additional protections: HEIC/HEIF detection, try-catch around createObjectURL, enhanced error handling, detection of large Safari temp files
 
 ### Technical Decisions
 
@@ -55,6 +61,12 @@ Comprehensive session implementing avatar upload feature with critical debugging
 - Implementation: Single upload operation replaces existing file only on success
 - Requires: Both INSERT and UPDATE RLS policies (already in place)
 - Impact: Fail-safe behavior - existing avatar always preserved on upload failure
+
+**4. Disable Web Worker for Image Compression**
+- Decision: Set `useWebWorker: false` in browser-image-compression options
+- Rationale: Web Workers run in separate threads and crash when processing certain JPEG variants (especially Safari's HEIC conversions)
+- Trade-off: Slightly slower compression (main thread) but significantly more stable
+- Impact: Eliminated page crashes for iOS users uploading HEIC photos
 
 ### Dependencies Changed
 
@@ -90,17 +102,16 @@ None
 - Prevention: Proper Docker volume management and graceful container shutdowns
 - Trade-off: Development data loss acceptable vs production recovery complexity
 
+**5. Safari's HEIC Auto-Conversion Behavior**
+- Safari automatically converts HEIC to JPEG when selecting from photo library
+- Creates temp files with names like `tempImagesijlJK.jpg` and MIME type `image/jpeg`
+- These converted JPEGs can crash Web Worker-based image processing
+- Detection via file.name is necessary since MIME type appears as standard JPEG
+- Web Worker stability issues aren't always obvious - main thread processing is safer for user-uploaded images
+
 ### Known Issues / Technical Debt
 
-**Image Format Compatibility:**
-- Uploading HEIC files (and potentially other non-standard formats) crashes the page with "This webpage was reloaded because a problem occurred"
-- Root cause: Browser image processing (likely in browser-image-compression library or Canvas API) doesn't handle HEIC format
-- Impact: iOS users who haven't changed default camera settings will hit this
-- Potential solutions:
-  1. Add HEIC detection and show helpful error before processing
-  2. Convert HEIC server-side (requires additional infrastructure)
-  3. Improve client-side error handling to catch crashes gracefully
-- Priority: Medium (affects iOS users, but workaround exists - user can convert first)
+None - all critical issues resolved! HEIC image upload crash has been fixed.
 
 ### Next Steps
 
@@ -112,6 +123,9 @@ None
 
 ### Commits
 
+- `86c78b6` - Fix HEIC uploads!
+- `ade6867` - Restore correct rate limits.
+- `2034436` - Update agent docs
 - `1f9842e` - Add profile picture upsert support with full rate-checking, file checking/protection, etc.
 - `6874fc7` - Update frontend packages, tsconfig
 - `8ad7824` - Add support for avatar uploading and RLS (jpeg only, 5MB limit); Add kong configurations

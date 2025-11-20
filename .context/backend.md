@@ -402,6 +402,12 @@ ${API_EXTERNAL_URL}/storage/v1/object/${bucket}/${filepath}
 - Single atomic operations are safer than multi-step sequences
 - Delete operations should be last step, not first
 
+**Kong Path Routing for Storage (Session 8):**
+- Always use `strip_path: true` with base upstream URLs to avoid path duplication
+- Pattern: External request `/storage/v1/object/public/avatars/foo.jpg` → Kong strips `/storage/v1/object/public` → forwards `/avatars/foo.jpg` to `http://storage:5000/`
+- Test both upload (POST) and retrieval (GET) when changing routing configuration
+- 400 errors often indicate path duplication or mismatched routing configuration
+
 ### Known Storage Issues
 
 **Cannot delete users with storage objects:**

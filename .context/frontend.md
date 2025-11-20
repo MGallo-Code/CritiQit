@@ -392,12 +392,37 @@ export function MyForm() {
 
 ### Avatar Upload Pattern
 
-From `profile-form.tsx`:
+From `avatar-upload.tsx`:
 - Client-side image preview
-- Resize/crop before upload (optional)
-- Upload to Supabase Storage
+- Resize/compress before upload using browser-image-compression
+- Upload to Supabase Storage with atomic upsert
 - Update profile with new URL
 - Cache busting with version parameter
+
+**Image Compression Settings (Session 8):**
+```typescript
+import imageCompression from "browser-image-compression";
+
+const options = {
+  maxSizeMB: 1,
+  maxWidthOrHeight: 800,
+  useWebWorker: false,  // IMPORTANT: Disable for stability with Safari's HEIC conversions
+};
+
+const compressedFile = await imageCompression(file, options);
+```
+
+**Why `useWebWorker: false`?**
+- Safari auto-converts HEIC to JPEG when selecting from photo library
+- These converted JPEGs can crash Web Worker-based processing
+- Main thread processing is slower but significantly more stable
+- Prevents "This webpage was reloaded because a problem occurred" crashes on iOS
+
+**Error Handling:**
+- Wrap image processing in try-catch blocks
+- Detect HEIC files via file.name pattern (e.g., `tempImagesijlJK.jpg`)
+- Graceful fallback for createObjectURL failures
+- User-friendly error messages without technical jargon
 
 ### Dynamic Avatar Gradient Pattern
 

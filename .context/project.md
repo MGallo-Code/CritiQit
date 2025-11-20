@@ -490,6 +490,15 @@ This prevents rework and ensures domain expertise is applied from the start.
 - Prevention: Proper Docker volume management and graceful container shutdowns
 - Trade-off: Development data loss acceptable vs production recovery complexity
 
+**18. Safari HEIC Image Processing and Web Worker Stability (Session 8)**
+- Safari automatically converts HEIC photos to JPEG when selecting from photo library
+- Creates temp files like `tempImagesijlJK.jpg` with MIME type `image/jpeg`
+- These Safari-converted JPEGs crash Web Worker-based image processing in browser-image-compression
+- Solution: Disable Web Workers (`useWebWorker: false`) for more stable main-thread processing
+- Trade-off: Slightly slower compression but eliminates page crashes for iOS users
+- Detection via file.name pattern necessary since MIME type appears as standard JPEG
+- Always wrap createObjectURL and image processing in try-catch for graceful error handling
+
 ---
 
 ## Related Documentation

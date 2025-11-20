@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Turnstile } from "@/components/ui/turnstile";
 import { FormError } from "@/components/ui/form-error";
+import { OTPInput } from "@/components/ui/otp-input";
 import {
   resendResetCodeAction,
   verifyResetCodeAction,
@@ -116,17 +117,19 @@ export function VerifyResetForm({
               onChange={(event) => setEmail(event.target.value)}
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="token">Verification code</Label>
-            <Input
-              id="token"
-              name="token"
-              inputMode="numeric"
-              pattern="[0-9]{6}"
-              maxLength={6}
-              required
+          <div className="flex flex-col items-center gap-3 pt-4 pb-5">
+            <Label className="text-lg font-semibold">Verification code</Label>
+            <OTPInput
               value={token}
-              onChange={(event) => setToken(event.target.value)}
+              onChange={setToken}
+              disabled={isRateLimited}
+              error={!!verifyState.error}
+              autoFocus={true}
+            />
+            <input
+              type="hidden"
+              name="token"
+              value={token}
             />
           </div>
           <div className="grid gap-2 justify-center">
