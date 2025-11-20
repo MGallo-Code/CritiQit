@@ -464,6 +464,32 @@ This prevents rework and ensures domain expertise is applied from the start.
 - Saturation dramatically affects warmth perception, not just color intensity
 - Test different saturation levels to find balance between impact and professionalism
 
+### API Gateway & Infrastructure
+
+**15. Kong strip_path Routing Behavior (Session 8)**
+- `strip_path: false` keeps entire matched path → causes duplication when base URL includes path segments
+- `strip_path: true` removes matched prefix → allows clean path transformation between external and internal paths
+- Pattern: External request `/storage/v1/object/public/avatars/foo.jpg` → Kong strips `/storage/v1/object/public` → forwards `/avatars/foo.jpg` to `http://storage:5000/`
+- Always test both upload (POST) and retrieval (GET) flows when changing API gateway routing
+- 400 errors don't always indicate root cause - trace full request path to debug
+- Example: Route with `strip_path: false` and URL `http://storage:5000/storage/v1/object/public` causes path duplication: `/storage/v1/object/public/storage/v1/object/public`
+
+### Backend Patterns
+
+**16. Race Conditions in Storage Operations (Session 8)**
+- Delete-then-upload patterns create windows where data can be lost on failure
+- Atomic upsert operations are safer and simpler (single operation, no failure window)
+- Always ask: "What happens if this step fails?" when designing multi-step operations
+- User testing catches these issues - Michael identified race condition risk immediately
+- Example: Avatar upload changed from delete-then-upload to `upsert: true` to preserve existing avatar on failure
+- Requires both INSERT and UPDATE RLS policies for atomic upsert to work
+
+**17. PostgreSQL Control File Corruption (Session 8)**
+- "checkpoint request failed" loop indicates corrupted pg_control file
+- Resolution: Full database reset with reset-hard-db.sh
+- Prevention: Proper Docker volume management and graceful container shutdowns
+- Trade-off: Development data loss acceptable vs production recovery complexity
+
 ---
 
 ## Related Documentation

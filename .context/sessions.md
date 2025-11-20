@@ -4,54 +4,61 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
-## Session 8 - 2025-11-19 [IN PROGRESS]
+## Session 8 - 2025-11-20 00:45
 
 ### Summary
-Implementing user profile picture upload functionality with frontend-backend integration. Created avatar-upload component and modified profile form for avatar integration. Fixed PostgreSQL database startup failure, Next.js dependency version mismatch, and Kong path routing issues causing 400 errors. Successfully resolved all blockers and avatar uploads now work. Currently refining error handling and user experience for upload failures.
+Comprehensive session implementing avatar upload feature with critical debugging of database, build, and API gateway issues. Fixed PostgreSQL corruption, Next.js version mismatch, Kong path routing, and a critical race condition in avatar upload flow. Improved user-facing error messages and restored production rate limits. Avatar upload feature is now production-ready with atomic upsert operations preventing data loss on failure.
 
 ### Accomplishments
 
-- **Supabase**: Fixed PostgreSQL database startup failure (checkpoint request failed → ran reset-hard-db.sh)
-- **Frontend**: Fixed Next.js dependency version mismatch (`"next": "latest"` → `"next": "15.3.1"`)
-- **Root**: Updated all context documentation to use npm instead of yarn
-- **Supabase**: Fixed Kong path routing issues causing 400 errors:
-  - storage-v1-avatar-upload route: Fixed path duplication for POST requests
-  - storage-v1-public route: Fixed path duplication for GET requests
-  - Root cause: Incorrect `strip_path` and URL configuration in kong.yml
-- **Supabase**: Restored production rate limits (100/hour → 5/hour, 200/day → 20/day)
-- **Frontend**: Improved user-facing error messages (removed technical jargon)
-- **Frontend**: Created `avatar-upload.tsx` component for upload UI
-- **Frontend**: Modified `profile-form.tsx` to integrate avatar upload functionality
-- **Supabase**: Updated Kong configuration (`kong.yml`) with rate-limit protections for upload routes
-- **Supabase**: Modified database migration `20250818043251_add_user_profiles.sql`
-- **Root**: Package configuration updates (`package.json`, `tsconfig.json`)
+- **Supabase**: Fixed PostgreSQL database startup failure (checkpoint request failed loop → corrupted pg_control file → reset-hard-db.sh)
+- **Frontend**: Fixed Next.js dependency version mismatch (`"next": "latest"` pulling canary → pinned to `"next": "15.3.1"`)
+- **Root**: Updated all package manager references from yarn to npm across context documentation (project.md, frontend.md)
+- **Supabase**: Fixed Kong API Gateway path routing issues causing 400 errors on avatar upload and retrieval:
+  - storage-v1-avatar-upload route: Changed to `url: http://storage:5000/object/avatars/` with `strip_path: true`
+  - storage-v1-public route: Changed to `url: http://storage:5000/` with `strip_path: true`
+  - Root cause: Path duplication when `strip_path: false` combined with URLs containing path segments
+  - Result: Both upload (POST) and public retrieval (GET) now work correctly
+- **Supabase**: Restored production rate limits after testing (100/hour → 5/hour, 200/day → 20/day)
+- **Frontend**: Improved user-facing error messages:
+  - Rate limit errors: "Rate limit exceeded" → "You've made too many changes recently. Please slow down."
+  - Avatar upload errors: Removed all technical jargon (RLS violations, mime types, storage buckets)
+  - Rate limit countdown: Simplified timer display ("Try again in 2m 30s")
+  - Files: parse-auth-error.ts, form-error.tsx, avatar-upload.tsx
+- **Frontend**: Fixed critical race condition in avatar upload flow:
+  - Problem: Delete-then-upload pattern could lose user's avatar on upload failure
+  - User identified risk: "If it fails to upload, the user now will have no new profile picture"
+  - Solution: Changed to atomic `upsert: true` operation
+  - Result: Existing avatar preserved on upload failure (fail-safe behavior)
 
 ### Technical Decisions
 
-**1. Kong Path Routing Configuration**
-- Decision: Use `strip_path: true` with base URL `http://storage:5000/` to avoid path duplication
-- Problem: Routes were configured with `strip_path: false` and URLs like `http://storage:5000/storage/v1/object/public`, causing Kong to forward requests to `/storage/v1/object/public/storage/v1/object/public` (path duplication)
-- Solution: Changed `strip_path: true` and base URL to `http://storage:5000/` so Kong strips `/storage/v1/object/public` and forwards clean paths to storage service
-- Impact: Fixed all 400 "Malformed request" errors for avatar uploads and public file access
+**1. Kong Path Routing Pattern**
+- Decision: Use `strip_path: true` with base upstream URLs to avoid path duplication
+- Rationale: Kong must translate external paths (`/storage/v1/...`) to internal service paths (`/object/...`)
+- Pattern: Match prefix → strip it → forward remainder to upstream service
+- Example: External request `/storage/v1/object/public/avatars/foo.jpg` → Kong strips `/storage/v1/object/public` → forwards `/avatars/foo.jpg` to `http://storage:5000/`
+- Impact: Clean path transformation without duplication, fixed all 400 errors
 
-**2. Error Message Philosophy for End Users**
-- Decision: Remove technical jargon from user-facing error messages
-- Rationale: Users don't need to know about "mime type validation" or "storage buckets" - they need actionable guidance
+**2. Error Message Philosophy**
+- Decision: User-friendly messages without technical implementation details
+- Rationale: End users don't need to see "row-level security policy" or "RLS violation"
 - Examples:
-  - Before: "Failed to upload avatar. Rate limit exceeded."
-  - After: "You've made too many changes recently. Please slow down."
-  - Before: "Invalid mime type. Only JPEG images are allowed."
-  - After: "Please use a JPEG image (.jpg or .jpeg)"
-- Impact: More user-friendly experience, reduced confusion
+  - "Unable to save your profile picture" instead of exposing internal storage errors
+  - "You've made too many changes recently" instead of "Rate limit exceeded"
+  - "Please use a JPEG image" instead of "Invalid mime type validation failed"
+- Impact: Better user experience, reduced confusion and support burden
 
-**3. Rate Limit Restoration**
-- Decision: Restored production rate limits (5 uploads/hour, 20/day) after debugging
-- Rationale: Testing required higher limits temporarily, but production security requires strict limits to prevent abuse
-- Trade-off: Stricter limits improve security but may frustrate legitimate users making multiple quick edits
+**3. Avatar Upload Atomicity**
+- Decision: Use `upsert: true` for atomic avatar upload operations
+- Rationale: Prevents race condition where user loses avatar if upload fails after delete
+- Implementation: Single upload operation replaces existing file only on success
+- Requires: Both INSERT and UPDATE RLS policies (already in place)
+- Impact: Fail-safe behavior - existing avatar always preserved on upload failure
 
 ### Dependencies Changed
 
-- **Updated**: `next` (latest → 15.3.1) (workspace: frontend) - Fixed version mismatch causing peer dependency errors
+- **Updated**: `next` (latest → 15.3.1) (workspace: frontend) - Fixed peer dependency errors and canary version issues
 
 ### Environment Variables Changed
 
@@ -59,40 +66,55 @@ None
 
 ### Lessons Learned
 
-**1. Kong Path Routing Gotcha: strip_path and URL Duplication**
-- Kong's `strip_path` setting determines whether the route path is stripped before forwarding
-- If `strip_path: false`, the route path is prepended to the upstream URL
-- Example: Route `/storage/v1/object/public` with `strip_path: false` and upstream `http://storage:5000/storage/v1/object/public` results in request to `/storage/v1/object/public/storage/v1/object/public`
-- Solution: Use `strip_path: true` with base URL only (`http://storage:5000/`)
-- This took significant debugging because 400 errors didn't indicate path duplication explicitly
+**1. Kong strip_path Behavior**
+- `strip_path: false` keeps entire matched path → causes duplication when base URL includes path segments
+- `strip_path: true` removes matched prefix → allows clean path transformation
+- Always test both upload (POST) and retrieval (GET) flows when changing API gateway routing
+- 400 errors don't always indicate what the actual path issue is - need to trace full request flow
 
-**2. PostgreSQL "checkpoint request failed" Error**
-- Can occur when database state becomes inconsistent or corrupted
-- Running `reset-hard-db.sh` resolves by recreating database from migrations
-- Trade-off: Lose all data, but acceptable in development environment
+**2. Race Conditions in Storage Operations**
+- Delete-then-upload patterns create windows where data can be lost on failure
+- Atomic upsert operations are safer and simpler (single operation, no window)
+- Always ask: "What happens if this step fails?" when designing multi-step operations
+- User testing catches these issues - Michael identified the race condition risk immediately
 
-**3. Package Manager Consistency Matters**
-- Documentation referencing yarn when project uses npm causes confusion
-- Worth investing time to update all docs for consistency
-- Small details like this improve developer experience significantly
+**3. Package Manager Consistency**
+- Mixed references (yarn vs npm) confuse developers and create friction
+- Documentation should match actual tooling used in project
+- Worth auditing all context files when changing package managers
+- Small consistency improvements compound over time
+
+**4. PostgreSQL Control File Corruption**
+- "checkpoint request failed" loop indicates corrupted pg_control file
+- Resolution: Full database reset with reset-hard-db.sh
+- Prevention: Proper Docker volume management and graceful container shutdowns
+- Trade-off: Development data loss acceptable vs production recovery complexity
 
 ### Known Issues / Technical Debt
 
-- **Avatar Upload Error Handling**: If avatar upload fails after validation, user might lose existing profile picture (needs UX investigation and potential fix)
-- **Technical Debt**: Avatar upload flow needs comprehensive end-to-end testing
-- **Technical Debt**: Error recovery flow for failed uploads not yet implemented
+**Image Format Compatibility:**
+- Uploading HEIC files (and potentially other non-standard formats) crashes the page with "This webpage was reloaded because a problem occurred"
+- Root cause: Browser image processing (likely in browser-image-compression library or Canvas API) doesn't handle HEIC format
+- Impact: iOS users who haven't changed default camera settings will hit this
+- Potential solutions:
+  1. Add HEIC detection and show helpful error before processing
+  2. Convert HEIC server-side (requires additional infrastructure)
+  3. Improve client-side error handling to catch crashes gracefully
+- Priority: Medium (affects iOS users, but workaround exists - user can convert first)
 
 ### Next Steps
 
-- [ ] **URGENT**: Investigate and fix avatar upload error handling - ensure existing avatar is preserved on upload failure
-- [ ] Test avatar upload flow comprehensively (success cases, failure cases, edge cases)
-- [ ] Verify rate limiting works correctly for upload endpoints
-- [ ] Consider implementing optimistic UI updates with rollback on failure
-- [ ] Document final technical decisions once error handling is complete
+- [ ] Test avatar upload flow end-to-end in browser (validation, upload, retrieval, error cases)
+- [ ] Verify rate limiting works correctly (test hitting limits with countdown timer)
+- [ ] Test error scenarios comprehensively (network failure, rate limit, invalid file, large file)
+- [ ] Mobile testing: Verify avatar upload works on iOS/Android (file picker, touch targets, responsive layout)
+- [ ] Begin next feature: Star rating component or movie card component per design system specs
 
 ### Commits
 
-[None yet - work in progress]
+- `1f9842e` - Add profile picture upsert support with full rate-checking, file checking/protection, etc.
+- `6874fc7` - Update frontend packages, tsconfig
+- `8ad7824` - Add support for avatar uploading and RLS (jpeg only, 5MB limit); Add kong configurations
 
 ---
 

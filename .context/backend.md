@@ -380,6 +380,28 @@ ${API_EXTERNAL_URL}/storage/v1/object/${bucket}/${filepath}
 - Add `?version={timestamp}` to URLs to bypass cache
 - Example: `avatar.jpg?version=1699123456`
 
+### Storage Best Practices
+
+**Atomic Upsert Operations (Session 8):**
+- Always use `upsert: true` for file uploads instead of delete-then-upload patterns
+- Prevents race condition where user loses data if upload fails after delete
+- Example: Avatar upload with `upsert: true` preserves existing avatar on upload failure
+- Requires BOTH INSERT and UPDATE RLS policies for atomic upsert to work
+- Pattern:
+  ```javascript
+  const { data, error } = await supabase.storage
+    .from('bucket')
+    .upload('path/to/file.jpg', file, {
+      upsert: true  // Atomic operation: replace only on success
+    });
+  ```
+
+**Fail-Safe Philosophy:**
+- Design storage operations to preserve existing data on failure
+- Ask: "What happens if this step fails?" when designing multi-step operations
+- Single atomic operations are safer than multi-step sequences
+- Delete operations should be last step, not first
+
 ### Known Storage Issues
 
 **Cannot delete users with storage objects:**
