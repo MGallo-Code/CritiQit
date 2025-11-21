@@ -246,7 +246,6 @@ export function ProfileForm({
 
   // generate display name
   const displayName =
-    currentUser?.full_name?.trim() ||
     currentUser?.username ||
     "Your profile";
 
@@ -350,18 +349,18 @@ export function ProfileForm({
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-lg border border-border p-5">
                 <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-                  Full name
-                </h2>
-                <p className="mt-2 text-base">
-                  {formData.full_name || "Add your full name"}
-                </p>
-              </div>
-              <div className="rounded-lg border border-border p-5">
-                <h2 className="text-sm font-semibold uppercase text-muted-foreground">
                   Username
                 </h2>
                 <p className="mt-2 text-base">
                   {formData.username ? `@${formData.username}` : "Choose a username"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border p-5">
+                <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+                  Full name
+                </h2>
+                <p className="mt-2 text-base">
+                  {formData.full_name || "Add your full name"}
                 </p>
               </div>
               <div className="md:col-span-2">
@@ -379,7 +378,7 @@ export function ProfileForm({
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label htmlFor="full_name">Full name</Label>
+                  <Label htmlFor="full_name">Full name (optional)</Label>
                   <Input
                     id="full_name"
                     value={formData.full_name}
