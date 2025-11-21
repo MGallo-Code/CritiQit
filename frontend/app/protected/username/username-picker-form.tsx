@@ -18,7 +18,7 @@ interface UsernamePickerFormProps {
 }
 
 const errorMessages: Record<string, string> = {
-  invalid_format: "Username can only contain letters and numbers.",
+  invalid_format: "Username can only contain letters, numbers, and underscores.",
   too_short: "Username must be at least 3 characters.",
   too_long: "Username must be 35 characters or less.",
   reserved: "This username is reserved and cannot be used.",
@@ -244,7 +244,7 @@ export function UsernamePickerForm({
               maxLength={35}
             />
             <p className="text-xs text-muted-foreground">
-              Letters and numbers only, 3-35 characters
+              Letters, numbers, and underscores, 3-35 characters
             </p>
           </div>
         )}
