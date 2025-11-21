@@ -147,10 +147,10 @@ export function UsernamePickerForm({
         }
       }
 
-      // Update profile (username stored as lowercase in DB)
+      // Update profile with PascalCase username (DB handles case-insensitive uniqueness)
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ username: usernameToSet.toLowerCase() })
+        .update({ username: usernameToSet })
         .eq("id", userId);
 
       if (updateError) throw updateError;
