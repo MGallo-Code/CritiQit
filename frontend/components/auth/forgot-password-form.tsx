@@ -112,7 +112,7 @@ export function ForgotPasswordForm({
             Already have an account?{" "}
             <Link
               href={`/auth/login?${redirectToParamString}`}
-              className="underline underline-offset-4"
+              className="link-gold"
             >
               Login
             </Link>

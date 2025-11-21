@@ -75,7 +75,7 @@ export function ProfileForm({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [headerGradient, setHeaderGradient] = useState<string>(
-    "linear-gradient(90deg, hsl(355 70% 45% / 0.2), hsl(355 70% 45% / 0.3), hsl(355 70% 45% / 0.2))"
+    "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
   );
 
   const supabase = useMemo(() => createClient(), []);
@@ -85,9 +85,9 @@ export function ProfileForm({
   // Extract dominant color from avatar and generate gradient
   useEffect(() => {
     if (!currentUser?.avatar_url) {
-      // Use default primary color
+      // Use dramatic default primary color gradient
       setHeaderGradient(
-        "linear-gradient(90deg, hsl(355 70% 45% / 0.2), hsl(355 70% 45% / 0.3), hsl(355 70% 45% / 0.2))"
+        "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
       );
       return;
     }
@@ -129,25 +129,32 @@ export function ProfileForm({
         // Convert RGB to HSL for better control
         const hsl = rgbToHsl(r, g, b);
 
-        // Generate gradient with extracted color
-        // Boost lightness for better visibility and use varying lightness for depth
-        const lightness = Math.max(hsl.l + 20, 60); // Ensure minimum 60% lightness
+        // Generate dramatic gradient with extracted color
+        // Boost saturation for more vibrant colors (min 45%, boost by 15%)
+        const saturation = Math.min(Math.max(hsl.s + 15, 45), 85);
+
+        // Adjust lightness for better visibility (boost by 15%, min 55%)
+        const baseLightness = Math.max(hsl.l + 15, 55);
+
+        // Create 5-stop gradient with varying lightness and higher opacity
+        // Uses diagonal angle (135deg) for more visual interest
+        // Opacity range: 0.45 - 0.65 (much more prominent than 0.2 - 0.3)
         setHeaderGradient(
-          `linear-gradient(90deg, hsl(${hsl.h} ${hsl.s}% ${lightness - 15}% / 0.2), hsl(${hsl.h} ${hsl.s}% ${lightness}% / 0.3), hsl(${hsl.h} ${hsl.s}% ${lightness - 15}% / 0.2))`
+          `linear-gradient(135deg, hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness + 10}% / 0.55), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45))`
         );
       } catch (err) {
         console.error("Failed to extract avatar color:", err);
-        // Fallback to default
+        // Fallback to dramatic default
         setHeaderGradient(
-          "linear-gradient(90deg, hsl(355 70% 45% / 0.2), hsl(355 70% 45% / 0.3), hsl(355 70% 45% / 0.2))"
+          "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
         );
       }
     };
 
     img.onerror = () => {
-      // Fallback to default on error
+      // Fallback to dramatic default on error
       setHeaderGradient(
-        "linear-gradient(90deg, hsl(355 70% 45% / 0.2), hsl(355 70% 45% / 0.3), hsl(355 70% 45% / 0.2))"
+        "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
       );
     };
   }, [currentUser?.avatar_url]);
