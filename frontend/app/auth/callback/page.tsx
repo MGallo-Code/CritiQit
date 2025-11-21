@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import LoadingContent from "@/components/ui/loading-content";
 import { useCurrentUser } from "@/providers/current-user-provider";
+import { needsUsernameSet, getUsernamePickerUrl } from "@/lib/auth/username-check";
 
 export default function AuthCallbackPage() {
   // use the provider to get user
@@ -22,7 +23,7 @@ export default function AuthCallbackPage() {
     redirectParam && redirectParam.startsWith("/")
       ? redirectParam
       : "/protected/dashboard";
-  
+
   // used to update message displayed on screen for timeouts
   const [message, setMessage] = useState({
     title: "Please wait while we authenticate you...",
@@ -35,13 +36,22 @@ export default function AuthCallbackPage() {
     // if user is loaded and not yet redirected,
     if (user && !hasRedirectedRef.current) {
       hasRedirectedRef.current = true;
-      router.replace(redirectTo);
+
+      // Check if username needs to be set
+      if (needsUsernameSet(user.username)) {
+        // Redirect to username picker with intended destination
+        const usernamePickerUrl = getUsernamePickerUrl(redirectTo);
+        router.replace(usernamePickerUrl);
+      } else {
+        // Username is set, proceed to intended destination
+        router.replace(redirectTo);
+      }
     }
     // user not loaded, poke provider to get user
     else {
       refreshUser()
     }
-  }, [user])
+  }, [user, redirectTo, router, refreshUser])
 
   // set a message to tell user to refresh the page if it takes too long
   useEffect(() => {

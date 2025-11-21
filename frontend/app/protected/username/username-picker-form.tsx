@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useCurrentUser } from "@/providers/current-user-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,11 @@ export function UsernamePickerForm({
 }: UsernamePickerFormProps) {
   const router = useRouter();
   const supabase = createClient();
+  const { refreshUser } = useCurrentUser();
+  const searchParams = useSearchParams();
+
+  // Get redirect destination from query params
+  const redirectTo = searchParams.get("redirect") || "/protected/dashboard";
 
   // State management
   const [pool, setPool] = useState<string[]>([]);
@@ -149,8 +155,11 @@ export function UsernamePickerForm({
 
       if (updateError) throw updateError;
 
-      // Success! Navigate to dashboard
-      router.push("/protected/dashboard");
+      // Refresh user context to update username immediately
+      await refreshUser();
+
+      // Success! Navigate to intended destination
+      router.push(redirectTo);
     } catch (err) {
       console.error("Error setting username:", err);
       setError("Unable to set username. Please try again.");
@@ -159,7 +168,7 @@ export function UsernamePickerForm({
   }
 
   function handleSkip() {
-    router.push("/protected/dashboard");
+    router.push(redirectTo);
   }
 
   const isRateLimited = isRateLimitError(error);
