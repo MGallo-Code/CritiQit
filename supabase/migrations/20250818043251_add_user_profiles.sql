@@ -8,7 +8,7 @@ CREATE TABLE public.profiles (
   "id" uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id),
   "username" TEXT UNIQUE
     CONSTRAINT "username_length" CHECK (char_length(username) >= 3 AND char_length(username) <= 35)
-    CONSTRAINT "username_format" CHECK (username ~ '^[a-zA-Z0-9]+$'),
+    CONSTRAINT "username_format" CHECK (username ~ '^[a-zA-Z0-9_]+$'),
   "username_is_temporary" BOOLEAN NOT NULL DEFAULT false,
   "full_name" TEXT
     CONSTRAINT "full_name_length" CHECK (char_length(full_name) >= 3 AND char_length(full_name) <= 100),
@@ -19,6 +19,19 @@ CREATE TABLE public.profiles (
   "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   "updated_at" TIMESTAMP WITH TIME ZONE
 );
+
+-- ================================
+-- Indexes
+-- ================================
+
+-- Case-insensitive username lookup index (for availability checking)
+-- UNIQUE constraint already creates btree index on username
+-- This adds functional index on lower(username) for case-insensitive queries
+CREATE INDEX profiles_username_lower_idx ON public.profiles (lower(username));
+
+COMMENT ON INDEX profiles_username_lower_idx IS
+'Optimizes case-insensitive username lookups used in generate_usernames() and check_username_available().
+Prevents full table scans when checking if lower(username) = ''someusername''.';
 
 -- ================================
 -- Row Level Security
@@ -45,7 +58,7 @@ begin
     new.id,
     new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'avatar_url',
-    'User' || substr(md5(new.email || NOW()::text), 1, 10),
+    'User_' || substr(md5(new.email || NOW()::text), 1, 10),
     true  -- Mark temporary username
   );
   return new;

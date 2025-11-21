@@ -102,7 +102,7 @@ export function UsernamePickerForm({
   }
 
   function handleCustomInputChange(value: string) {
-    const cleaned = value.replace(/[^a-zA-Z0-9]/g, "");
+    const cleaned = value.replace(/[^a-zA-Z0-9_]/g, "");
     setCustomUsername(cleaned);
     setError(null);
   }
