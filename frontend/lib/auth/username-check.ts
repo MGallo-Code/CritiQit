@@ -1,20 +1,18 @@
 /**
- * Checks if a username is missing or temporary and needs to be set.
+ * Checks if a username is temporary and needs to be set.
  *
- * Users need to set a username if:
- * 1. No username is set (empty string)
- * 2. Username starts with "User" followed by 10 hex chars (temporary auto-generated username)
- *    Example: User1a2b3c4d5e
+ * Previously relied on pattern matching (User + 10 hex chars), which caused an infinite loop bug:
+ * Users who CHOSE usernames like "User123abc" would be repeatedly prompted to change their username.
  *
- * @param username - The username to check
+ * Now uses an explicit database flag (username_is_temporary) to track whether a username is auto-generated.
+ * - Set to true when user is created with temp username
+ * - Set to false when user manually sets a username (even if it matches the pattern!)
+ *
+ * @param usernameIsTemporary - Boolean flag from database indicating if username is auto-generated
  * @returns true if username needs to be set, false otherwise
  */
-export function needsUsernameSet(username: string | null | undefined): boolean {
-  if (!username) return true;
-  if (username.trim() === "") return true;
-  // Check for temporary username pattern: User + 10 hex characters
-  if (/^User[a-f0-9]{10}$/i.test(username)) return true;
-  return false;
+export function needsUsernameSet(usernameIsTemporary: boolean | null | undefined): boolean {
+  return usernameIsTemporary === true;
 }
 
 /**

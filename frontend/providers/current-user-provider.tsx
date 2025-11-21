@@ -94,7 +94,7 @@ export const CurrentUserProvider = ({
       // Load profile data from supabase
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('avatar_url, username, full_name, bio, created_at')
+        .select('avatar_url, username, username_is_temporary, full_name, bio, created_at')
         .eq('id', userId)
         .maybeSingle()
 

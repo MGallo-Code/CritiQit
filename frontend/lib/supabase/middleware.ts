@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { needsUsernameSet, getUsernamePickerUrl } from "@/lib/auth/username-check";
+import { needsUsernameSet } from "@/lib/auth/username-check";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -58,17 +58,16 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/protected") &&
     !request.nextUrl.pathname.startsWith("/protected/username")
   ) {
-    // Fetch user profile to check username
+    // Fetch user profile to check if username is temporary
     const { data: profile } = await supabase
       .from("profiles")
-      .select("username")
+      .select("username_is_temporary")
       .eq("id", user.sub)
       .maybeSingle();
 
-    // If username needs to be set, redirect to username picker
-    if (needsUsernameSet(profile?.username)) {
+    // If username is temporary (auto-generated), redirect to username picker
+    if (needsUsernameSet(profile?.username_is_temporary)) {
       const url = request.nextUrl.clone();
-      const usernamePickerUrl = getUsernamePickerUrl(request.nextUrl.pathname);
       url.pathname = "/protected/username";
       url.searchParams.set("redirect", request.nextUrl.pathname);
       return NextResponse.redirect(url);

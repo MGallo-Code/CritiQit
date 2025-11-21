@@ -11,6 +11,7 @@ export interface UserProfile {
   email: string;
   avatar_url: string | null;
   username: string;
+  username_is_temporary: boolean;
   full_name: string | null;
   bio: string | null;
   created_at: string | null;
@@ -38,6 +39,9 @@ export const mapAuthUserToProfile = (
       profile?.username ??
       metadata.username ??
       "",
+    username_is_temporary:
+      profile?.username_is_temporary ??
+      false,
     full_name:
       profile?.full_name ??
       metadata.full_name ??

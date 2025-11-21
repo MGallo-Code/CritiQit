@@ -37,13 +37,13 @@ export default function AuthCallbackPage() {
     if (user && !hasRedirectedRef.current) {
       hasRedirectedRef.current = true;
 
-      // Check if username needs to be set
-      if (needsUsernameSet(user.username)) {
+      // Check if username is temporary (auto-generated)
+      if (needsUsernameSet(user.username_is_temporary)) {
         // Redirect to username picker with intended destination
         const usernamePickerUrl = getUsernamePickerUrl(redirectTo);
         router.replace(usernamePickerUrl);
       } else {
-        // Username is set, proceed to intended destination
+        // Username is user-chosen, proceed to intended destination
         router.replace(redirectTo);
       }
     }

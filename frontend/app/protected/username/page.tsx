@@ -10,12 +10,18 @@ export default async function UsernamePage() {
     redirect("/auth/login");
   }
 
-  // Get current username
+  // Get current username and temporary flag
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username")
+    .select("username, username_is_temporary")
     .eq("id", user.id)
     .single();
+
+  // If username is already user-chosen (not temporary), redirect to dashboard
+  // This prevents users from accessing the picker page if they already set their username
+  if (profile && !profile.username_is_temporary) {
+    redirect("/protected/dashboard");
+  }
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">

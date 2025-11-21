@@ -147,10 +147,14 @@ export function UsernamePickerForm({
         }
       }
 
-      // Update profile with PascalCase username (DB handles case-insensitive uniqueness)
+      // Update profile with PascalCase username AND clear temporary flag
+      // This prevents infinite loop: even if user chooses "User123abc", it won't prompt again
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ username: usernameToSet })
+        .update({
+          username: usernameToSet,
+          username_is_temporary: false  // Mark as user-chosen
+        })
         .eq("id", userId);
 
       if (updateError) throw updateError;

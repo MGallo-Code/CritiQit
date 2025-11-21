@@ -9,6 +9,7 @@ CREATE TABLE public.profiles (
   "username" TEXT UNIQUE
     CONSTRAINT "username_length" CHECK (char_length(username) >= 3 AND char_length(username) <= 35)
     CONSTRAINT "username_format" CHECK (username ~ '^[a-zA-Z0-9]+$'),
+  "username_is_temporary" BOOLEAN NOT NULL DEFAULT false,
   "full_name" TEXT
     CONSTRAINT "full_name_length" CHECK (char_length(full_name) >= 3 AND char_length(full_name) <= 100),
   "bio" TEXT
@@ -39,12 +40,13 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
   SET search_path TO ''
 AS $function$
 begin
-  INSERT INTO public.profiles (id, full_name, avatar_url, username)
+  INSERT INTO public.profiles (id, full_name, avatar_url, username, username_is_temporary)
   VALUES (
     new.id,
     new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'avatar_url',
-    'User' || substr(md5(new.email || NOW()::text), 1, 10)
+    'User' || substr(md5(new.email || NOW()::text), 1, 10),
+    true  -- Mark temporary username
   );
   return new;
 end;
