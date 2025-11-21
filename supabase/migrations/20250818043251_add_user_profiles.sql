@@ -7,7 +7,8 @@ create extension if not exists "pgjwt" with schema "extensions";
 CREATE TABLE public.profiles (
   "id" uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id),
   "username" TEXT UNIQUE
-    CONSTRAINT "username_length" CHECK (char_length(username) >= 3 AND char_length(username) <= 35),
+    CONSTRAINT "username_length" CHECK (char_length(username) >= 3 AND char_length(username) <= 35)
+    CONSTRAINT "username_format" CHECK (username ~ '^[a-zA-Z0-9]+$'),
   "full_name" TEXT
     CONSTRAINT "full_name_length" CHECK (char_length(full_name) >= 3 AND char_length(full_name) <= 100),
   "bio" TEXT
@@ -43,7 +44,7 @@ begin
     new.id,
     new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'avatar_url',
-    'User_' || substr(md5(new.email || NOW()::text), 1, 10)
+    'User' || substr(md5(new.email || NOW()::text), 1, 10)
   );
   return new;
 end;

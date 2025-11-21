@@ -3,7 +3,8 @@
  *
  * Users need to set a username if:
  * 1. No username is set (empty string)
- * 2. Username starts with "User_" (temporary auto-generated username)
+ * 2. Username starts with "User" followed by 10 hex chars (temporary auto-generated username)
+ *    Example: User1a2b3c4d5e
  *
  * @param username - The username to check
  * @returns true if username needs to be set, false otherwise
@@ -11,7 +12,8 @@
 export function needsUsernameSet(username: string | null | undefined): boolean {
   if (!username) return true;
   if (username.trim() === "") return true;
-  if (username.startsWith("User_")) return true;
+  // Check for temporary username pattern: User + 10 hex characters
+  if (/^User[a-f0-9]{10}$/i.test(username)) return true;
   return false;
 }
 
