@@ -1,10 +1,15 @@
-!/bin/bash
+#!/bin/bash
 
 # Script to:
 # - upload email templates to the email-templates bucket
-# Run from the supabase/ directory
+# Run from the supabase/seed/ directory or supabase/ directory
 
 set -e  # Exit on any error
+
+# Change to supabase directory if we're in seed/
+if [ -f "../compose.yml" ]; then
+    cd ..
+fi
 
 source .env
 
@@ -13,6 +18,8 @@ if [ ! -f "compose.yml" ]; then
     echo "❌ Error: Please run this script from the supabase/ directory"
     exit 1
 fi
+
+cd seed
 
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
 echo "Uploading email templates to the email-templates bucket..."

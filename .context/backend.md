@@ -57,6 +57,29 @@ supabase/
 
 ## Database
 
+### ⚠️ CRITICAL: Migration Rules
+
+**NEVER run `supabase db reset` or `supabase db push` directly!**
+
+**ALWAYS use the provided shell scripts:**
+- `reset-hard-db.sh` - Complete database reset (drops everything, reapplies migrations)
+- `reset-soft-db.sh` - Soft reset (preserves some data)
+
+**Why:** Direct `supabase` CLI commands bypass safety checks, proper initialization, and can corrupt the database state.
+
+**Correct workflow:**
+```bash
+cd supabase/
+./reset-hard-db.sh   # For testing migration changes
+./reset-soft-db.sh   # For preserving data during reset
+```
+
+**NEVER do:**
+```bash
+supabase db reset    # ❌ FORBIDDEN
+supabase db push     # ❌ FORBIDDEN
+```
+
 ### Schema
 
 **`public.profiles`**

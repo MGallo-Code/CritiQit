@@ -76,6 +76,9 @@ CREATE TRIGGER on_auth_user_created
 -- ================================
 
 -- Create the 'avatars' bucket
+-- File structure:
+--   - User avatars: {uuid}.jpg (one per user, managed by user)
+--   - Preset avatars: presets/{name}.jpg (managed by service_role only)
 INSERT INTO storage.buckets (id, name, public)
   VALUES ('avatars', 'avatars', true)
   on conflict (id) do nothing; -- prevent errors on subsequent runs
@@ -177,24 +180,77 @@ CREATE POLICY "Users can delete their own avatar"
     AND (name = owner::text || '.jpg')
   );
 
--- ~~~~~~~ Email Templates ~~~~~~~
+-- ~~~~~~~ Avatar Presets ~~~~~~~
 
-CREATE POLICY "Admins can upload email templates."
-  ON storage.objects
-  AS permissive
-  FOR insert
-  TO authenticated
-  WITH CHECK (
-    (bucket_id = 'email-templates'::text) AND (owner = auth.uid())
-  );
-
-CREATE POLICY "Allow service_role to insert into email-templates"
+CREATE POLICY "Service role can upload avatar presets"
   ON storage.objects
   AS permissive
   FOR INSERT
+  TO service_role
   WITH CHECK (
-    (bucket_id = 'email-templates'::text) AND
-    (auth.role() = 'service_role')
+    (bucket_id = 'avatars'::text)
+    AND (name LIKE 'presets/%')
+  );
+
+COMMENT ON POLICY "Service role can upload avatar presets" ON storage.objects IS
+'Allows admin/service_role to upload preset avatars to presets/ folder.
+Users are restricted to {uuid}.jpg pattern and cannot upload to presets/.
+Preset avatars are publicly readable via the main "Avatar images are publicly accessible" policy.';
+
+CREATE POLICY "Service role can update avatar presets"
+  ON storage.objects
+  AS permissive
+  FOR UPDATE
+  TO service_role
+  USING (
+    (bucket_id = 'avatars'::text)
+    AND (name LIKE 'presets/%')
+  )
+  WITH CHECK (
+    (bucket_id = 'avatars'::text)
+    AND (name LIKE 'presets/%')
+  );
+
+CREATE POLICY "Service role can delete avatar presets"
+  ON storage.objects
+  AS permissive
+  FOR DELETE
+  TO service_role
+  USING (
+    (bucket_id = 'avatars'::text)
+    AND (name LIKE 'presets/%')
+  );
+
+-- ~~~~~~~ Email Templates ~~~~~~~
+
+CREATE POLICY "Service role can insert email templates"
+  ON storage.objects
+  AS permissive
+  FOR INSERT
+  TO service_role
+  WITH CHECK (
+    bucket_id = 'email-templates'::text
+  );
+
+CREATE POLICY "Service role can update email templates"
+  ON storage.objects
+  AS permissive
+  FOR UPDATE
+  TO service_role
+  USING (
+    bucket_id = 'email-templates'::text
+  )
+  WITH CHECK (
+    bucket_id = 'email-templates'::text
+  );
+
+CREATE POLICY "Service role can delete email templates"
+  ON storage.objects
+  AS permissive
+  FOR DELETE
+  TO service_role
+  USING (
+    bucket_id = 'email-templates'::text
   );
 
 -- ================================

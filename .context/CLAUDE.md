@@ -56,6 +56,7 @@ None! Avatar upload feature complete and production-ready. All critical bugs res
 
 ## ⚡ Important Notes for Next Session
 
+- **⚠️ CRITICAL: Database Migration Rule** - NEVER run `supabase db reset` or `supabase db push` directly. ALWAYS use `./reset-hard-db.sh` or `./reset-soft-db.sh` scripts in the supabase/ directory. Direct CLI commands bypass safety checks and can corrupt the database.
 - **Avatar Upload Production-Ready**: Atomic upsert operations prevent data loss on failure
 - **Kong Path Routing Pattern**: Use `strip_path: true` with base URLs to avoid duplication (e.g., `http://storage:5000/` not `http://storage:5000/storage/v1/object/public`)
 - **Atomic Storage Operations**: Always use `upsert: true` instead of delete-then-upload patterns to prevent race conditions
