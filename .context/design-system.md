@@ -1,6 +1,6 @@
 # CritiQit Design System
 
-**Last Updated:** 2025-11-14
+**Last Updated:** 2025-11-27
 
 > **Philosophy**: Professional + warm, minimalist with depth. Like Letterboxd's elegance meets a cozy community. Dark mode primary. Accessible to everyone, from casual users to data nerds.
 
@@ -1011,6 +1011,137 @@ Legend: ░ 0-2  ▓ 3-5  █ 6+ ratings
 
 ---
 
+## 🎭 Background Patterns
+
+### Royal Red Curtain (`.bg-curtain-folds`)
+
+**Use for:** Page backgrounds, hero sections, profile headers
+
+**Styling:** Vertical theater drape pattern using repeating gradient
+
+**Implementation:**
+```css
+/* In globals.css */
+.bg-curtain-folds {
+  background: linear-gradient(
+    90deg,
+    var(--curtain-bg) 0%,
+    var(--curtain-highlight) 10%,
+    var(--curtain-shadow) 20%,
+    var(--curtain-bg) 30%,
+    var(--curtain-highlight) 40%,
+    var(--curtain-shadow) 50%,
+    var(--curtain-bg) 60%,
+    var(--curtain-highlight) 70%,
+    var(--curtain-shadow) 80%,
+    var(--curtain-bg) 90%,
+    var(--curtain-highlight) 100%
+  );
+}
+```
+
+**CSS Variables:**
+```css
+--curtain-bg: hsl(355 70% 25%)         /* Deep red base */
+--curtain-highlight: hsl(355 65% 30%)  /* Lighter red for highlights */
+--curtain-shadow: hsl(355 75% 20%)     /* Darker red for shadows */
+```
+
+**Usage:**
+```tsx
+<div className="min-h-screen bg-curtain-folds">
+  {/* Page content */}
+</div>
+```
+
+**Design Notes:**
+- Creates movie theater ambiance
+- Provides warm, professional background
+- Use solid `bg-card` for content overlays (avoid transparency on curtains)
+- Ensure text has sufficient contrast
+
+---
+
+## ⌨️ Form Input Styling
+
+### Global Focus Outline System
+
+**Universal golden focus states** for all form inputs (Session 9 implementation)
+
+**Implementation:**
+```css
+/* In @layer base (globals.css) - applies universally */
+input:focus,
+textarea:focus,
+select:focus {
+  @apply outline-none ring-2 ring-star-yellow/30 border-star-yellow;
+}
+
+/* Light mode variant - darker gold for better visibility */
+:root input:focus,
+:root textarea:focus,
+:root select:focus {
+  @apply ring-star-yellow-muted/40 border-star-yellow-muted;
+}
+
+/* Dark mode variant - bright gold */
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  @apply ring-star-yellow/30 border-star-yellow;
+}
+```
+
+**Benefits:**
+- Consistent focus states across all form inputs (no per-component styling needed)
+- Theme-aware (bright gold in dark mode, darker gold in light mode)
+- Improves accessibility with clear, visible focus indicators
+- Matches movie theater design system
+
+**Applies to:**
+- Text inputs
+- Textareas
+- Select dropdowns
+- OTP inputs
+- Any form element
+
+### OTP Input Component
+
+**6-digit verification code input** with design system styling
+
+**Features:**
+- Individual digit boxes with golden focus
+- Auto-advance to next input on digit entry
+- Backspace navigation
+- Paste support (distributes 6-digit code across inputs)
+- Disabled state support
+
+**Styling:**
+```tsx
+<input
+  type="text"
+  maxLength={1}
+  className="w-12 h-14 text-center text-2xl font-mono border-2 border-border rounded-lg
+             bg-card text-foreground
+             focus:border-star-yellow focus:ring-2 focus:ring-star-yellow/30
+             disabled:opacity-50 disabled:cursor-not-allowed"
+/>
+```
+
+**Usage:**
+```tsx
+import { OTPInput } from "@/components/ui/otp-input";
+
+<OTPInput
+  length={6}
+  value={otp}
+  onChange={setOtp}
+  disabled={isLoading}
+/>
+```
+
+---
+
 ## 🔗 Link Styling Patterns
 
 ### Gold/Yellow Links (`.link-gold`)
@@ -1025,14 +1156,26 @@ Legend: ░ 0-2  ▓ 3-5  █ 6+ ratings
 - Focus: 2px outline for keyboard navigation
 - Accessibility: 11.07:1 contrast on dark backgrounds (WCAG AAA)
 
+**Implementation:**
+```css
+/* In globals.css */
+.link-gold {
+  color: hsl(var(--star-yellow));
+  text-decoration: underline;
+  text-decoration-color: hsl(var(--star-yellow) / 0.5);
+  transition: all 0.2s ease;
+}
+.link-gold:hover {
+  filter: brightness(1.2);
+}
+```
+
 **Usage:**
 ```tsx
 <Link href="/auth/sign-up" className="link-gold">
   Sign up
 </Link>
 ```
-
-**Implementation:** Utility class in `globals.css`
 
 **Applied to:**
 - Forgot password link (login form)

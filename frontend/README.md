@@ -60,10 +60,6 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
    ```
 
    ```bash
-   yarn create next-app --example with-supabase with-supabase-app
-   ```
-
-   ```bash
    pnpm create next-app --example with-supabase with-supabase-app
    ```
 

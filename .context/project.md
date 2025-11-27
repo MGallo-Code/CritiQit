@@ -504,7 +504,6 @@ This prevents rework and ensures domain expertise is applied from the start.
 ## Related Documentation
 
 - **Design system**: [design-system.md](./design-system.md)
-- **Agent system guide**: [agents-guide.md](./agents-guide.md)
 - **Backend specifics**: [backend.md](./backend.md)
 - **Frontend specifics**: [frontend.md](./frontend.md)
 - **Session history**: [sessions.md](./sessions.md)

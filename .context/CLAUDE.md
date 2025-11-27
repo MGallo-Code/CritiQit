@@ -3,8 +3,6 @@
 > **📋 See [project.md](./project.md) for project structure, tech stack, and specialized documentation links**
 >
 > **📚 See [sessions.md](./sessions.md) for detailed session history**
->
-> **🤖 See [agents-guide.md](./agents-guide.md) for custom agent system documentation**
 
 Last updated: 2025-11-20 04:45
 
@@ -328,7 +326,6 @@ Before committing ANY code:
   - Backend: `api.critiqit.io` (dev: localhost:8000)
 
 For detailed information:
-- Agent system usage → [agents-guide.md](./agents-guide.md)
 - Design system specs → [design-system.md](./design-system.md)
 - Backend details → [backend.md](./backend.md)
 - Frontend details → [frontend.md](./frontend.md)

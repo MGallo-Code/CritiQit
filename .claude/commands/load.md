@@ -8,7 +8,7 @@ Then reference specialized documentation as needed:
 - `.context/project.md` - Tech stack, architecture, lessons learned
 - `.context/backend.md` - Supabase/PostgreSQL details, RLS policies, CLI patterns
 - `.context/frontend.md` - Next.js structure, component patterns, auth flows
-- `.context/sessions.md` - Detailed session history (if deeper context needed)
+- `.context/sessions.md` - Detailed session history (if deeper context needed, large file so read in chunks)
 
 Project structure:
 - Monorepo: `frontend/` (Next.js) + `supabase/` (backend)

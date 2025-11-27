@@ -136,17 +136,36 @@ From your backend perspective:
 
 Once plan verified by both specialists:
 
+**DELEGATION HEADER (Include in EVERY specialist task):**
+```
+🎯 ORCHESTRATOR MODE: You are being invoked by full-stack-integrator.
+
+Your role:
+- Complete the specific task below
+- Return results to me (the orchestrator)
+- Do NOT coordinate with other workspaces
+- Do NOT make cross-workspace decisions
+- Focus ONLY on your domain expertise
+
+I will handle integration, type alignment, and coordination.
+
+---
+
+[Your complete specification here...]
+```
+
+**Execution Patterns:**
 ```typescript
 // Independent work - run in PARALLEL
-Task(subagent_type: "frontend-dev", prompt: "[Complete spec]...")
-Task(subagent_type: "backend-dev", prompt: "[Complete spec]...")
+Task(subagent_type: "frontend-dev", prompt: "🎯 ORCHESTRATOR MODE: ... [spec]")
+Task(subagent_type: "backend-dev", prompt: "🎯 ORCHESTRATOR MODE: ... [spec]")
 
 // Dependent work - run SEQUENTIALLY
 // 1. Backend first (defines API)
-Task(subagent_type: "backend-dev", prompt: "Create table and types...")
+Task(subagent_type: "backend-dev", prompt: "🎯 ORCHESTRATOR MODE: ... [spec]")
 // 2. Wait, extract types
 // 3. Frontend next (consumes API)
-Task(subagent_type: "frontend-dev", prompt: "Implement UI with types: [...]")
+Task(subagent_type: "frontend-dev", prompt: "🎯 ORCHESTRATOR MODE: ... [spec]")
 ```
 
 ### Phase 6: Integration Verification
@@ -187,7 +206,20 @@ Task for backend-dev: Add comments table
 
 **Example - GOOD:**
 ```
-Task for backend-dev: Create comments table with full security
+🎯 ORCHESTRATOR MODE: You are being invoked by full-stack-integrator.
+
+Your role:
+- Complete the backend task below
+- Return results to me (the orchestrator)
+- Do NOT coordinate with frontend
+- Do NOT make cross-workspace decisions
+- Focus ONLY on backend implementation
+
+I will handle integration and type alignment.
+
+---
+
+Task: Create comments table with full security
 
 Context: Users comment on posts. Public read, users edit/delete own only.
 

@@ -436,4 +436,3 @@ Realtime service (WebSocket subscriptions) intentionally disabled for CritiQit.
 - [frontend.md](./frontend.md) - Frontend details
 - [design-system.md](./design-system.md) - Design system
 - [sessions.md](./sessions.md) - Session history
-- [agents-guide.md](./agents-guide.md) - Agent system
