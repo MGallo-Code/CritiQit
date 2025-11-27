@@ -36,6 +36,4 @@ Launch the **full-stack-integrator** agent to:
 **Consultation-First Pattern:**
 The integrator asks specialists for recommendations BEFORE planning, then synthesizes their expertise into cohesive solutions. This ensures domain knowledge is applied from the start.
 
-**Expected Duration:** Varies by feature complexity (30 minutes to 3 hours)
-
 **Note:** For frontend-only or backend-only work, you can invoke those agents directly instead of using /implement.

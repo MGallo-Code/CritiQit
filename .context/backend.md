@@ -1,662 +1,439 @@
 # CritiQit Backend Documentation
 
-This file documents Supabase backend architecture, patterns, and operational procedures.
+> **Last Updated**: 2025-11-27
+> **Architecture**: Self-hosted Supabase on Docker
+> **Purpose**: Essential backend infrastructure reference for AI agents
 
 ---
 
-## Overview
+## 🚨 CRITICAL RULES - READ FIRST
 
-CritiQit uses a **self-hosted Supabase instance** running in Docker containers, NOT Supabase's cloud platform. This gives full control over the database, storage, and authentication services.
+### Database Management Rule
 
-**Key Difference**: Self-hosted means we manage the entire stack through Docker Compose and have direct database access, unlike cloud-hosted Supabase projects.
+**⚠️ NEVER USE SUPABASE CLI COMMANDS DIRECTLY**
+
+```bash
+# ❌ FORBIDDEN
+supabase start | supabase stop | supabase db reset | supabase db push | supabase db pull
+```
+
+**✅ ALWAYS USE THE `./db` CLI TOOL**
+
+```bash
+cd supabase/
+./db start          # Start containers
+./db stop           # Stop containers
+./db restart        # Restart containers
+./db reset hard     # Nuclear reset (destroys all data, freshly applies migrations)
+./db reset soft     # Soft reset (preserves volumes)
+./db seed           # Upload seed data
+./db status         # Check system health
+./db migrate        # Apply new migrations
+./db help           # Show all commands
+```
+
+**Why:** Direct CLI commands bypass safety scripts, corrupt state, and don't source environment correctly. No exceptions.
 
 ---
 
-## Architecture
+## 📋 Table of Contents
 
-### Docker Services
+1. [Architecture Overview](#architecture-overview)
+2. [Database Management](#database-management-db-cli-tool)
+3. [Database Schema](#database-schema)
+4. [Kong API Gateway & Rate Limiting](#kong-api-gateway--rate-limiting)
+5. [Storage System](#storage-system)
+6. [Authentication](#authentication--authorization)
+7. [Edge Functions](#edge-functions)
+8. [Common Workflows](#development-workflows)
 
-Located in `supabase/compose.yml`, the stack includes:
-- **PostgreSQL**: Main database (port 5432)
-- **Studio**: Supabase Studio UI (port 8000)
-- **Auth**: Authentication service (GoTrue)
-- **Rest**: PostgREST API
-- **Realtime**: WebSocket service
-- **Storage**: Object storage service
-- **Kong**: API Gateway (version 3.9) with custom rate limiting plugin
-- **Analytics**: (Optional) Logflare/analytics
+---
 
-### Directory Structure
+## Architecture Overview
+
+### System Design
+
+**Self-hosted Supabase** (NOT Supabase Cloud) running 12 Docker containers in `supabase/compose.yml`:
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| **db** | 5432 | PostgreSQL 15.8.1 |
+| **kong** | 8000/8443 | API gateway with custom rate limiting |
+| **auth** | 9999 | GoTrue authentication |
+| **rest** | 3000 | PostgREST auto-generated API |
+| **storage** | 5000 | Object storage (avatars) |
+| **imgproxy** | 5001 | Image transformations |
+| **meta** | 8080 | Database introspection (Studio) |
+| **functions** | 9000 | Deno edge functions |
+| **studio** | Internal | Admin dashboard |
+| **analytics** | 4000 | Logging (Logflare) |
+| **vector** | 9001 | Log aggregation |
+| **supavisor** | 5432/6543 | Connection pooler |
+
+**Realtime service disabled** - Not needed for CritiQit (reduces resources, battery drain, complexity).
+
+### Data Flow
+
+```
+Client → Cloudflare → Kong (:8000)
+  ├─ JWT Validation
+  ├─ Rate Limiting (3-tier: IP/content/user)
+  └─ Routes to:
+      ├─ GoTrue (auth)
+      ├─ PostgREST (database API)
+      ├─ Storage (files)
+      └─ Edge Functions (Deno)
+  ↓
+Supavisor (connection pooler)
+  ↓
+PostgreSQL + RLS policies
+```
+
+### File Structure
 
 ```
 supabase/
-├── compose.yml              # Docker Compose configuration
-├── config.toml             # Supabase CLI configuration
-├── .env                    # Environment variables (not committed)
-├── migrations/             # Database migrations
-│   ├── 20250818043251_add_user_profiles.sql
-│   └── 20251112000000_create_rate_limiting.sql
-├── email-templates/        # Email HTML templates
-├── dev/                    # Development files
-├── volumes/               # Docker volumes (persistent data)
-│   ├── functions/         # Edge functions
-│   └── api/              # Kong configuration
-│       ├── kong.yml      # Kong declarative config
-│       └── kong/         # Kong custom plugins
-│           └── plugins/
-│               └── rate-limit-db/  # Rate limiting plugin
-│                   ├── handler.lua
-│                   └── schema.lua
-├── reset-hard-db.sh       # Complete database reset
-├── reset-soft-db.sh       # Soft database reset
-├── restart-db.sh          # Restart containers
-└── upload-templates.sh    # Upload email templates to storage
+├── db                            # CLI tool (ALWAYS use this)
+├── compose.yml                   # 12 Docker services
+├── .env                          # Secrets (not committed)
+├── migrations/                   # Database migrations
+├── seed/                         # Preset avatars + email templates
+└── volumes/
+    ├── db/data/                  # PostgreSQL data
+    ├── api/kong.yml              # Kong config (1008 lines)
+    ├── api/kong/plugins/         # Custom rate-limit-db plugin
+    └── functions/                # Edge functions (Deno)
 ```
+
+### Key Ports
+
+- `8000/8443` - Kong (external API gateway)
+- `5432/6543` - Supavisor (connection pooler)
+- Internal: Services use Docker DNS (`http://auth:9999`)
 
 ---
 
-## Database
+## Database Management (`db` CLI Tool)
 
-### ⚠️ CRITICAL: Migration Rules
+Executable bash script at `supabase/db` - unified interface for ALL database operations.
 
-**NEVER run `supabase db reset` or `supabase db push` directly!**
+### Commands
 
-**ALWAYS use the provided shell scripts:**
-- `reset-hard-db.sh` - Complete database reset (drops everything, reapplies migrations)
-- `reset-soft-db.sh` - Soft reset (preserves some data)
-
-**Why:** Direct `supabase` CLI commands bypass safety checks, proper initialization, and can corrupt the database state.
-
-**Correct workflow:**
 ```bash
-cd supabase/
-./reset-hard-db.sh   # For testing migration changes
-./reset-soft-db.sh   # For preserving data during reset
+./db start           # Start all containers
+./db stop            # Stop containers (preserves data)
+./db restart         # Restart (reloads .env)
+
+./db reset hard      # DESTRUCTIVE: Destroys all data, reapplies migrations, uploads seeds
+./db reset soft      # Preserves volumes, drops schema only
+
+./db seed [all|presets|templates]  # Upload seed data (idempotent)
+./db migrate         # Apply new migrations only (⚠️ doesn't re-run existing)
+./db status          # Container status + recent migrations
+./db help            # Interactive menu if no args
 ```
 
-**NEVER do:**
-```bash
-supabase db reset    # ❌ FORBIDDEN
-supabase db push     # ❌ FORBIDDEN
-```
+### Key Behaviors
 
-### Schema
-
-**`public.profiles`**
-```sql
-CREATE TABLE public.profiles (
-  "id" uuid PRIMARY KEY REFERENCES auth.users(id),
-  "username" TEXT UNIQUE CHECK (char_length(username) >= 3 AND char_length(username) <= 35),
-  "full_name" TEXT CHECK (char_length(full_name) >= 3 AND char_length(full_name) <= 100),
-  "bio" TEXT CHECK (char_length(bio) <= 800),
-  "avatar_url" TEXT CHECK (char_length(avatar_url) <= 2048),
-  "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  "updated_at" TIMESTAMP WITH TIME ZONE
-);
-```
-
-### Triggers
-
-**Auto-create profile on user signup:**
-```sql
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-  RETURNS trigger
-  LANGUAGE plpgsql
-  SECURITY DEFINER
-  SET search_path TO ''
-AS $function$
-begin
-  INSERT INTO public.profiles (id, full_name, avatar_url, username)
-  VALUES (
-    new.id,
-    new.raw_user_meta_data->>'full_name',
-    new.raw_user_meta_data->>'avatar_url',
-    'User_' || substr(md5(new.email || NOW()::text), 1, 10)
-  );
-  return new;
-end;
-$function$;
-
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW
-  EXECUTE FUNCTION handle_new_user();
-```
-
-**Key Details:**
-- Trigger creates profile automatically on user creation
-- Generates temporary username: `User_` + 10-char hash
-- Pulls `full_name` and `avatar_url` from OAuth metadata if available
-- Uses `SECURITY DEFINER` to bypass RLS during trigger execution
+- **Hard Reset**: `down -v` → delete `volumes/db/data` → start → wait 10s → migrate → seed
+- **Soft Reset**: `supabase db reset` (faster, preserves storage volumes)
+- **Migrate**: Only applies NEW files - use `reset hard` to test changes to existing migrations
+- **Seed**: Uses `SERVICE_ROLE_KEY`, skips existing files
+- **Auto-navigation**: Runs from anywhere, navigates to `supabase/` internally
 
 ---
 
-## Row Level Security (RLS)
+## Database Schema
 
-### Profile Table Policies
+### Tables
+
+#### `public.profiles`
+
+User profile information.
+
+**Key Columns:**
+- `id` - UUID FK to auth.users (CASCADE DELETE)
+- `username` - UNIQUE, regex `^[a-zA-Z0-9_]{3,35}$`, case-insensitive
+- `username_is_temporary` - Flags auto-generated usernames (triggers UI prompt)
+- `full_name`, `bio`, `avatar_url` - Optional profile fields
+- `created_at`, `updated_at` - Timestamps
+
+**Indexes:** `profiles_username_lower_idx` (GIN on `lower(username)`)
+
+**Trigger:** `on_auth_user_created` creates profile on signup with temp username `User_{10_char_hash}`
+
+#### `public.rate_limits`
+
+Kong plugin backend for distributed rate limiting.
+
+**Key Columns:**
+- `identifier` + `identifier_type` (user/ip/email/username/token) + `endpoint` - UNIQUE composite
+- `count_per_*` - Four sliding windows (second/minute/hour/day)
+- `reset_*` - Expiry timestamps for each window
+
+**Indexes:** `(identifier, identifier_type, endpoint)` + `reset_*` timestamps
+
+**Pattern:** Atomic UPSERT for concurrent Kong workers
+
+### Functions
+
+All use `SECURITY DEFINER` (bypass RLS) + `SET search_path TO ''` (injection prevention).
+
+#### `handle_new_user()`
+
+Trigger on `auth.users INSERT` - creates profile with temp username `User_{10_char_hash}`, sets `username_is_temporary=true`, pulls OAuth metadata if available.
+
+#### `check_rate_limit(p_identifier, p_identifier_type, p_endpoint, p_limits)`
+
+Atomic rate limit check + increment. Returns `jsonb`:
+- `{"allowed": true, "current": {...}}` - Request allowed
+- `{"allowed": false, "limit_hit": "hour", "reset_at": "...", "current": {...}}` - Rate limited
+
+**Logic:** UPSERT → check expired windows → compare limits → increment → return status
+
+#### `generate_usernames()`
+
+Returns 10 PascalCase username suggestions (e.g., `["BrightPanda", "SwiftFalcon", ...]`).
+
+**Algorithm:** Adaptive pool (20→50→80→100) batch-validated in single query. ~600 adjectives × ~200 nouns = 120k combinations. Blocks 45 reserved names (admin, api, system, etc.).
+
+#### `check_username_available(username_input)`
+
+Returns `{"available": bool, "error": "invalid_format|too_short|too_long|reserved|taken"}`.
+
+Validates regex `^[a-zA-Z0-9_]{3,35}$`, checks reserved list, queries `profiles_username_lower_idx` (case-insensitive).
+
+#### `cleanup_old_rate_limits()`
+
+Deletes rate_limits records older than 7 days. Run manually or via cron (not automated yet).
+
+### Storage Buckets
+
+#### `avatars` (public, 5MB limit, JPEG only)
+
+- **User avatars**: `{uuid}.jpg` - RLS allows authenticated users INSERT/UPDATE/DELETE own file
+- **Presets**: `presets/avatar-*.jpg` - RLS restricts to service_role only
+- **Public read**: Anyone can view (GET)
+- **Atomic upsert**: Requires both INSERT + UPDATE policies
+
+#### `email-templates` (public read, service_role write)
+
+- `confirmation.html` - Email verification template
+- GoTrue fetches and populates variables (`{{ .ConfirmationURL }}`)
+- Service role only for modifications
+
+### Row Level Security (RLS)
+
+**Profiles:**
+- SELECT: Public read (`USING (true)`)
+- INSERT/UPDATE/DELETE: Authenticated users, own records only (`auth.uid() = id`)
+
+**Rate Limits:**
+- ALL: Service role only (`USING (true)`) - Users never access directly
+
+**Storage Objects:**
+- See [Storage Buckets](#storage-buckets) above
+
+#### CRITICAL: UPDATE Policy Pattern
 
 ```sql
--- Anyone can view profiles
-CREATE POLICY "Public profiles are viewable by everyone."
-  ON public.profiles FOR SELECT
-  TO public
-  USING (true);
+-- ✅ CORRECT - Both USING and WITH CHECK
+CREATE POLICY "..." ON table FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id)       -- Can only SEE own rows
+  WITH CHECK (auth.uid() = user_id); -- Can only SET to own ID
 
--- Users can insert their own profile
-CREATE POLICY "Users can insert their own profile."
-  ON public.profiles FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = id);
-
--- Users can update their own profile
-CREATE POLICY "Users can update own profile."
-  ON public.profiles FOR UPDATE
-  TO authenticated
-  USING (auth.uid() = id);
-
--- Users can delete their own profile
-CREATE POLICY "Users can delete their own profile."
-  ON public.profiles FOR DELETE
-  TO authenticated
-  USING (auth.uid() = id);
+-- ❌ WRONG - Missing WITH CHECK allows ownership hijacking
+CREATE POLICY "..." ON table FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id);
 ```
 
-### Storage Policies (Avatars Bucket)
+**Why both:** `USING` filters visible rows, `WITH CHECK` validates new values. Without both, users can reassign ownership.
+
+### Migrations
+
+**Location:** `supabase/migrations/`
+
+**Applied:**
+1. `20250818043251_add_user_profiles.sql` - Profiles, storage buckets, RLS
+2. `20251112000000_create_rate_limiting.sql` - Rate limit infrastructure
+3. `20251120000000_add_username_picker_functions.sql` - Username generation
+
+**CRITICAL Patterns:**
 
 ```sql
--- Public read access
-CREATE POLICY "Avatar images are publicly accessible."
-  ON storage.objects FOR SELECT
-  TO public
-  USING (bucket_id = 'avatars'::text);
+-- ✅ Idempotent (safe to re-run)
+CREATE TABLE IF NOT EXISTS ...;
+INSERT ... ON CONFLICT (id) DO NOTHING;
 
--- Users can upload to their folder
-CREATE POLICY "Users can upload an avatar to their own folder."
-  ON storage.objects FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    (bucket_id = 'avatars'::text) AND (owner = auth.uid())
-  );
+-- ✅ Secure functions
+CREATE FUNCTION ... SECURITY DEFINER SET search_path TO '';
 
--- Users can update their own avatars
-CREATE POLICY "Users can update their own avatars."
-  ON storage.objects FOR UPDATE
-  TO authenticated
-  USING ((bucket_id = 'avatars'::text) AND (owner = auth.uid()))
-  WITH CHECK ((bucket_id = 'avatars'::text) AND (owner = auth.uid()));
-
--- Users can delete their own avatars
-CREATE POLICY "Users can delete their own avatars."
-  ON storage.objects FOR DELETE
-  TO authenticated
-  USING ((bucket_id = 'avatars'::text) AND (owner = auth.uid()));
+-- ❌ NOT idempotent (fails on re-run)
+CREATE TABLE ...;  -- No IF NOT EXISTS
+INSERT ...;        -- No ON CONFLICT
 ```
 
-### RLS Best Practices
+**Test:** Always `./db reset hard --yes` to verify migrations work from scratch.
 
-**USING vs WITH CHECK:**
-- `USING`: Controls which rows are visible for the operation (applies to SELECT, UPDATE, DELETE)
-- `WITH CHECK`: Controls which rows can be inserted/modified (applies to INSERT, UPDATE)
-- For UPDATE policies, you often need BOTH
+---
 
-**Common Pattern:**
-```sql
--- UPDATE policy structure
-CREATE POLICY "policy_name"
-  ON table_name FOR UPDATE
-  TO authenticated
-  USING (auth.uid() = user_id)      -- Can only see/modify own rows
-  WITH CHECK (auth.uid() = user_id); -- Can only set user_id to own ID
+## Kong API Gateway & Rate Limiting
+
+Kong 3.9 (declarative mode, `volumes/api/kong.yml` 1008 lines) with custom `rate-limit-db` plugin (priority 900, after JWT validation @ 1003).
+
+### Three-Tier Rate Limiting
+
+| Tier | Identifier | Use Case | Example Limits |
+|------|------------|----------|----------------|
+| **1: IP** | `CF-Connecting-IP` → `X-Real-IP` → `X-Forwarded-For` | DoS protection (OAuth, public storage) | 100/min, 1000/hr |
+| **2: Content** | Request body fields (email/username/token) + IP fallback | Credential attacks (signup, login, password reset) | Signup: 10/hr per email, 50/hr per IP |
+| **3: User** | JWT `sub` claim + IP fallback | Authenticated abuse (REST API, avatar uploads) | Avatar: 5/hr, REST: 100/min |
+
+### Key Behaviors
+
+- **Composite checks**: Multiple checks per route run sequentially (fail-fast on first 429)
+- **Service role bypass**: `apikey` or `Authorization` header matching `SERVICE_ROLE_KEY` → no limits
+- **Fail-open**: Database errors → allow request (prevents cascading failures)
+- **Content extraction**: Parses JSON body, extracts first non-empty field from `fields` array
+- **IP priority**: `CF-Connecting-IP` > `X-Real-IP` > `X-Forwarded-For` > Kong fallback
+- **Critical fix**: Content-based prevents service_role bypass (Edge Functions rate limited by email, not bypassed)
+
+### Plugin Files (`volumes/api/kong/plugins/rate-limit-db/`)
+
+- **handler.lua** - Priority 900, checks service_role bypass → gets DB connection → loops checks → returns 429 or allows
+- **extractors.lua** - IP (CF-Connecting-IP → X-Real-IP → X-Forwarded-For), JWT sub claim, request body fields, service_role detection
+- **db.lua** - Connection pool (one per Kong worker), `SELECT 1` health check, auto-reconnect
+- **schema.lua** - Validates check types, fields, limits, credentials
+
+### 429 Response
+
+```json
+{
+  "message": "Rate limit exceeded",
+  "identifier_type": "email",
+  "limit_hit": "hour",
+  "retry_after": "2025-11-26T15:00:00Z"
+}
+```
+
+**Frontend:** Parse `retry_after`, show countdown timer, disable form until expiry.
+
+### CRITICAL: Kong Path Routing
+
+```yaml
+# ❌ WRONG - Path duplication
+services:
+  - url: http://storage:5000/storage/v1/object/public  # Includes path
+routes:
+  - paths: [/storage/v1/object/public]
+    strip_path: false  # Results in double path
+
+# ✅ CORRECT - Base URL + strip_path
+services:
+  - url: http://storage:5000/  # Base only
+routes:
+  - paths: [/storage/v1/object/public]
+    strip_path: true  # External: /storage/.../foo.jpg → Forwarded: /foo.jpg
 ```
 
 ---
 
-## Kong API Gateway
+## Storage System
 
-### Overview
+**URL Patterns:**
+- Public: `/storage/v1/object/public/{bucket}/{filepath}`
+- Authenticated: `/storage/v1/object/{bucket}/{filepath}` (requires JWT)
 
-Kong 3.9 acts as the API gateway for all Supabase services, handling authentication, routing, and rate limiting.
+### CRITICAL Patterns
 
-**Configuration:**
-- Declarative config file: `supabase/volumes/api/kong.yml`
-- Format version: 3.0
-- Mode: DB-less (configuration from YAML file)
-- Custom plugins: `bundled,rate-limit-db`
-
-### Rate Limiting Plugin
-
-**Implementation:** Custom Kong plugin (`rate-limit-db`) with three-tier rate limiting architecture
-
-**Location:** `supabase/volumes/api/kong/plugins/rate-limit-db/`
-- `handler.lua` - Plugin logic with content-based extraction
-- `schema.lua` - Configuration schema
-
-**Database:**
-- Table: `public.rate_limits`
-- Supported identifier types: `user`, `ip`, `email`, `username`, `token`, `custom`
-- Function: `check_rate_limit()` - JSONB-returning stored procedure
-- Migration: `20251112000000_create_rate_limiting.sql`
-
-#### Three-Tier Architecture
-
-**Tier 1: IP-Based Rate Limiting**
-- **Purpose**: DoS protection for public anonymous operations
-- **Identifier**: IP address (Cloudflare-aware: CF-Connecting-IP, X-Real-IP, X-Forwarded-For)
-- **Applied to**: OAuth endpoints (`/auth/v1/authorize`, `/auth/v1/callback`), public storage reads
-- **Limits**: Generous (100-200 requests/minute per IP)
-
-**Tier 2: Content-Based Rate Limiting**
-- **Purpose**: Prevent credential attacks, brute force, account enumeration
-- **Identifier**: Request body fields (email, username, token) with IP fallback
-- **Applied to**: Signup, login, OTP verification, password reset, resend email
-- **Limits**: Strict (3-10 requests/hour per email address, 50 requests/hour per IP fallback)
-- **Critical**: Closes service_role key bypass vulnerability for Edge Functions
-
-**Tier 3: User-Based Rate Limiting**
-- **Purpose**: Prevent API abuse from authenticated users
-- **Identifier**: JWT sub claim (user ID from Authorization header)
-- **Applied to**: Authenticated REST, authenticated storage, authenticated auth operations
-- **Limits**: Moderate (60-100 requests/minute per user ID)
-
-#### Configuration Examples
-
-**Tier 1 (IP-based):**
-```yaml
-- name: rate-limit-db
-  config:
-    identifier_strategy: ip
-    minute: 100
-    hour: 1000
-    db_host: db
-    db_port: 5432
-    db_name: postgres
-    db_user: supabase_admin
-    db_password: $POSTGRES_PASSWORD
-```
-
-**Tier 2 (Content-based with fallback):**
-```yaml
-- name: rate-limit-db
-  config:
-    identifier_strategy: content
-    content_identifier_fields: ["email"]
-    content_identifier_type: email
-    hour: 5          # Strict: 5 signups per hour per email
-    day: 10
-    fallback_by_ip: true
-    fallback_limits:
-      hour: 50       # Fallback: 50 signups per hour per IP
-    db_host: db
-    db_port: 5432
-    db_name: postgres
-    db_user: supabase_admin
-    db_password: $POSTGRES_PASSWORD
-```
-
-**Tier 3 (User-based with IP fallback):**
-```yaml
-- name: rate-limit-db
-  config:
-    identifier_strategy: user
-    minute: 100
-    hour: 5000
-    fallback_by_ip: true
-    fallback_limits:
-      minute: 100    # For unauthenticated (anon key) requests
-    db_host: db
-    db_port: 5432
-    db_name: postgres
-    db_user: supabase_admin
-    db_password: $POSTGRES_PASSWORD
-```
-
-**Current State (as of Session 4, 2025-11-12):**
-- Status: Production-ready, security audited, comprehensively documented
-- Version: Kong plugin v3.0.0 (composite-only, legacy mode removed)
-- Configuration: Per-route rate limiting in `kong.yml` with inline documentation
-- Kong log level: info (production-safe, no sensitive data exposure)
-- Service role bypass: Fixed (passes key via plugin config, not environment)
-- GraphQL endpoint: Protected with rate limiting (60/user/min, 100/IP/min)
-- Analytics endpoint: Protected with rate limiting (60/IP/min, 1000/IP/hour)
-- Signup limits: Relaxed to 10/hour, 20/day (balances security with usability)
-- Documentation: 400+ lines of inline comments explaining WHY behind every decision
-
-**Plugin Priority:**
-- Priority: 900
-- Runs after auth plugins (key-auth: 1003, acl: 950)
-- Service role key bypasses ALL rate limiting
-
-**Architecture Rationale:**
-- **Single unified plugin** instead of 3 separate plugins
-- **Per-route configuration** allows different tiers for different endpoints
-- **Backward compatible** with existing `identifier_strategy: user` default
-- **Fail-open design** - allows requests if body parsing or DB connection fails
-- **Content extraction uses pcall** to gracefully handle errors
-
-**Important Notes:**
-- pgmoon returns JSONB as Lua tables (not JSON strings)
-- pgmoon returns NULL as userdata (not nil) - always type-check before using values
-- Request body parsing uses `kong.request.get_body()` wrapped in `pcall()`
-- Content identifier extraction tries fields in order, falls back to IP if configured
-- Service role key bypasses rate limiting entirely (passed via plugin config, not environment variable)
-- os.getenv() doesn't work reliably in Kong Lua runtime - always pass config via plugin fields
-- Kong log level set to info (debug exposes sensitive data like passwords and tokens)
-
-**Testing Authenticated Requests:**
-
-Generate JWT token for testing without captcha:
+**1. Atomic Upsert (prevents data loss):**
 ```javascript
-// /tmp/generate_jwt.js pattern
-const crypto = require('crypto');
-const jwtSecret = process.env.JWT_SECRET;
-const userId = 'user-uuid-from-db';
+// ❌ WRONG - Delete then upload (if upload fails, file lost)
+await supabase.storage.from('avatars').remove([path]);
+await supabase.storage.from('avatars').upload(path, file);
 
-const payload = {
-  aud: 'authenticated',
-  sub: userId,
-  role: 'authenticated',
-  exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7), // 7 days
-  // ... other claims
-};
-
-// HMAC HS256 signature
-const header = base64url({alg: 'HS256', typ: 'JWT'});
-const encodedPayload = base64url(payload);
-const signature = crypto.createHmac('sha256', jwtSecret)
-  .update(header + '.' + encodedPayload)
-  .digest('base64url');
-
-const jwt = header + '.' + encodedPayload + '.' + signature;
+// ✅ CORRECT - Atomic (replaces only on success)
+await supabase.storage.from('avatars').upload(path, file, { upsert: true });
 ```
+**Requires:** Both INSERT + UPDATE RLS policies
+
+**2. Cache Busting:**
+```javascript
+const url = `${avatarUrl}?version=${Date.now()}`;  // Force refresh
+```
+
+**3. Error Messages:**
+- ❌ "RLS policy violation" ✅ "Unable to upload. Please try again."
+
+**Errors:** 400 (Kong routing), 403 (RLS), 413 (>5MB), 415 (not JPEG)
 
 ---
 
-## Storage
+## Authentication & Authorization
 
-### Buckets
+**Providers:**
+- Email/Password: AWS SES SMTP, custom templates from storage, OTP + CAPTCHA verification via Edge Function
+- Google OAuth: Auto-confirmed, extracts `full_name` + `avatar_url` from `raw_user_meta_data`
+- Anonymous: Disabled
 
-**`avatars` (public bucket)**
-- Stores user profile images
-- Public read access
-- User-owned write/update/delete
-- URL pattern: `${API_URL}/storage/v1/object/public/avatars/${filepath}`
+**JWT:** HS256, 1-hour expiry, roles (`anon`, `authenticated`, `service_role`)
 
-**`email-templates` (public bucket)**
-- Email HTML templates for auth flows
-- Service role upload access
-- Used by auth service for transactional emails
+**CAPTCHA:** Cloudflare Turnstile (TEST KEY: `1x0000000000000000000000000000000AA` - change for production)
 
-### Storage URL Patterns
+**Roles:**
+- `anon` - Public read on profiles/storage
+- `authenticated` - CRUD own profile, upload own avatar, call username functions
+- `service_role` - Bypasses ALL RLS + rate limits (NEVER expose to clients)
 
-**GET (public read):**
-```
-${API_EXTERNAL_URL}/storage/v1/object/public/${bucket}/${filepath}
-```
-
-**POST/PUT/DELETE (authenticated operations):**
-```
-${API_EXTERNAL_URL}/storage/v1/object/${bucket}/${filepath}
-```
-
-**Cache Busting:**
-- Storage responses cache aggressively
-- Add `?version={timestamp}` to URLs to bypass cache
-- Example: `avatar.jpg?version=1699123456`
-
-### Storage Best Practices
-
-**Atomic Upsert Operations (Session 8):**
-- Always use `upsert: true` for file uploads instead of delete-then-upload patterns
-- Prevents race condition where user loses data if upload fails after delete
-- Example: Avatar upload with `upsert: true` preserves existing avatar on upload failure
-- Requires BOTH INSERT and UPDATE RLS policies for atomic upsert to work
-- Pattern:
-  ```javascript
-  const { data, error } = await supabase.storage
-    .from('bucket')
-    .upload('path/to/file.jpg', file, {
-      upsert: true  // Atomic operation: replace only on success
-    });
-  ```
-
-**Fail-Safe Philosophy:**
-- Design storage operations to preserve existing data on failure
-- Ask: "What happens if this step fails?" when designing multi-step operations
-- Single atomic operations are safer than multi-step sequences
-- Delete operations should be last step, not first
-
-**Kong Path Routing for Storage (Session 8):**
-- Always use `strip_path: true` with base upstream URLs to avoid path duplication
-- Pattern: External request `/storage/v1/object/public/avatars/foo.jpg` → Kong strips `/storage/v1/object/public` → forwards `/avatars/foo.jpg` to `http://storage:5000/`
-- Test both upload (POST) and retrieval (GET) when changing routing configuration
-- 400 errors often indicate path duplication or mismatched routing configuration
-
-### Known Storage Issues
-
-**Cannot delete users with storage objects:**
-- Supabase prevents user deletion if they own any storage objects
-- Workaround options:
-  1. Delete all user-owned objects before deleting user
-  2. Implement cascade deletion in migration
-  3. Transfer ownership before deletion
-
----
-
-## Authentication
-
-### Providers Configured
-- Email/Password
-- OAuth providers (configuration in compose.yml)
-
-### Auth Flows
-- Sign up with email confirmation
-- Password reset with email verification
-- OAuth sign-in
-- Magic link (if enabled)
-
-### Security
-- Uses Cloudflare Turnstile for bot protection
-- JWT tokens with configurable expiration
-- Refresh token rotation
-
----
-
-## Supabase CLI Operations
-
-### General Patterns
-
-**Always run from `supabase/` directory:**
-```bash
-cd supabase
-```
-
-**Always use `--debug` and `--db-url`:**
-```bash
-supabase db reset --debug --db-url "postgresql://supabase_admin:password@host:5432/postgres"
-supabase db push --debug --db-url "postgresql://supabase_admin:password@host:5432/postgres"
-```
-
-**User Credential:**
-- Use `supabase_admin` user, NOT `postgres`
-- The `postgres` user has permission issues with self-hosted instances
-
-### Database Reset Scripts
-
-**`reset-hard-db.sh`** (Complete wipe and rebuild):
-```bash
-./reset-hard-db.sh
-```
-- Stops containers
-- Removes volumes (DELETES ALL DATA)
-- Rebuilds from migrations
-- Uploads email templates
-
-**`reset-soft-db.sh`** (Preserves volumes):
-```bash
-./reset-soft-db.sh
-```
-- Resets database state
-- Keeps volume data
-- Faster than hard reset
-
-**`restart-db.sh`** (Simple restart):
-```bash
-./restart-db.sh
-```
-- Just restarts Docker containers
-- No data loss
-
-### Migration Best Practices
-
-1. **Keep migrations simple:**
-   - Avoid complex functions
-   - Focus on schema changes, policies, and basic triggers
-   - Complex logic belongs in application code
-
-2. **Use `on conflict` for idempotence:**
-   ```sql
-   INSERT INTO storage.buckets (id, name, public)
-     VALUES ('avatars', 'avatars', true)
-     ON CONFLICT (id) DO NOTHING;
-   ```
-
-3. **Always test migrations:**
-   - Run `reset-hard-db.sh` to test from scratch
-   - Verify all policies work as expected
-   - Test both authenticated and public access
-
----
-
-## Environment Variables
-
-Located in `supabase/.env` (not committed):
-
-### Database
-- `POSTGRES_PASSWORD` - PostgreSQL superuser password
-- `POSTGRES_DB` - Database name
-- `POSTGRES_HOST` - Database host
-- `POSTGRES_PORT` - Database port (usually 5432)
-
-### JWT
-- `JWT_SECRET` - Secret for signing JWTs
-- `JWT_EXPIRY` - Token expiration time
-- `ANON_KEY` - Anonymous (public) API key
-- `SERVICE_ROLE_KEY` - Service role (admin) API key
-
-### Auth
-- `SITE_URL` - Frontend URL for redirects
-- `SMTP_*` - Email configuration for auth emails
-- OAuth provider credentials (CLIENT_ID, CLIENT_SECRET for each provider)
-
-### Storage
-- `STORAGE_BACKEND` - Usually "file" for self-hosted
-- Storage access keys
-
-### Configuration
-- Various feature flags and service configuration
-
-**Security**: Never commit `.env` file. Only document variable names and purposes.
-
----
-
-## Realtime
-
-### Publications
-
-The `supabase_realtime` publication includes:
-- `public.profiles` table
-
-**Usage:**
-Frontend can subscribe to profile changes in real-time. Useful for live updates when users change their profile while others are viewing it.
-
-**Consideration:**
-- Each subscription creates a connection
-- Monitor connection count if scaling
-- Use sparingly for high-traffic features
+**Auth Helpers:**
+- `auth.uid()` - Returns user UUID or NULL
+- `auth.role()` - Returns role name
 
 ---
 
 ## Edge Functions
 
-### Cloudflare Turnstile Verification
+**Location:** `supabase/volumes/functions/`
 
-Located in `supabase/volumes/functions/verify-otp-securely/`
+**Main Router (`main/index.ts`):** Entry point, parses path, creates workers, forwards requests. `verify_jwt=false` in config (functions verify individually).
 
-Configuration in `config.toml`:
-```toml
-[functions.cloudflare-turnstile]
-enabled = true
-verify_jwt = true
-import_map = "./functions/cloudflare-turnstile/deno.json"
-entrypoint = "./volumes/functions/verify-otp-securely/index.ts"
-```
+**OTP Verification (`verify-otp-securely/index.ts`):** Verifies CAPTCHA + OTP. Uses `SERVICE_ROLE_KEY` for admin client. Returns 200 (success) or 400/403/500 (errors).
 
-Verifies Turnstile tokens server-side to prevent bot signups/logins.
+**Shared CORS (`_shared/cors.ts`):** `Access-Control-Allow-Origin: *` + standard headers
 
 ---
 
-## Monitoring & Debugging
+## Common Workflows
 
-### Viewing Logs
-
-**Docker logs:**
+**After Git Pull:**
 ```bash
-cd supabase
-docker compose logs -f [service_name]
-# Examples: kong, auth, rest, storage, db
+./db migrate    # New migrations
+./db restart    # Changed .env
+./db reset hard # Major changes
 ```
 
-**All services:**
+**Testing Migrations:**
 ```bash
-docker compose logs -f
+./db reset hard  # Test from scratch
+./db status      # Verify applied
 ```
-
-### Supabase Studio
-
-Access at `http://localhost:8000` (or `api.critiqit.io` with tunnel)
-
-Features:
-- Table editor
-- SQL editor
-- Auth user management
-- Storage browser
-- Database schema viewer
-- RLS policy tester
 
 ---
 
-## Common Issues & Solutions
+## Why Realtime is Disabled
 
-### Permission Errors with CLI
-**Problem**: `permission denied` errors with supabase CLI
-**Solution**: Use `supabase_admin` user instead of `postgres` in connection string
+Realtime service (WebSocket subscriptions) intentionally disabled for CritiQit.
 
-### SSL Certificate Errors
-**Problem**: SSL verification failures with supabase CLI
-**Solution**: Always include `--debug` flag
+**Reasons:** Not needed (no live feeds), reduces resources/battery, simpler architecture
 
-### Migration Failures
-**Problem**: Migrations fail on subsequent runs
-**Solution**:
-- Use `ON CONFLICT DO NOTHING` for inserts
-- Check for `IF EXISTS` on drops
-- Keep migrations idempotent
-
-### Configuration Not Taking Effect
-**Problem**: GUI changes not working
-**Solution**: Update environment variables in `compose.yml` and restart containers
-
-### Storage Upload Fails
-**Problem**: Can't upload to storage bucket
-**Solution**:
-- Check RLS policies on `storage.objects`
-- Verify bucket exists and is public/private as intended
-- Check owner field is set correctly in policy
+**Still Works:** Auth (`onAuthStateChange` is local), token refresh (HTTP), DB queries (PostgREST), storage (HTTP), profile updates (visibility-change refresh)
 
 ---
 
 ## Related Documentation
 
-- **Project overview**: [project.md](./project.md)
-- **Frontend details**: [frontend.md](./frontend.md)
-- **Session history**: [sessions.md](./sessions.md)
+- [project.md](./project.md) - Project overview
+- [frontend.md](./frontend.md) - Frontend details
+- [design-system.md](./design-system.md) - Design system
+- [sessions.md](./sessions.md) - Session history
+- [agents-guide.md](./agents-guide.md) - Agent system

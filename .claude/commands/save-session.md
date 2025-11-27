@@ -42,9 +42,7 @@ Only update if the session introduced relevant changes:
 ### Task 4: Generate Commit Message
 Provide a commit message suggestion for the documentation changes:
 ```
-docs: [concise description]
-
-[Optional second line with context]
+[concise description]
 ```
 
 ## Approach
