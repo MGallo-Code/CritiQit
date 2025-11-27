@@ -48,6 +48,68 @@ frontend/
 
 ---
 
+## Architecture Constraints
+
+### ⚠️ Realtime is DISABLED
+
+**CritiQit does NOT use Supabase Realtime (WebSocket subscriptions).**
+
+**Why:**
+- Not needed for CritiQit's use case
+- Reduces resource usage, battery drain, and complexity
+- Simplifies infrastructure (one less service to maintain)
+
+**Impact on Frontend Development:**
+
+1. **Auth State Changes:**
+   - `supabase.auth.onAuthStateChange()` still works (it's local to the client, not realtime)
+   - BUT it won't fire automatically when user logs out, updates profile, etc.
+   - **Solution:** Manually call `refreshUser()` from `CurrentUserProvider` after auth operations
+   - Example: After `signOut()`, call `refreshUser()` to clear the user from provider
+
+2. **Profile Updates:**
+   - Changes in other tabs/windows won't auto-sync
+   - **Solution:** `CurrentUserProvider` syncs on tab visibility change (when user switches back to tab)
+   - Works for most use cases without realtime overhead
+
+3. **Data Subscriptions:**
+   - ❌ **NEVER use** `supabase.channel().on('postgres_changes', ...)` - it won't work
+   - ❌ **NEVER use** `.subscribe()` for real-time updates
+   - ✅ **DO use** polling, manual refresh, or visibility-based refresh patterns
+   - ✅ **DO use** optimistic UI updates for immediate feedback
+
+**Example - Correct Logout Pattern:**
+```tsx
+const { refreshUser } = useCurrentUser();
+
+const handleLogout = async () => {
+  const { error } = await supabase.auth.signOut();
+  if (!error) {
+    await refreshUser(); // Manually refresh to clear user
+    router.push('/auth/login');
+  }
+};
+```
+
+**Example - Correct Profile Update Pattern:**
+```tsx
+// Optimistic update
+setUser({ ...user, username: newUsername });
+
+// Update backend
+const { error } = await updateProfile({ username: newUsername });
+
+if (error) {
+  // Revert on error
+  await refreshUser();
+} else {
+  // Sync to get latest data
+  await refreshUser();
+}
+```
+
+---
+
 ## Supabase Integration
 
 **Browser Client** (`lib/supabase/client.ts`):
