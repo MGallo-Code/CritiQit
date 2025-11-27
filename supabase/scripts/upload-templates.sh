@@ -2,31 +2,19 @@
 
 # Script to:
 # - upload email templates to the email-templates bucket
-# Run from the supabase/seed/ directory or supabase/ directory
+# Called by db script - assumes we're in supabase/ directory
 
 set -e  # Exit on any error
 
-# Change to supabase directory if we're in seed/
-if [ -f "../compose.yml" ]; then
-    cd ..
-fi
-
+# Source environment variables
 source .env
-
-# Check if we're in the right directory
-if [ ! -f "compose.yml" ]; then
-    echo "❌ Error: Please run this script from the supabase/ directory"
-    exit 1
-fi
-
-cd seed
 
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
 echo "Uploading email templates to the email-templates bucket..."
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
 
-# Loop through all .html files in the email-templates directory
-for filepath in ./email-templates/*.html; do
+# Loop through all .html files in the seed/email-templates directory
+for filepath in ./seed/email-templates/*.html; do
     # Extract just the filename from the full path (e.g., "template.html")
     filename=$(basename "$filepath")
     

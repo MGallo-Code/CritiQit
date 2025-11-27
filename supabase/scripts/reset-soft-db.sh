@@ -2,17 +2,12 @@
 
 # Script to:
 # - reset the information in the database (NOT VOLUMES/STORAGE)
-# Run from the supabase/ directory
+# Called by db script - assumes we're in supabase/ directory
 
 set -e  # Exit on any error
 
+# Source environment variables
 source .env
-
-# Check if we're in the right directory
-if [ ! -f "compose.yml" ]; then
-    echo "❌ Error: Please run this script from the supabase/ directory"
-    exit 1
-fi
 
 echo "Resetting database..."
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="

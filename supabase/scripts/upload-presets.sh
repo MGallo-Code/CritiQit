@@ -2,31 +2,19 @@
 
 # Script to:
 # - upload preset avatar images to the avatars bucket under presets/ folder
-# Run from the supabase/seed/ directory or supabase/ directory
+# Called by db script - assumes we're in supabase/ directory
 
 set -e  # Exit on any error
 
-# Change to supabase directory if we're in seed/
-if [ -f "../compose.yml" ]; then
-    cd ..
-fi
-
+# Source environment variables
 source .env
-
-# Check if we're in the right directory
-if [ ! -f "compose.yml" ]; then
-    echo "❌ Error: Please run this script from the supabase/ directory"
-    exit 1
-fi
-
-cd seed
 
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
 echo "Uploading preset avatars to the avatars/presets/ folder..."
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
 
-# Loop through all .jpg files in the avatar-presets directory
-for filepath in ./avatar-presets/*.jpg; do
+# Loop through all .jpg files in the seed/avatar-presets directory
+for filepath in ./seed/avatar-presets/*.jpg; do
     # Skip if no .jpg files exist (glob doesn't match)
     if [ ! -f "$filepath" ]; then
         echo "⚠️  No .jpg files found in avatar-presets/ directory"

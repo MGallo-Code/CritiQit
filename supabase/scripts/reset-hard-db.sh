@@ -5,7 +5,7 @@
 # - apply migrations
 # - seed the database
 # - restart the database
-# Run from the supabase/ directory
+# Called by db script - assumes we're in supabase/ directory
 
 # Check for the --seed flag
 if [ "$1" == "--no-seed" ]; then
@@ -16,13 +16,8 @@ fi
 
 set -e  # Exit on any error
 
+# Source environment variables
 source .env
-
-# Check if we're in the right directory
-if [ ! -f "compose.yml" ]; then
-    echo "❌ Error: Please run this script from the supabase/ directory"
-    exit 1
-fi
 
 echo "Stopping database..."
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
@@ -49,10 +44,10 @@ if [ "$SEED" = true ]; then
     # supabase db seed --db-url "${DB_URL}" --yes
 
     # Upload email templates
-    ./seed/upload-templates.sh
+    ./scripts/upload-templates.sh
 
     # Upload preset avatars
-    ./seed/upload-presets.sh
+    ./scripts/upload-presets.sh
 fi
 
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
