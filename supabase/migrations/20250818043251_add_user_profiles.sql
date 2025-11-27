@@ -252,13 +252,3 @@ CREATE POLICY "Service role can delete email templates"
   USING (
     bucket_id = 'email-templates'::text
   );
-
--- ================================
--- Realtime
--- ================================
-begin;
-  drop publication if exists supabase_realtime;
-  create publication supabase_realtime;
-commit;
-
-alter publication supabase_realtime add table public.profiles;

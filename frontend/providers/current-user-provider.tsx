@@ -127,25 +127,10 @@ export const CurrentUserProvider = ({
 
   // Main hook - setup auth listeners
   useEffect(() => {
-    const syncEvents: AuthChangeEvent[] = ['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED']
-    const signOutEvents = ['SIGNED_OUT', 'USER_DELETED'] as const
-
     // Sync once on mount whenever we did not render with an initial user.
     if (!hasInitialUserRef.current) {
       syncAndLoadProfile()
     }
-
-    // Only react to auth events that imply the user profile might have changed
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if ((signOutEvents as readonly string[]).includes(event)) {
-        setState({ user: null, isLoading: false })
-        return
-      }
-
-      if (syncEvents.includes(event)) {
-        syncAndLoadProfile()
-      }
-    })
 
     // Keep the profile fresh when a backgrounded tab returns to the foreground
     const handleVisibilityChange = () => {
@@ -157,7 +142,6 @@ export const CurrentUserProvider = ({
     window.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      subscription.unsubscribe()
       window.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [supabase, syncAndLoadProfile])
