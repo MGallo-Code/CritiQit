@@ -4,35 +4,49 @@
 >
 > **📚 See [sessions.md](./sessions.md) for detailed session history**
 
-Last updated: 2025-11-20 04:45
+Last updated: 2025-11-27 05:15
+
+---
+
+## ⚠️ When in Doubt
+
+**If you're uncertain about something:**
+- ✅ Ask clarifying questions
+- ✅ Say "I don't know" or "I'm not sure"
+- ✅ Admit if you can't do something
+- ✅ Search documentation before guessing
+- ❌ Don't make up information
+- ❌ Don't assume implementation details you haven't verified
+
+**It's always better to ask than to assume incorrectly.**
 
 ---
 
 ## 🎯 Current Goals
 
-1. **Component Library Development**: Build CritiQit-specific UI components (star rating, movie cards)
-2. **Avatar Upload Testing**: Comprehensive end-to-end testing of production-ready avatar upload feature
-3. **Mobile Testing**: Verify design system and avatar upload on real devices (iOS/Android)
-4. **Security Testing**: Run `/audit` command for comprehensive vulnerability scanning
+1. **Documentation System Refinement**: Trim bloated sessions.md, test new concise format
+2. **Component Library Development**: Build CritiQit-specific UI components (star rating, movie cards)
+3. **Avatar Upload Testing**: Comprehensive end-to-end testing of production-ready avatar upload feature
+4. **Mobile Testing**: Verify design system and avatar upload on real devices (iOS/Android)
 5. **Ongoing**: Maintain design system consistency and document patterns
 
 ## 📋 Immediate Next Steps
 
+- [ ] **High Priority**: Trim sessions.md (keep last 3-5 sessions in detail, condense older entries to summary only)
 - [ ] **High Priority**: Test avatar upload flow end-to-end (validation, upload, retrieval, error scenarios, HEIC files)
 - [ ] **High Priority**: Verify rate limiting with countdown timer (test hitting limits)
 - [ ] **High Priority**: Mobile testing for avatar upload (file picker, touch targets, iOS/Android, HEIC support)
-- [ ] **High Priority**: Build star rating component (first CritiQit-specific UI component)
+- [ ] **Medium Priority**: Build star rating component (first CritiQit-specific UI component)
 - [ ] **Medium Priority**: Create movie card component (grid + list variants per design system)
-- [ ] **Medium Priority**: Run `/audit` security command to scan for vulnerabilities
 - [ ] **Low Priority**: Add light mode link color (fix WCAG AA for light mode)
 
 ## 🔄 Recent Context (Last 2-3 Sessions)
 
-**Session 9 (2025-11-20)**: Short focused session improving OTP input styling and implementing global golden focus outline system. Replaced default blue borders with movie theater design system colors (warm-red and star-yellow). Created global CSS rules for consistent golden focus outlines on all form inputs (theme-aware: bright gold in dark mode, darker gold in light mode). User tested and refined visual balance.
+**Session 10 (2025-11-27)**: Major documentation architecture overhaul. Streamlined agent files by separating behavior (WHO/HOW) from technical details (WHAT/WHY), reducing backend-dev by 54% and frontend-dev by 36%. Established orchestrator/specialist pattern with 🎯 ORCHESTRATOR MODE headers. Updated session-manager to enforce concise entries (max 20 lines). Added "When in Doubt" guidance to all files to prevent hallucinations.
 
-**Session 8 (2025-11-20)**: Avatar upload feature complete and production-ready after comprehensive debugging. Fixed PostgreSQL corruption, Next.js version mismatch, Kong path routing causing 400 errors, critical race condition in upload flow (changed from delete-then-upload to atomic upsert), and HEIC image upload crash (Safari's auto-conversion to JPEG was crashing Web Workers). Improved error messages (removed technical jargon). Restored production rate limits (5/hour, 20/day).
+**Session 9 (2025-11-20)**: Short focused session implementing global golden focus outline system. Replaced default blue borders with movie theater design colors (warm-red and star-yellow). Created theme-aware focus states (bright gold in dark mode, darker gold in light mode). User testing refined visual balance.
 
-**Session 7 (2025-11-16)**: Visual polish implementing royal red curtain background with theatrical drape pattern. Applied design system to dashboard and profile pages (85% compliance). Created dynamic avatar-based gradient extraction using Canvas API. Built `.link-gold` utility class (11.07:1 contrast, WCAG AAA). Removed redundant layout divs. Responsive profile layout with 50% avatar overlap.
+**Session 8 (2025-11-20)**: Avatar upload feature complete and production-ready after comprehensive debugging. Fixed PostgreSQL corruption, Next.js version mismatch, Kong path routing causing 400 errors, critical race condition in upload flow (changed from delete-then-upload to atomic upsert), and HEIC image upload crash (Safari's auto-conversion to JPEG was crashing Web Workers).
 
 ## 🚧 Known Issues & Blockers
 
@@ -51,10 +65,14 @@ None! Avatar upload feature complete and production-ready. All critical bugs res
 **Minor Improvements (Low Priority):**
 - Light mode link contrast (star-yellow ~3:1, need 4.5:1 for WCAG AA)
 - Loading skeleton states (currently just "Loading..." text)
+- Sessions.md bloat (118KB, needs trimming to last 3-5 sessions in detail)
 
 ## ⚡ Important Notes for Next Session
 
-- **⚠️ CRITICAL: Database Migration Rule** - NEVER run `supabase db reset` or `supabase db push` directly. ALWAYS use `./reset-hard-db.sh` or `./reset-soft-db.sh` scripts in the supabase/ directory. Direct CLI commands bypass safety checks and can corrupt the database.
+- **Documentation System Updated**: Agent files now streamlined with references to context files for technical details
+- **Session Entry Format**: New concise format enforced (max 20 lines, no code snippets, lessons go in specialized files)
+- **Orchestrator Pattern**: full-stack-integrator uses 🎯 ORCHESTRATOR MODE header when delegating to specialists
+- **"When in Doubt" Added**: All agent and context files now encourage asking questions over guessing
 - **Avatar Upload Production-Ready**: Atomic upsert operations prevent data loss on failure
 - **Kong Path Routing Pattern**: Use `strip_path: true` with base URLs to avoid duplication (e.g., `http://storage:5000/` not `http://storage:5000/storage/v1/object/public`)
 - **Atomic Storage Operations**: Always use `upsert: true` instead of delete-then-upload patterns to prevent race conditions
@@ -125,106 +143,6 @@ None! Avatar upload feature complete and production-ready. All critical bugs res
 - Disable form submissions during rate limit period
 - NEVER spam requests on error
 
-### Type Safety Requirements
-
-**1. TypeScript Everywhere**
-- NEVER use `any` type (use `unknown` if truly unknown)
-- Define explicit interfaces for all data structures
-- Ensure backend schema matches frontend types EXACTLY
-- Use strict TypeScript configuration
-- No type casting hacks (`as any`)
-
-**2. API Contracts**
-- Define TypeScript interfaces BEFORE implementation
-- Document all fields with types and constraints
-- Specify all possible error codes
-- Include nullability explicitly (`string | null`)
-- Version API interfaces when making breaking changes
-
-**3. Cross-Layer Type Consistency**
-- Backend database types → TypeScript interfaces
-- TypeScript interfaces → Frontend component props
-- Verify types match at integration points
-- Use code generation if maintaining manually becomes error-prone
-
-### Performance Requirements
-
-**1. Database Efficiency**
-- Add indexes for all common query patterns
-- Avoid N+1 queries (use JOINs, not loops)
-- Implement pagination (50-100 items per page)
-- Use connection pooling for high-traffic endpoints
-- Profile queries before deploying
-
-**2. Frontend Performance**
-- Use server components by default (Next.js App Router)
-- Lazy load heavy components
-- Minimize bundle size (analyze with `next build`)
-- Optimize images (next/image component)
-- Implement loading states (prevent janky UX)
-
-**3. Scalability**
-- Design for 10,000+ concurrent users
-- No unbounded loops or recursion
-- Set resource limits on containers
-- Implement caching where appropriate
-- Test with realistic load
-
-### Code Quality Standards
-
-**1. Clarity Over Cleverness**
-- Code should be immediately understandable
-- Variable names explain purpose (`isSubmitting` not `flag`)
-- Functions do one thing well (single responsibility)
-- Comments explain WHY, not WHAT
-- No clever tricks that save 2 lines but cost 10 minutes of understanding
-
-**2. Error Handling Everywhere**
-- Handle ALL error cases (not just happy path)
-- Provide fallbacks for failures
-- Log errors for debugging (server-side)
-- Display helpful messages to users
-- Fail securely (deny access when unsure)
-
-**3. Testing Requirements**
-- Test with malicious inputs (security testing)
-- Test error cases (not just success)
-- Test edge cases (empty state, max length, null values)
-- Test cross-browser compatibility (Chrome, Firefox, Safari)
-- Test mobile responsive design
-
-**4. Production Mindset**
-- Think: "How could this be exploited?"
-- Think: "What happens at 2am when this breaks?"
-- Think: "Can this scale to 10,000 users?"
-- NEVER assume users will behave normally
-- NEVER assume "it'll probably be fine"
-
-### Architecture Principles
-
-**1. Defense in Depth**
-- Multiple layers of security (frontend, backend, database)
-- Each layer assumes others might fail
-- Example: Validate input on all three layers
-
-**2. Fail Securely**
-- When in doubt, deny access
-- On error, default to safe state
-- Log security-relevant failures
-- Don't leak information in errors
-
-**3. Least Privilege**
-- Give minimum permissions necessary
-- Users access only their own data (RLS)
-- Service accounts have specific scopes
-- Regular security audits
-
-**4. Explicit Over Implicit**
-- Make security decisions visible in code
-- Document WHY security choices were made
-- No "security through obscurity"
-- Clear error messages (without leaking details)
-
 ### When to Use Agents vs Direct Implementation
 
 **Use `/implement` (full-stack-integrator) when:**
@@ -253,76 +171,15 @@ None! Avatar upload feature complete and production-ready. All critical bugs res
 - Before production deployments
 - When adding third-party integrations
 
-### Code Review Checklist
-
-Before committing ANY code:
-- [ ] All user input validated on frontend, backend, and database
-- [ ] No secrets exposed or hardcoded
-- [ ] No XSS vulnerabilities (no unsafe HTML rendering)
-- [ ] No SQL injection risks (parameterized queries only)
-- [ ] RLS policies tested (if database changes)
-- [ ] Error handling implemented (all error cases)
-- [ ] Loading states shown (no janky UX)
-- [ ] TypeScript types explicit (no `any`)
-- [ ] Rate limiting handled (frontend gracefully handles 429)
-- [ ] Mobile responsive (test on small screens)
-- [ ] Dark mode works (if applicable)
-- [ ] No console.log with sensitive data
-- [ ] Performance acceptable (no N+1 queries, no memory leaks)
-
-### Common Vulnerabilities to Avoid
-
-**OWASP Top 10:**
-1. Broken Access Control → RLS policies + auth checks
-2. Cryptographic Failures → Proper secrets management
-3. Injection → Parameterized queries + input validation
-4. Insecure Design → Security by design, not afterthought
-5. Security Misconfiguration → Proper Kong/Docker config
-6. Vulnerable Components → Regular `npm audit`, dependency updates
-7. Auth Failures → Strong passwords, rate limiting, secure tokens
-8. Data Integrity Failures → Validate inputs, use constraints
-9. Logging Failures → Log security events, not sensitive data
-10. SSRF → Validate external URLs, restrict network access
-
-### Project-Specific Patterns
-
-**CritiQit Conventions:**
-- Three-tier rate limiting (IP, content, user) via Kong plugin
-- RLS policies on ALL user data tables
-- httpOnly cookies for JWT storage (NOT localStorage)
-- Server-side auth checks via middleware
-- Inline documentation explains WHY decisions were made
-- Self-documenting code preferred over separate docs
-- Idempotent database migrations (can run multiple times)
-- Connection pooling for database-connected services
-
-## 📝 Git Commit Guidelines
-
-**Format**: Single sentence, no co-authoring unless explicitly requested
-
-**Good Examples:**
-- "Add production-quality standards and code examples to all agent instruction files"
-- "Implement three-tier rate limiting with Kong plugin and PostgreSQL backend"
-- "Fix service role bypass vulnerability in rate limiting"
-
-**Bad Examples:**
-- Multi-paragraph commit messages with detailed explanations
-- Including "🤖 Generated with Claude Code" footer (unless user asks)
-- "Co-Authored-By: Claude" (unless user asks)
-
-**When to include attribution:**
-- Only when user explicitly requests it
-- Default is clean, concise commits
-
 ---
 
 ## 📂 Project Structure Quick Reference
 
 - **Frontend**: `frontend/` (Next.js workspace)
 - **Backend**: `supabase/` (Supabase + PostgreSQL)
-- **Custom Agents**: `.claude/agents/` (7 agents: frontend-dev, backend-dev, full-stack-integrator, session-manager, 4 security auditors)
+- **Custom Agents**: `.claude/agents/` (9 agents: frontend-dev, backend-dev, full-stack-integrator, session-manager, design-reviewer, 4 security auditors)
 - **Domains**:
-  - Frontend: `critiqit.io` (dev: localhost:3001)
+  - Frontend: `critiqit.io` (dev: localhost:3000)
   - Backend: `api.critiqit.io` (dev: localhost:8000)
 
 For detailed information:

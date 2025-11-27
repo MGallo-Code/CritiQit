@@ -4,6 +4,37 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
+## Session 10 - 2025-11-27 05:15
+
+### Summary
+Major documentation architecture overhaul to eliminate redundancy and improve AI agent effectiveness. Streamlined agent instruction files by separating behavior (WHO/HOW) from technical reference (WHAT/WHY), reducing backend-dev.md by 54% and frontend-dev.md by 36% with zero information loss. Established clear orchestrator/specialist pattern with delegation headers. Updated session-manager to enforce concise documentation (max 20 lines per entry) and proper lesson placement. Added "When in Doubt" guidance to all agent and context files to prevent hallucinations.
+
+### Accomplishments
+- **Root**: Streamlined backend-dev.md (882→404 lines) and frontend-dev.md (711→458 lines) by moving technical details to context files
+- **Root**: Established 🎯 ORCHESTRATOR MODE delegation pattern for full-stack-integrator → specialist communication
+- **Root**: Deleted redundant agents-guide.md and agent-workflows-summary.md files
+- **Root**: Updated session-manager to enforce concise entries and specify lesson placement criteria
+- **Root**: Added "When in Doubt" sections to all 12 agent and context files
+- **Root**: Fixed outdated information in project.md (ports, scripts, realtime status)
+- **Root**: Added workflows for Kong routes, database functions, and Edge Functions to backend-dev.md
+
+### Technical Decisions
+- **Agent/Context Separation**: Agent files contain identity, decision logic, workflows (~300-400 lines); context files contain complete technical details with code examples (as long as needed)
+- **Lesson Placement Criteria**: project.md for cross-cutting, backend.md/frontend.md for domain-specific, sessions.md just references them
+- **Session Entry Length**: Max 20 lines excluding optional sections, no code snippets or debugging narratives
+- **Orchestrator Pattern**: Full-stack-integrator uses explicit header when delegating to prevent specialists from coordinating themselves
+
+### Lessons Learned
+- **Documentation Bloat**: sessions.md was 118KB with verbose implementation details that belonged in specialized docs (see project.md §20)
+- **Agent Redundancy**: Duplicating technical details in both agent and context files makes maintenance harder and bloats token usage (see project.md §19)
+
+### Next Steps
+- [ ] Trim bloated sessions.md (keep last 3-5 in detail, condense older entries)
+- [ ] Test updated session-manager with next session to verify conciseness enforcement
+- [ ] Consider adding workflow examples to full-stack-integrator for common feature patterns
+
+---
+
 ## Session 9 - 2025-11-20 04:33
 
 ### Summary

@@ -30,7 +30,7 @@ CritiQit/
 - Backend: `api.critiqit.io`
 
 **Development (via Cloudflare Tunnels):**
-- Frontend: `critiqit.io` → `localhost:3001`
+- Frontend: `critiqit.io` → `localhost:3000`
 - Backend: `api.critiqit.io` → `localhost:8000`
 
 The Cloudflare tunnel setup allows consistent domain usage across development and production, eliminating CORS issues and providing a production-like environment locally.
@@ -56,8 +56,9 @@ The Cloudflare tunnel setup allows consistent domain usage across development an
 - **Database**: PostgreSQL with Row Level Security (RLS)
 - **Storage**: Supabase Storage (public buckets for avatars)
 - **Auth**: Supabase Auth with OAuth providers
-- **Realtime**: Supabase Realtime (profile table subscriptions enabled)
-- **Edge Functions**: Cloudflare Turnstile verification function
+- **API Gateway**: Kong 3.9 with custom three-tier rate limiting plugin
+- **Realtime**: Disabled (not needed for CritiQit - reduces resources and complexity)
+- **Edge Functions**: Deno-based (OTP verification, etc.)
 - **Extensions**: pgjwt for JWT handling
 
 ### DevOps & Tools
@@ -128,26 +129,7 @@ The Cloudflare tunnel setup allows consistent domain usage across development an
 
 ## Database Schema
 
-### Tables
-
-**`public.profiles`**
-- `id` (uuid, PK, FK to auth.users)
-- `username` (text, unique, 3-35 chars)
-- `full_name` (text, 3-100 chars)
-- `bio` (text, max 800 chars)
-- `avatar_url` (text, max 2048 chars)
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
-
-### Storage Buckets
-
-**`avatars`** (public)
-- User profile avatars
-- RLS policies for user-owned uploads/updates/deletes
-
-**`email-templates`** (public)
-- Email templates for auth flows
-- Admin and service_role upload access
+**See [backend.md](./backend.md) for complete database schema, RLS policies, and storage configuration.**
 
 ---
 
@@ -165,27 +147,28 @@ docker compose up -d
 ```bash
 cd frontend
 npm run dev
-# Runs on localhost:3001 with Turbopack
+# Runs on localhost:3000 with Turbopack
 ```
 
-### Database Management Scripts
+### Database Management (./db CLI Tool)
 
-Located in `supabase/`:
-- **`reset-hard-db.sh`**: Complete database reset with migrations
-- **`reset-soft-db.sh`**: Soft reset preserving some data
-- **`restart-db.sh`**: Restart Docker containers
-- **`upload-templates.sh`**: Upload email templates to storage
+**⚠️ CRITICAL: Always use `./db` CLI tool, NEVER direct Supabase commands**
 
-### Supabase CLI Usage
-
-Always use these patterns:
+Located at `supabase/db`:
 ```bash
-cd supabase  # Must be in supabase directory
-supabase db reset --debug --db-url [connection-string]
-supabase db push --debug --db-url [connection-string]
+cd supabase/
+./db start          # Start containers
+./db stop           # Stop containers
+./db restart        # Restart (reloads .env)
+./db reset hard     # Complete reset (DESTRUCTIVE - ask user first)
+./db reset soft     # Soft reset preserving volumes
+./db seed           # Upload seed data
+./db status         # Check health
+./db migrate        # Apply new migrations
+./db help           # Show all commands
 ```
 
-**Critical**: Use `supabase_admin` user, NOT default `postgres` user (permission issues).
+**Why:** Direct Supabase CLI commands bypass safety checks, corrupt state, and don't source environment correctly.
 
 ---
 
@@ -193,10 +176,10 @@ supabase db push --debug --db-url [connection-string]
 
 ### Supabase Backend
 
-**CLI Authentication:**
-- Always use `--db-url` with full connection string
-- Use `supabase_admin` as database user (postgres user has permission issues)
-- Always include `--debug` flag due to SSL issues
+**Database Management:**
+- ⚠️ ALWAYS use `./db` CLI tool, NEVER direct Supabase commands
+- Run from `supabase/` directory (or use `./db` which auto-navigates)
+- Ask user before `./db reset hard` (DESTRUCTIVE)
 
 **RLS Policies:**
 - `USING` clause: Controls which rows are visible (SELECT operations)
@@ -241,8 +224,9 @@ supabase db push --debug --db-url [connection-string]
 - Rate limiting prevents credential stuffing, brute force, account enumeration, and DoS attacks
 
 **Realtime:**
-- Profile table has realtime publication enabled
-- Be mindful of subscription overhead if scaling
+- Intentionally disabled for CritiQit (not needed, reduces resources/battery/complexity)
+- Auth state changes still work (`onAuthStateChange` is local to client)
+- Profile updates use visibility-change refresh pattern instead
 
 ### Cross-Workspace Integration
 
@@ -304,57 +288,24 @@ supabase db push --debug --db-url [connection-string]
 
 ## Custom Agent System
 
-### Overview
+CritiQit uses specialized agents located in `.claude/agents/` for complex development tasks:
 
-CritiQit uses a custom agent orchestration system for complex development tasks. The system is located in `.claude/agents/` and includes specialized agents for different aspects of the monorepo. All agents follow production-quality standards emphasizing clarity over cleverness, efficiency by default, and intuitive design.
+**Available Agents:**
+- `backend-dev` - Supabase, PostgreSQL, RLS, migrations, Kong
+- `frontend-dev` - Next.js, React, Tailwind, UI components
+- `full-stack-integrator` - Orchestrates features spanning both workspaces
+- `session-manager` - Documentation and session tracking
+- Security auditors - Vulnerability scanning (frontend, backend, infrastructure)
 
-### Available Agents
+**Usage:**
+- `/implement` - Full-stack features (invokes full-stack-integrator)
+- Direct agent invocation - Single-workspace tasks
+- `/audit` - Security vulnerability scanning
 
-**Frontend Developer (Blue)** - `frontend-dev.md`
-- Next.js and React specialist
-- Handles UI components, routing, state management
-- Expertise in TypeScript, Tailwind, Radix UI
-- Follows production standards: clarity over cleverness, efficiency by default, intuitive design
-
-**Backend Developer (Green)** - `backend-dev.md`
-- Supabase and PostgreSQL specialist
-- Handles database schema, RLS policies, auth, storage
-- Expertise in SQL, migrations, edge functions
-- Follows production standards: security-first, self-documenting code, fail-safe defaults
-
-**Full-Stack Integrator (Purple)** - `full-stack-integrator.md`
-- Orchestrates features spanning frontend and backend
-- Uses consultation-first pattern: asks specialists for recommendations before planning
-- Synthesizes unified API contracts and type definitions
-- Delegates implementation to appropriate specialists
-- Performs security audits and architectural reviews
-
-**Session Manager (Red)** - `session-manager.md`
-- Handles session documentation in two modes:
-  - UPDATE: Incremental session notes during work
-  - FINALIZE: Complete session closure with full documentation
-
-### Usage Pattern
-
-For features requiring both frontend and backend work:
-
-1. Invoke `full-stack-integrator` agent
-2. Agent consults `frontend-dev` and `backend-dev` in parallel
-3. Agent synthesizes recommendations into unified plan
-4. Agent delegates implementation tasks to specialists
-5. Specialists execute work sequentially if dependencies exist
-
-For frontend-only or backend-only work, invoke the appropriate specialist directly.
-
-### Key Innovation: Consultation-First
-
-The integrator doesn't assume what the architecture should be. Instead, it:
-- Asks both specialists for their recommendations in parallel
-- Identifies conflicts or mismatches in their proposals
-- Synthesizes a unified API contract with explicit types
-- Ensures type safety and architectural consistency up front
-
-This prevents rework and ensures domain expertise is applied from the start.
+**Architecture Pattern:**
+- Agent files (`.claude/agents/`) - WHO/HOW/workflow (behavior and decision logic)
+- Context files (`.context/`) - WHAT/WHY/technical (patterns and implementation details)
+- Agents reference context docs for technical patterns (no redundancy)
 
 ---
 
@@ -498,6 +449,26 @@ This prevents rework and ensures domain expertise is applied from the start.
 - Trade-off: Slightly slower compression but eliminates page crashes for iOS users
 - Detection via file.name pattern necessary since MIME type appears as standard JPEG
 - Always wrap createObjectURL and image processing in try-catch for graceful error handling
+
+### Documentation Architecture & Agent System
+
+**19. Agent/Context File Separation Architecture (Session 9)**
+- Separate agent behavior (WHO/HOW/workflow) from technical reference (WHAT/WHY/implementation)
+- Agent files (`.claude/agents/`) contain: identity, decision logic, workflows, checklists (~300-400 lines)
+- Context files (`.context/`) contain: complete technical details, code examples, patterns (as long as needed)
+- Benefits: No redundancy, easy maintenance (update tech in context files without touching agents), focused agent instructions
+- Orchestrator/specialist pattern: full-stack-integrator uses `🎯 ORCHESTRATOR MODE` header when delegating to specialists
+- Specialists recognize the header and complete focused tasks without trying to coordinate across workspaces
+- Result: 54% reduction in backend-dev.md (882→404 lines), 36% reduction in frontend-dev.md (711→458 lines), zero information loss
+
+**20. Session Documentation Conciseness (Session 9)**
+- sessions.md was bloated (118KB) with implementation details, code snippets, and verbose debugging narratives
+- Solution: Keep session entries under 20 lines - just decisions, lessons (1 sentence each), and next steps
+- Implementation details belong in code comments or specialized docs, NOT in sessions.md
+- Lessons learned go in specialized files (project.md for cross-cutting, backend.md/frontend.md for specific)
+- Use criteria: "Would a developer implementing a feature need to know this?" determines placement
+- Sessions.md is an index pointing to detailed information, not a textbook containing it
+- Updated session-manager agent to enforce this structure and prevent future bloat
 
 ---
 

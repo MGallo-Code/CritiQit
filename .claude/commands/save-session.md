@@ -35,7 +35,7 @@ Make CLAUDE.md, GEMINI.md, and AGENTS.md **byte-for-byte identical**:
 
 ### Task 3: Update Specialized Context Files (if applicable)
 Only update if the session introduced relevant changes:
-- **project.md** - Cross-workspace patterns, lessons, infrastructure
+- **project.md** - Cross-workspace patterns, lessons learned over extensive trial-and-error, infrastructure
 - **backend.md** - Database, RLS, storage, auth patterns
 - **frontend.md** - Components, routing, state management, UI patterns
 
