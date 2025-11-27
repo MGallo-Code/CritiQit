@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { FormError } from "@/components/ui/form-error";
 import { isRateLimitError, type RateLimitError } from "@/lib/form-state";
 import { Shuffle } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface UsernamePickerFormProps {
   userId: string;
@@ -40,8 +39,7 @@ export function UsernamePickerForm({
   // State management
   const [pool, setPool] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [customUsername, setCustomUsername] = useState("");
-  const [useCustom, setUseCustom] = useState(false);
+  const [username, setUsername] = useState("");
   const [isLoadingPool, setIsLoadingPool] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | RateLimitError | null>(null);
@@ -63,6 +61,10 @@ export function UsernamePickerForm({
           // Replace pool (initial load)
           setPool(suggestions);
           setCurrentIndex(0);
+          // Pre-fill input with first suggestion
+          if (suggestions.length > 0) {
+            setUsername(suggestions[0]);
+          }
         }
       } catch (err) {
         if (!silent) {
@@ -91,28 +93,20 @@ export function UsernamePickerForm({
   function handleRandomize() {
     if (pool.length === 0) return;
 
-    setCurrentIndex((prev) => {
-      const next = prev + 1;
-      return next >= pool.length ? 0 : next;
-    });
+    // Get next username from pool
+    const nextIndex = (currentIndex + 1) % pool.length;
+    setCurrentIndex(nextIndex);
 
-    setUseCustom(false);
-    setCustomUsername("");
+    // Replace input value with the next suggestion
+    setUsername(pool[nextIndex]);
     setError(null);
   }
 
-  function handleCustomInputChange(value: string) {
+  function handleUsernameChange(value: string) {
+    // Allow only valid username characters
     const cleaned = value.replace(/[^a-zA-Z0-9_]/g, "");
-    setCustomUsername(cleaned);
+    setUsername(cleaned);
     setError(null);
-  }
-
-  function handleToggleCustom() {
-    setUseCustom(!useCustom);
-    setError(null);
-    if (useCustom) {
-      setCustomUsername("");
-    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -120,39 +114,35 @@ export function UsernamePickerForm({
     setIsSubmitting(true);
     setError(null);
 
-    const usernameToSet = useCustom ? customUsername : pool[currentIndex];
-
-    if (!usernameToSet) {
-      setError("Please select or enter a username.");
+    if (!username) {
+      setError("Please enter a username.");
       setIsSubmitting(false);
       return;
     }
 
     try {
-      // If custom, validate first
-      if (useCustom) {
-        const { data, error: validationError } = await supabase.rpc(
-          "check_username_available",
-          { username_input: usernameToSet }
+      // Validate username availability
+      const { data, error: validationError } = await supabase.rpc(
+        "check_username_available",
+        { username_input: username }
+      );
+
+      if (validationError) throw validationError;
+
+      if (!data.available) {
+        setError(
+          errorMessages[data.error] || "This username is not available."
         );
-
-        if (validationError) throw validationError;
-
-        if (!data.available) {
-          setError(
-            errorMessages[data.error] || "This username is not available."
-          );
-          setIsSubmitting(false);
-          return;
-        }
+        setIsSubmitting(false);
+        return;
       }
 
-      // Update profile with PascalCase username AND clear temporary flag
+      // Update profile with username AND clear temporary flag
       // This prevents infinite loop: even if user chooses "User123abc", it won't prompt again
       const { error: updateError } = await supabase
         .from("profiles")
         .update({
-          username: usernameToSet,
+          username: username,
           username_is_temporary: false  // Mark as user-chosen
         })
         .eq("id", userId);
@@ -176,7 +166,6 @@ export function UsernamePickerForm({
   }
 
   const isRateLimited = isRateLimitError(error);
-  const currentSuggestion = pool[currentIndex];
 
   if (isLoadingPool && pool.length === 0) {
     return (
@@ -202,66 +191,35 @@ export function UsernamePickerForm({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Suggestion or Custom Input */}
-        {!useCustom ? (
-          <div className="space-y-2">
-            <Label htmlFor="username-suggestion">Suggested Username</Label>
-            <div className="flex gap-2">
-              <Input
-                id="username-suggestion"
-                type="text"
-                value={currentSuggestion || ""}
-                readOnly
-                className="flex-1 cursor-default"
-                disabled={isSubmitting || isRateLimited}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={handleRandomize}
-                disabled={isSubmitting || isRateLimited || pool.length === 0}
-                title="Randomize username"
-              >
-                <Shuffle className="h-5 w-5" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Click shuffle for more suggestions
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <Label htmlFor="custom-username">Create Your Own</Label>
+        {/* Unified Username Input */}
+        <div className="space-y-2">
+          <Label htmlFor="username">Your Username</Label>
+          <div className="flex gap-2">
             <Input
-              id="custom-username"
+              id="username"
               type="text"
-              value={customUsername}
-              onChange={(e) => handleCustomInputChange(e.target.value)}
+              value={username}
+              onChange={(e) => handleUsernameChange(e.target.value)}
               placeholder="YourAwesomeUsername"
               autoFocus
               disabled={isSubmitting || isRateLimited}
               maxLength={35}
+              className="flex-1"
             />
-            <p className="text-xs text-muted-foreground">
-              Letters, numbers, and underscores, 3-35 characters
-            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleRandomize}
+              disabled={isSubmitting || isRateLimited || pool.length === 0}
+              title="Get a random username"
+            >
+              <Shuffle className="h-5 w-5" />
+            </Button>
           </div>
-        )}
-
-        {/* Toggle Link */}
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={handleToggleCustom}
-            disabled={isSubmitting || isRateLimited}
-            className={cn(
-              "link-gold text-sm font-medium transition-opacity",
-              (isSubmitting || isRateLimited) && "cursor-not-allowed opacity-50"
-            )}
-          >
-            {useCustom ? "← Back to suggestions" : "Or create your own"}
-          </button>
+          <p className="text-xs text-muted-foreground">
+            Type your own or click shuffle for suggestions. Letters, numbers, and underscores only (3-35 characters)
+          </p>
         </div>
 
         {/* Error Message */}
