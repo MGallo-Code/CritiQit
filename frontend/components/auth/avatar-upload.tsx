@@ -2,6 +2,8 @@
 
 import { useState, useRef } from "react";
 import imageCompression from "browser-image-compression";
+import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
@@ -12,6 +14,7 @@ import { cn } from "@/lib/utils";
  * Avatar Upload Component
  *
  * Features:
+ * - Image cropping interface (1:1 aspect ratio, prevents distortion)
  * - Client-side image processing (resize to 512x512, convert to JPEG)
  * - One avatar per user (automatic overwrite via {user_id}.jpg naming)
  * - Progress indicator during upload
@@ -38,6 +41,15 @@ import { cn } from "@/lib/utils";
  * - Empty/invalid processing output
  */
 
+/**
+ * Upload phase tracking for multi-step workflow
+ */
+type UploadPhase =
+  | 'idle'           // No file selected
+  | 'cropping'       // File loaded, user adjusting crop
+  | 'preview'        // Crop complete, showing preview
+  | 'uploading';     // Processing + uploading
+
 interface AvatarUploadProps {
   userId: string;
   currentAvatarUrl: string | null;
@@ -49,19 +61,58 @@ const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
+/**
+ * Default crop configuration: 80% of image, centered, 1:1 aspect ratio locked
+ * Note: We use a function to generate the crop after image loads to ensure
+ * the aspect ratio is properly enforced from the start
+ */
+const getInitialCrop = (imageWidth: number, imageHeight: number): Crop => {
+  // Calculate crop size as 80% of the smaller dimension to ensure it fits
+  const minDimension = Math.min(imageWidth, imageHeight);
+  const cropSize = minDimension * 0.8;
+
+  // Center the crop
+  const x = (imageWidth - cropSize) / 2;
+  const y = (imageHeight - cropSize) / 2;
+
+  return {
+    unit: 'px',
+    width: cropSize,
+    height: cropSize,  // Same as width for 1:1 aspect ratio
+    x,
+    y,
+  };
+};
+
 export function AvatarUpload({
   userId,
   currentAvatarUrl,
   onUploadSuccess,
   className,
 }: AvatarUploadProps) {
-  const [isUploading, setIsUploading] = useState(false);
+  // Phase tracking
+  const [phase, setPhase] = useState<UploadPhase>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Original image state (for cropping)
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
+
+  // Crop state
+  const [crop, setCrop] = useState<Crop | undefined>(undefined);
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  // Cropped image state (for preview and upload)
+  const [croppedBlob, setCroppedBlob] = useState<Blob | null>(null);
+  const [croppedPreviewUrl, setCroppedPreviewUrl] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
+
+  // Compute isUploading based on phase
+  const isUploading = phase === 'uploading';
 
   /**
    * Comprehensive file validation including actual image loading
@@ -161,14 +212,67 @@ export function AvatarUpload({
   };
 
   /**
+   * Converts the user's crop selection to a Blob
+   * Uses Canvas API for pixel-perfect cropping at original resolution
+   */
+  const getCroppedBlob = async (
+    image: HTMLImageElement,
+    pixelCrop: PixelCrop
+  ): Promise<Blob> => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      throw new Error('Could not create canvas context');
+    }
+
+    // Calculate scale factors (account for image display vs natural size)
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+
+    // Set canvas to crop size at original resolution
+    canvas.width = pixelCrop.width * scaleX;
+    canvas.height = pixelCrop.height * scaleY;
+
+    // Draw cropped portion from original image
+    ctx.drawImage(
+      image,
+      pixelCrop.x * scaleX,      // Source X
+      pixelCrop.y * scaleY,      // Source Y
+      pixelCrop.width * scaleX,  // Source width
+      pixelCrop.height * scaleY, // Source height
+      0,                          // Dest X
+      0,                          // Dest Y
+      canvas.width,               // Dest width
+      canvas.height               // Dest height
+    );
+
+    // Convert to PNG Blob (lossless - compression happens in next step)
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create blob from canvas'));
+          }
+        },
+        'image/png',  // PNG preserves quality before final JPEG compression
+        1.0           // Maximum quality
+      );
+    });
+  };
+
+  /**
    * Process image: resize to 512x512 and convert to JPEG
+   * Now accepts Blob instead of File to handle cropped images
    *
    * Security enhancements:
    * - Verifies processed output is valid JPEG
    * - Validates output size is within limits
    * - Ensures compression succeeded properly
    */
-  const processImage = async (file: File): Promise<Blob> => {
+  const processImage = async (inputBlob: Blob): Promise<Blob> => {
     const options = {
       maxWidthOrHeight: 512,
       maxSizeMB: 0.1, // Target 100KB
@@ -178,7 +282,12 @@ export function AvatarUpload({
     };
 
     try {
-      const compressedBlob = await imageCompression(file, options);
+      // Convert Blob to File if needed (browser-image-compression expects File)
+      const fileToCompress = inputBlob instanceof File
+        ? inputBlob
+        : new File([inputBlob], 'cropped.png', { type: inputBlob.type });
+
+      const compressedBlob = await imageCompression(fileToCompress, options);
 
       // Verify the processed blob is valid JPEG
       if (compressedBlob.type !== 'image/jpeg') {
@@ -336,7 +445,7 @@ export function AvatarUpload({
   /**
    * Handle file selection with comprehensive validation
    *
-   * Validates file before showing preview to catch issues early:
+   * Validates file before showing cropping interface to catch issues early:
    * - MIME type spoofing
    * - Corrupted images
    * - Invalid dimensions
@@ -346,14 +455,14 @@ export function AvatarUpload({
     if (!file) return;
 
     setError(null);
-    setPreviewUrl(null);
-    setIsUploading(true); // Show loading during validation
+    setPhase('uploading'); // Show loading during validation
 
     try {
       // Comprehensive async validation (loads image to verify it's valid)
       const validation = await validateImageFile(file);
       if (!validation.valid) {
         setError(validation.error!);
+        setPhase('idle');
         // Clear file input on validation failure
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -361,44 +470,91 @@ export function AvatarUpload({
         return;
       }
 
-      // Validation passed - show preview
+      // Validation passed - show cropping interface
       // Wrap createObjectURL in try-catch to prevent crashes from malformed files
       try {
         const objectUrl = URL.createObjectURL(file);
-        setPreviewUrl(objectUrl);
+        setOriginalImageUrl(objectUrl);
+        setOriginalFile(file);
+        setCrop(undefined); // Will be set when image loads
+        setCompletedCrop(null);
+        setPhase('cropping');
       } catch (urlError) {
         console.error('Failed to create object URL:', urlError);
-        throw new Error('Unable to load image preview. The file may be corrupted.');
+        throw new Error('Unable to load image. The file may be corrupted.');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to validate image. Please try again.';
       setError(errorMessage);
       console.error('Validation error:', err);
+      setPhase('idle');
       // Clear file input on error
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } finally {
-      setIsUploading(false);
     }
   };
 
   /**
-   * Handle upload button click (after preview shown)
+   * Handle crop completion - execute crop and move to preview
+   */
+  const handleCropComplete = async () => {
+    if (!completedCrop || !imageRef.current) {
+      setError('Please adjust the crop area before continuing.');
+      return;
+    }
+
+    setPhase('uploading'); // Show loading during crop execution
+    setError(null);
+
+    try {
+      // Execute crop using Canvas API
+      const blob = await getCroppedBlob(imageRef.current, completedCrop);
+
+      // Create preview URL for cropped image
+      const previewUrl = URL.createObjectURL(blob);
+
+      setCroppedBlob(blob);
+      setCroppedPreviewUrl(previewUrl);
+      setPhase('preview');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to crop image. Please try again.';
+      setError(errorMessage);
+      console.error('Crop error:', err);
+      setPhase('cropping'); // Return to cropping on error
+    }
+  };
+
+  /**
+   * Handle back to crop from preview
+   */
+  const handleBackToCrop = () => {
+    // Clean up cropped preview
+    if (croppedPreviewUrl) {
+      URL.revokeObjectURL(croppedPreviewUrl);
+    }
+    setCroppedPreviewUrl(null);
+    setCroppedBlob(null);
+    setPhase('cropping');
+  };
+
+  /**
+   * Handle upload button click (after crop and preview)
    */
   const handleUpload = async () => {
-    if (!fileInputRef.current?.files?.[0]) return;
+    if (!croppedBlob) {
+      setError('No cropped image available. Please try again.');
+      return;
+    }
 
-    const file = fileInputRef.current.files[0];
-
-    setIsUploading(true);
+    setPhase('uploading');
     setError(null);
     setUploadProgress(0);
 
     try {
-      // Step 1: Process image (25% progress)
+      // Step 1: Process cropped image (25% progress)
       setUploadProgress(25);
-      const processedBlob = await processImage(file);
+      const processedBlob = await processImage(croppedBlob);
 
       // Step 2: Upload to storage (50% progress)
       setUploadProgress(50);
@@ -411,37 +567,63 @@ export function AvatarUpload({
       // Step 4: Complete (100% progress)
       setUploadProgress(100);
 
-      // Clean up preview
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
+      // Clean up all URLs
+      if (originalImageUrl) {
+        URL.revokeObjectURL(originalImageUrl);
       }
-      setPreviewUrl(null);
+      if (croppedPreviewUrl) {
+        URL.revokeObjectURL(croppedPreviewUrl);
+      }
+
+      // Reset all state
+      setOriginalImageUrl(null);
+      setOriginalFile(null);
+      setCroppedPreviewUrl(null);
+      setCroppedBlob(null);
+      setCrop(undefined);
+      setCompletedCrop(null);
 
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
 
+      setPhase('idle');
+
       // Notify parent component
       onUploadSuccess(newUrl);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+      setPhase('preview'); // Return to preview on error
     } finally {
-      setIsUploading(false);
       setUploadProgress(0);
     }
   };
 
   /**
-   * Handle cancel (dismiss preview)
+   * Handle cancel (reset to idle state)
    */
   const handleCancel = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
+    // Clean up all object URLs
+    if (originalImageUrl) {
+      URL.revokeObjectURL(originalImageUrl);
     }
-    setPreviewUrl(null);
+    if (croppedPreviewUrl) {
+      URL.revokeObjectURL(croppedPreviewUrl);
+    }
+
+    // Reset all state
+    setOriginalImageUrl(null);
+    setOriginalFile(null);
+    setCroppedPreviewUrl(null);
+    setCroppedBlob(null);
+    setCrop(undefined);
+    setCompletedCrop(null);
     setError(null);
+    setPhase('idle');
+
+    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -456,6 +638,40 @@ export function AvatarUpload({
 
   return (
     <div className={cn("flex flex-col items-center gap-4", className)}>
+      {/* Custom CSS for circular crop overlay */}
+      <style jsx global>{`
+        /* Constrain the crop overlay to only the image container */
+        .crop-container {
+          position: relative;
+          overflow: hidden;
+          border-radius: 0.5rem;
+        }
+
+        .ReactCrop__crop-selection {
+          border: 3px solid hsl(45 85% 75%);
+          border-radius: 50%;
+          /* Use a reasonable box-shadow size that covers the image area
+             but doesn't extend beyond the container to cover buttons.
+             1000px is enough for most images while staying contained. */
+          box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.6);
+        }
+
+        .ReactCrop__drag-handle {
+          width: 44px;
+          height: 44px;
+          background: hsl(45 85% 75%);
+          border: 2px solid hsl(240 8% 12%);
+          border-radius: 50%;
+        }
+
+        @media (min-width: 640px) {
+          .ReactCrop__drag-handle {
+            width: 32px;
+            height: 32px;
+          }
+        }
+      `}</style>
+
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -466,107 +682,170 @@ export function AvatarUpload({
         disabled={isUploading}
       />
 
-      {/* Preview or Current Avatar */}
-      {previewUrl ? (
-        <div className="relative">
-          <Avatar className="h-40 w-40 border-4 border-primary shadow-xl md:h-64 md:w-64">
-            <AvatarImage src={previewUrl} alt="Preview" />
-          </Avatar>
-          <div className="absolute -top-2 -right-2 flex gap-2">
-            <Button
-              type="button"
-              size="icon"
-              variant="destructive"
-              onClick={handleCancel}
-              disabled={isUploading}
-              className="h-8 w-8 rounded-full"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+      {/* Phase: Idle - Show current avatar */}
+      {phase === 'idle' && (
+        <>
+          <div className="relative group cursor-pointer" onClick={triggerFileInput}>
+            <Avatar className="h-40 w-40 border-4 border-background shadow-xl md:h-64 md:w-64 transition-opacity group-hover:opacity-80">
+              <AvatarImage src={currentAvatarUrl ?? undefined} alt="Current avatar" />
+            </Avatar>
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+              <Upload className="h-8 w-8 text-white" />
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="relative group cursor-pointer" onClick={triggerFileInput}>
-          <Avatar className="h-40 w-40 border-4 border-background shadow-xl md:h-64 md:w-64 transition-opacity group-hover:opacity-80">
-            <AvatarImage src={currentAvatarUrl ?? undefined} alt="Current avatar" />
-          </Avatar>
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-            <Upload className="h-8 w-8 text-white" />
-          </div>
-        </div>
+
+          <Button
+            type="button"
+            onClick={triggerFileInput}
+            disabled={isUploading}
+            variant="outline"
+            size="lg"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Change Avatar
+          </Button>
+
+          <p className="text-xs text-muted-foreground text-center max-w-xs">
+            JPEG, PNG, or WebP • Max {MAX_FILE_SIZE_MB}MB • Recommended 512x512px
+          </p>
+        </>
       )}
 
-      {/* Upload Progress */}
-      {isUploading && (
-        <div className="w-full max-w-xs">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Uploading... {uploadProgress}%</span>
+      {/* Phase: Cropping - Show crop interface */}
+      {phase === 'cropping' && originalImageUrl && (
+        <>
+          <div className="w-full max-w-[600px] space-y-4">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-1">Crop Your Avatar</h3>
+              <p className="text-sm text-muted-foreground">
+                Drag to adjust, scroll to zoom
+              </p>
+            </div>
+
+            <div className="crop-container relative w-full rounded-lg" style={{ maxHeight: '500px' }}>
+              <ReactCrop
+                crop={crop}
+                onChange={(c) => setCrop(c)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={1}
+                circularCrop
+              >
+                <img
+                  ref={imageRef}
+                  src={originalImageUrl}
+                  alt="Crop preview"
+                  className="max-w-full h-auto"
+                  onLoad={(e) => {
+                    // Set image ref and initialize crop on load
+                    imageRef.current = e.currentTarget;
+                    // Initialize crop as perfect square
+                    const initialCrop = getInitialCrop(
+                      e.currentTarget.width,
+                      e.currentTarget.height
+                    );
+                    setCrop(initialCrop);
+                  }}
+                />
+              </ReactCrop>
+            </div>
+
+            <div className="flex gap-3 justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                size="lg"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleCropComplete}
+                size="lg"
+                disabled={!completedCrop}
+              >
+                Crop & Next
+              </Button>
+            </div>
           </div>
-          <div className="w-full bg-muted rounded-full h-2">
-            <div
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress}%` }}
-            />
+        </>
+      )}
+
+      {/* Phase: Preview - Show cropped image */}
+      {phase === 'preview' && croppedPreviewUrl && (
+        <>
+          <div className="text-center mb-2">
+            <h3 className="text-lg font-semibold mb-1">Preview</h3>
+            <p className="text-sm text-muted-foreground">
+              This is how your avatar will look
+            </p>
           </div>
-        </div>
+
+          <div className="relative">
+            <Avatar className="h-40 w-40 border-4 border-primary shadow-xl md:h-64 md:w-64">
+              <AvatarImage src={croppedPreviewUrl} alt="Cropped preview" />
+            </Avatar>
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBackToCrop}
+              size="lg"
+            >
+              Back to Crop
+            </Button>
+            <Button
+              type="button"
+              onClick={handleUpload}
+              size="lg"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Image
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* Phase: Uploading - Show progress */}
+      {phase === 'uploading' && (
+        <>
+          <div className="relative">
+            <Avatar className="h-40 w-40 border-4 border-primary shadow-xl md:h-64 md:w-64 opacity-50">
+              <AvatarImage
+                src={croppedPreviewUrl || currentAvatarUrl || undefined}
+                alt="Uploading"
+              />
+            </Avatar>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+          </div>
+
+          <div className="w-full max-w-xs">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>
+                {uploadProgress === 0 ? 'Processing...' : `Uploading... ${uploadProgress}%`}
+              </span>
+            </div>
+            {uploadProgress > 0 && (
+              <div className="w-full bg-muted rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Error Message */}
       {error && (
         <p className="text-sm text-error text-center max-w-xs" role="alert">
           {error}
-        </p>
-      )}
-
-      {/* Action Buttons */}
-      {previewUrl ? (
-        <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCancel}
-            disabled={isUploading}
-            size="lg"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={handleUpload}
-            disabled={isUploading}
-            size="lg"
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Image
-              </>
-            )}
-          </Button>
-        </div>
-      ) : (
-        <Button
-          type="button"
-          onClick={triggerFileInput}
-          disabled={isUploading}
-          variant="outline"
-          size="lg"
-        >
-          <Upload className="mr-2 h-4 w-4" />
-          Change Avatar
-        </Button>
-      )}
-
-      {/* Helper Text */}
-      {!previewUrl && !isUploading && (
-        <p className="text-xs text-muted-foreground text-center max-w-xs">
-          JPEG, PNG, or WebP • Max {MAX_FILE_SIZE_MB}MB • Recommended 512x512px
         </p>
       )}
     </div>
