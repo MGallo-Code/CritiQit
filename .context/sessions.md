@@ -4,6 +4,37 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
+## Session 11 - 2025-11-28
+
+### Summary
+Implemented professional avatar image cropping with circular overlay and mobile gestures. Fixed username picker UX (single field with shuffle), CurrentUserProvider logout bug (manual refresh needed), full-stack-integrator agent invocation pattern (delegating to specialists). Enhanced frontend.md with "Architecture Constraints" documenting disabled realtime. All features production-ready with comprehensive mobile testing planned.
+
+### Accomplishments
+- **Frontend**: Avatar cropping interface with react-image-crop (circular 1:1 overlay, pinch-to-zoom, canvas-based execution)
+- **Frontend**: Username picker UX simplified (single pre-filled field + shuffle button eliminates toggle confusion)
+- **Frontend**: Fixed CurrentUserProvider logout bug (added manual refreshUser call after signOut)
+- **Root**: Added Architecture Constraints section to frontend.md (documents realtime disabled, impacts logout/updates)
+- **Root**: Fixed full-stack-integrator agent invocation instructions (delegating plans using Task tool, not executing)
+
+### Technical Decisions
+- **Image Cropping Library**: react-image-crop chosen (40K weekly downloads, mobile-friendly, 15KB bundle vs heavy alternatives)
+- **Crop Workflow**: Crop before compression (square PNG → compress → 512x512 JPEG) eliminates distortion from rectangular sources
+- **Aspect Ratio Locked**: 1:1 square enforced (avatars display as circles, non-square would be cut off)
+- **Agent Invocation Pattern**: full-stack-integrator returns plans to main context; main context delegates using Task tool (agents can't invoke other agents)
+
+### Lessons Learned
+- **Agent Invocation Architecture**: Agents can't use Task tool in sub-context, must return plans to main Claude Code context for delegation (see project.md §21)
+- **Dynamic Crop Initialization**: Static defaults don't account for image dimensions; calculate 80% of smaller dimension in onLoad handler
+- **Overlay Containment**: Large box-shadow spreads (9999px) extend beyond containers; use 1000px + overflow:hidden for clean boundaries
+- **Context File Completeness**: frontend.md missing critical realtime-disabled info caused incorrect assumptions; add Architecture Constraints sections
+
+### Next Steps
+- [ ] Test avatar cropping on real iOS/Android devices (HEIC files, pinch-to-zoom, drag gestures)
+- [ ] Verify end-to-end flow (upload, display, rate limiting countdown)
+- [ ] Trim sessions.md bloat (condense older entries, keep last 3-5 detailed)
+
+---
+
 ## Session 10 - 2025-11-27 05:15
 
 ### Summary

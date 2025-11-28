@@ -4,7 +4,7 @@
 >
 > **📚 See [sessions.md](./sessions.md) for detailed session history**
 
-Last updated: 2025-11-27 05:15
+Last updated: 2025-11-28
 
 ---
 
@@ -32,21 +32,20 @@ Last updated: 2025-11-27 05:15
 
 ## 📋 Immediate Next Steps
 
+- [ ] **High Priority**: Test avatar cropping on real iOS/Android devices (HEIC files, pinch-to-zoom, drag gestures)
+- [ ] **High Priority**: Verify end-to-end avatar flow (crop, upload, display, rate limiting countdown)
 - [ ] **High Priority**: Trim sessions.md (keep last 3-5 sessions in detail, condense older entries to summary only)
-- [ ] **High Priority**: Test avatar upload flow end-to-end (validation, upload, retrieval, error scenarios, HEIC files)
-- [ ] **High Priority**: Verify rate limiting with countdown timer (test hitting limits)
-- [ ] **High Priority**: Mobile testing for avatar upload (file picker, touch targets, iOS/Android, HEIC support)
 - [ ] **Medium Priority**: Build star rating component (first CritiQit-specific UI component)
 - [ ] **Medium Priority**: Create movie card component (grid + list variants per design system)
 - [ ] **Low Priority**: Add light mode link color (fix WCAG AA for light mode)
 
 ## 🔄 Recent Context (Last 2-3 Sessions)
 
-**Session 10 (2025-11-27)**: Major documentation architecture overhaul. Streamlined agent files by separating behavior (WHO/HOW) from technical details (WHAT/WHY), reducing backend-dev by 54% and frontend-dev by 36%. Established orchestrator/specialist pattern with 🎯 ORCHESTRATOR MODE headers. Updated session-manager to enforce concise entries (max 20 lines). Added "When in Doubt" guidance to all files to prevent hallucinations.
+**Session 11 (2025-11-28)**: Implemented professional avatar image cropping with react-image-crop (circular 1:1 overlay, mobile gestures, canvas-based execution). Fixed username picker UX (single pre-filled field with shuffle), CurrentUserProvider logout bug (manual refresh after signOut), and full-stack-integrator agent invocation pattern (delegates plans via Task tool). Enhanced frontend.md with Architecture Constraints section documenting disabled realtime.
 
-**Session 9 (2025-11-20)**: Short focused session implementing global golden focus outline system. Replaced default blue borders with movie theater design colors (warm-red and star-yellow). Created theme-aware focus states (bright gold in dark mode, darker gold in light mode). User testing refined visual balance.
+**Session 10 (2025-11-27)**: Major documentation architecture overhaul. Streamlined agent files by separating behavior (WHO/HOW) from technical details (WHAT/WHY), reducing backend-dev by 54% and frontend-dev by 36%. Established orchestrator/specialist pattern with 🎯 ORCHESTRATOR MODE headers. Updated session-manager to enforce concise entries (max 20 lines). Added "When in Doubt" guidance to prevent hallucinations.
 
-**Session 8 (2025-11-20)**: Avatar upload feature complete and production-ready after comprehensive debugging. Fixed PostgreSQL corruption, Next.js version mismatch, Kong path routing causing 400 errors, critical race condition in upload flow (changed from delete-then-upload to atomic upsert), and HEIC image upload crash (Safari's auto-conversion to JPEG was crashing Web Workers).
+**Session 9 (2025-11-20)**: Implemented global golden focus outline system. Replaced default blue borders with movie theater design colors (warm-red and star-yellow). Created theme-aware focus states (bright gold in dark mode, darker gold in light mode). User testing refined visual balance.
 
 ## 🚧 Known Issues & Blockers
 
@@ -69,18 +68,20 @@ None! Avatar upload feature complete and production-ready. All critical bugs res
 
 ## ⚡ Important Notes for Next Session
 
-- **Documentation System Updated**: Agent files now streamlined with references to context files for technical details
-- **Session Entry Format**: New concise format enforced (max 20 lines, no code snippets, lessons go in specialized files)
+- **Avatar Cropping Implemented**: react-image-crop with 1:1 circular overlay, mobile gestures (pinch-to-zoom), canvas-based execution
+- **Agent Invocation Pattern**: full-stack-integrator returns plans to main context; main context delegates using Task tool (agents can't invoke other agents - see project.md §21)
+- **Frontend Architecture Constraints**: Realtime is DISABLED - must manually refresh user state after logout/updates (documented in frontend.md)
+- **Username Picker Simplified**: Single pre-filled field with shuffle button (no toggle confusion)
+- **Crop Initialization**: Dynamic calculation required (80% of smaller dimension in onLoad), static defaults cause oval crops
+- **Overlay Containment**: Use reasonable box-shadow spread (1000px) + overflow:hidden to prevent UI element blocking
+- **Documentation System Updated**: Agent files streamlined with references to context files for technical details
+- **Session Entry Format**: Concise format enforced (max 20 lines, no code snippets, lessons go in specialized files)
 - **Orchestrator Pattern**: full-stack-integrator uses 🎯 ORCHESTRATOR MODE header when delegating to specialists
-- **"When in Doubt" Added**: All agent and context files now encourage asking questions over guessing
 - **Avatar Upload Production-Ready**: Atomic upsert operations prevent data loss on failure
-- **Kong Path Routing Pattern**: Use `strip_path: true` with base URLs to avoid duplication (e.g., `http://storage:5000/` not `http://storage:5000/storage/v1/object/public`)
-- **Atomic Storage Operations**: Always use `upsert: true` instead of delete-then-upload patterns to prevent race conditions
-- **HEIC/Safari Image Processing**: Disable Web Workers (`useWebWorker: false`) in browser-image-compression to prevent crashes with Safari's HEIC-to-JPEG conversions
-- **Error Message Philosophy**: User-friendly messages without technical jargon (no "RLS violation" or "mime type validation")
+- **Kong Path Routing Pattern**: Use `strip_path: true` with base URLs to avoid duplication
+- **HEIC/Safari Image Processing**: Disable Web Workers (`useWebWorker: false`) to prevent crashes
+- **Error Message Philosophy**: User-friendly messages without technical jargon
 - **Complete Design System**: See `.context/design-system.md` for full specifications
-- **Security Audit System**: Use `/audit` command for vulnerability scanning
-- **Feature Implementation**: Use `/implement` command for features spanning frontend and backend
 - **Production Rate Limits Active**: 5 avatar uploads/hour, 20/day per user
 
 ## 🎯 Production-Ready Development Standards
