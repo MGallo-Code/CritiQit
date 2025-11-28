@@ -298,8 +298,7 @@ CritiQit uses specialized agents located in `.claude/agents/` for complex develo
 - Security auditors - Vulnerability scanning (frontend, backend, infrastructure)
 
 **Usage:**
-- `/implement` - Full-stack features (invokes full-stack-integrator)
-- Direct agent invocation - Single-workspace tasks
+- Direct agent invocation - Use Task tool with appropriate agent type
 - `/audit` - Security vulnerability scanning
 
 **Architecture Pattern:**
@@ -366,7 +365,7 @@ CritiQit uses specialized agents located in `.claude/agents/` for complex develo
 ### Development Workflow
 
 **7. Command-Based Workflows (Session 5)**
-- Create slash commands for common complex workflows (`/audit`, `/implement`)
+- Create slash commands for common complex workflows (e.g., `/audit`)
 - Reduces cognitive load and ensures consistent execution
 - Streamlines multi-agent orchestration
 - Better than always invoking agents manually

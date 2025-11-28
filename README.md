@@ -184,7 +184,6 @@ CritiQit uses a custom AI agent system for development:
 - **`security-coordinator`** - Orchestrates security audits and fix delegation
 
 ### Commands
-- **`/implement "feature"`** - Build full-stack features with architectural planning
 - **`/audit`** - Run comprehensive security audit (frontend + backend + infrastructure)
 - **`/update-session`** - Document progress mid-session
 - **`/save-session`** - Finalize session and update context files
@@ -195,13 +194,8 @@ CritiQit uses a custom AI agent system for development:
 
 ### Adding a New Feature
 
-1. **Plan with full-stack-integrator:**
-   ```bash
-   /implement "add commenting system to movie ratings"
-   ```
-
-2. **Agent Flow:**
-   - Consults frontend-dev and backend-dev specialists
+1. **Invoke full-stack-integrator agent** for features spanning frontend and backend:
+   - Agent consults frontend-dev and backend-dev specialists
    - Synthesizes unified architectural plan
    - Defines TypeScript interfaces and API contracts
    - Delegates implementation to specialists

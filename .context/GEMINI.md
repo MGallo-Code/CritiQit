@@ -146,7 +146,7 @@ None! Avatar upload feature complete and production-ready. All critical bugs res
 
 ### When to Use Agents vs Direct Implementation
 
-**Use `/implement` (full-stack-integrator) when:**
+**Use full-stack-integrator agent when:**
 - Feature spans frontend AND backend
 - Requires database schema changes
 - Needs type safety coordination
