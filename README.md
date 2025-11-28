@@ -323,7 +323,6 @@ Before deploying to production:
 - [ ] Replace test Turnstile captcha key with production key
 - [ ] Set `NODE_ENV=production`
 - [ ] Configure Cloudflare Tunnel for domain (`critiqit.io`)
-- [ ] Test production build locally: `yarn build && yarn start`
 - [ ] Verify all authentication flows work end-to-end
 - [ ] Test rate limiting with real requests
 - [ ] Check mobile responsiveness on real devices
