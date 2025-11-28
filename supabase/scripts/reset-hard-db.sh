@@ -45,9 +45,6 @@ if [ "$SEED" = true ]; then
 
     # Upload email templates
     ./scripts/upload-templates.sh
-
-    # Upload preset avatars
-    ./scripts/upload-presets.sh
 fi
 
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="

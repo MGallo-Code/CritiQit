@@ -97,7 +97,7 @@ supabase/
 ├── compose.yml                   # 12 Docker services
 ├── .env                          # Secrets (not committed)
 ├── migrations/                   # Database migrations
-├── seed/                         # Preset avatars + email templates
+├── seed/                         # Email templates
 └── volumes/
     ├── db/data/                  # PostgreSQL data
     ├── api/kong.yml              # Kong config (1008 lines)
@@ -127,7 +127,7 @@ Executable bash script at `supabase/db` - unified interface for ALL database ope
 ./db reset hard      # DESTRUCTIVE: Destroys all data, reapplies migrations, uploads seeds
 ./db reset soft      # Preserves volumes, drops schema only
 
-./db seed [all|presets|templates]  # Upload seed data (idempotent)
+./db seed [all|templates]  # Upload seed data (idempotent)
 ./db migrate         # Apply new migrations only (⚠️ doesn't re-run existing)
 ./db status          # Container status + recent migrations
 ./db help            # Interactive menu if no args
@@ -212,7 +212,6 @@ Deletes rate_limits records older than 7 days. Run manually or via cron (not aut
 #### `avatars` (public, 5MB limit, JPEG only)
 
 - **User avatars**: `{uuid}.jpg` - RLS allows authenticated users INSERT/UPDATE/DELETE own file
-- **Presets**: `presets/avatar-*.jpg` - RLS restricts to service_role only
 - **Public read**: Anyone can view (GET)
 - **Atomic upsert**: Requires both INSERT + UPDATE policies
 
