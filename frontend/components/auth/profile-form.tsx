@@ -15,8 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCurrentUser } from "@/providers/current-user-provider";
 import { LogoutButton } from "@/components/auth/logout-button";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { AvatarDisplay } from "@/components/avatar/avatar-display";
 import { AvatarUpload } from "@/components/auth/avatar-upload";
+import { getAvatarDisplay } from "@/lib/avatar-presets";
 
 type EditableProfile = {
   full_name: string;
@@ -84,7 +85,7 @@ export function ProfileForm({
 
   // Extract dominant color from avatar and generate gradient
   useEffect(() => {
-    if (!currentUser?.avatar_url) {
+    if (!currentUser) {
       // Use dramatic default primary color gradient
       setHeaderGradient(
         "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
@@ -92,72 +93,114 @@ export function ProfileForm({
       return;
     }
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = currentUser.avatar_url;
+    const avatarDisplay = getAvatarDisplay({
+      avatar_url: currentUser.avatar_url,
+      avatar_preset_id: currentUser.avatar_preset_id,
+      avatar_background_color: currentUser.avatar_background_color,
+    });
 
-    img.onload = () => {
-      try {
-        // Create canvas to sample image
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
+    // For preset avatars, use the preset background color directly
+    if (avatarDisplay.type === 'preset') {
+      // Parse hex color to RGB
+      const hex = avatarDisplay.backgroundColor;
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
 
-        // Resize to small size for faster processing
-        canvas.width = 50;
-        canvas.height = 50;
-        ctx.drawImage(img, 0, 0, 50, 50);
+      // Convert RGB to HSL for better control
+      const hsl = rgbToHsl(r, g, b);
 
-        // Get image data
-        const imageData = ctx.getImageData(0, 0, 50, 50);
-        const data = imageData.data;
+      // Generate dramatic gradient with preset color
+      // Boost saturation for more vibrant colors (min 45%, boost by 15%)
+      const saturation = Math.min(Math.max(hsl.s + 15, 45), 85);
 
-        // Calculate average RGB
-        let r = 0, g = 0, b = 0;
-        const pixelCount = data.length / 4;
+      // Adjust lightness for better visibility (boost by 15%, min 55%)
+      const baseLightness = Math.max(hsl.l + 15, 55);
 
-        for (let i = 0; i < data.length; i += 4) {
-          r += data[i];
-          g += data[i + 1];
-          b += data[i + 2];
+      // Create 5-stop gradient with varying lightness and higher opacity
+      // Uses diagonal angle (135deg) for more visual interest
+      // Opacity range: 0.45 - 0.65 (much more prominent than 0.2 - 0.3)
+      setHeaderGradient(
+        `linear-gradient(135deg, hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness + 10}% / 0.55), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45))`
+      );
+      return;
+    }
+
+    // For custom avatars, extract color from the image
+    if (avatarDisplay.type === 'custom') {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = avatarDisplay.url;
+
+      img.onload = () => {
+        try {
+          // Create canvas to sample image
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return;
+
+          // Resize to small size for faster processing
+          canvas.width = 50;
+          canvas.height = 50;
+          ctx.drawImage(img, 0, 0, 50, 50);
+
+          // Get image data
+          const imageData = ctx.getImageData(0, 0, 50, 50);
+          const data = imageData.data;
+
+          // Calculate average RGB
+          let r = 0, g = 0, b = 0;
+          const pixelCount = data.length / 4;
+
+          for (let i = 0; i < data.length; i += 4) {
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+          }
+
+          r = Math.floor(r / pixelCount);
+          g = Math.floor(g / pixelCount);
+          b = Math.floor(b / pixelCount);
+
+          // Convert RGB to HSL for better control
+          const hsl = rgbToHsl(r, g, b);
+
+          // Generate dramatic gradient with extracted color
+          // Boost saturation for more vibrant colors (min 45%, boost by 15%)
+          const saturation = Math.min(Math.max(hsl.s + 15, 45), 85);
+
+          // Adjust lightness for better visibility (boost by 15%, min 55%)
+          const baseLightness = Math.max(hsl.l + 15, 55);
+
+          // Create 5-stop gradient with varying lightness and higher opacity
+          // Uses diagonal angle (135deg) for more visual interest
+          // Opacity range: 0.45 - 0.65 (much more prominent than 0.2 - 0.3)
+          setHeaderGradient(
+            `linear-gradient(135deg, hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness + 10}% / 0.55), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45))`
+          );
+        } catch (err) {
+          console.error("Failed to extract avatar color:", err);
+          // Fallback to dramatic default
+          setHeaderGradient(
+            "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
+          );
         }
+      };
 
-        r = Math.floor(r / pixelCount);
-        g = Math.floor(g / pixelCount);
-        b = Math.floor(b / pixelCount);
-
-        // Convert RGB to HSL for better control
-        const hsl = rgbToHsl(r, g, b);
-
-        // Generate dramatic gradient with extracted color
-        // Boost saturation for more vibrant colors (min 45%, boost by 15%)
-        const saturation = Math.min(Math.max(hsl.s + 15, 45), 85);
-
-        // Adjust lightness for better visibility (boost by 15%, min 55%)
-        const baseLightness = Math.max(hsl.l + 15, 55);
-
-        // Create 5-stop gradient with varying lightness and higher opacity
-        // Uses diagonal angle (135deg) for more visual interest
-        // Opacity range: 0.45 - 0.65 (much more prominent than 0.2 - 0.3)
-        setHeaderGradient(
-          `linear-gradient(135deg, hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness + 10}% / 0.55), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45))`
-        );
-      } catch (err) {
-        console.error("Failed to extract avatar color:", err);
-        // Fallback to dramatic default
+      img.onerror = () => {
+        // Fallback to dramatic default on error
         setHeaderGradient(
           "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
         );
-      }
-    };
+      };
+      return;
+    }
 
-    img.onerror = () => {
-      // Fallback to dramatic default on error
-      setHeaderGradient(
-        "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
-      );
-    };
-  }, [currentUser?.avatar_url]);
+    // Default: use dramatic default primary color gradient
+    setHeaderGradient(
+      "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
+    );
+  }, [currentUser?.avatar_url, currentUser?.avatar_preset_id, currentUser?.avatar_background_color, currentUser]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -307,6 +350,9 @@ export function ProfileForm({
               <AvatarUpload
                 userId={currentUser.id}
                 currentAvatarUrl={currentUser.avatar_url}
+                currentPresetId={currentUser.avatar_preset_id}
+                currentBackgroundColor={currentUser.avatar_background_color}
+                username={currentUser.username}
                 onUploadSuccess={async (newUrl) => {
                   // Refresh user context to update avatar everywhere
                   await refreshUser();
@@ -314,12 +360,18 @@ export function ProfileForm({
               />
             </div>
           ) : (
-            <Avatar className="h-40 w-40 -mt-20 border-4 border-background shadow-xl md:h-64 md:w-64 md:-mt-32 mx-auto">
-              <AvatarImage
-                src={currentUser.avatar_url ?? undefined}
-                alt={avatarAlt}
+            <div className="-mt-20 md:-mt-32 mx-auto">
+              <AvatarDisplay
+                profile={{
+                  avatar_url: currentUser.avatar_url,
+                  avatar_preset_id: currentUser.avatar_preset_id,
+                  avatar_background_color: currentUser.avatar_background_color,
+                  username: currentUser.username,
+                }}
+                size="lg"
+                className="h-40 w-40 border-4 border-background shadow-xl md:h-64 md:w-64"
               />
-            </Avatar>
+            </div>
           )}
           <div className="mt-4 flex flex-col gap-6 w-full md:flex-row md:items-center md:justify-between">
             <div className="space-y-2 text-center md:text-left">

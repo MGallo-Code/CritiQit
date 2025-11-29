@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { FormError } from "@/components/ui/form-error";
 import { isRateLimitError, type RateLimitError } from "@/lib/form-state";
 import { Shuffle } from "lucide-react";
+import { AvatarDisplay } from "@/components/avatar/avatar-display";
+import { PresetAvatarPickerModal } from "@/components/avatar/preset-avatar-picker-modal";
 
 interface UsernamePickerFormProps {
   userId: string;
@@ -30,7 +32,7 @@ export function UsernamePickerForm({
 }: UsernamePickerFormProps) {
   const router = useRouter();
   const supabase = createClient();
-  const { refreshUser } = useCurrentUser();
+  const { user, refreshUser } = useCurrentUser();
   const searchParams = useSearchParams();
 
   // Get redirect destination from query params
@@ -43,6 +45,7 @@ export function UsernamePickerForm({
   const [isLoadingPool, setIsLoadingPool] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | RateLimitError | null>(null);
+  const [isPresetPickerOpen, setIsPresetPickerOpen] = useState(false);
 
   const fetchUsernamePool = useCallback(
     async (silent = false) => {
@@ -165,6 +168,65 @@ export function UsernamePickerForm({
     router.push(redirectTo);
   }
 
+  async function handlePresetSelect(presetId: string, backgroundColor: string) {
+    // If user has a custom uploaded avatar (real file), delete it
+    // We check if avatar_url exists (meaning it's a custom upload now that we don't use preset strings)
+    if (user?.avatar_url) {
+      const filename = `${userId}.jpg`;
+      const { error: deleteError } = await supabase.storage.from('avatars').remove([filename]);
+      if (deleteError) {
+        console.error('Failed to delete old avatar:', deleteError);
+        // Continue anyway
+      }
+    }
+
+    // Update profile: set preset fields and CLEAR custom URL
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        avatar_url: null, // Clear custom avatar URL
+        avatar_preset_id: presetId,
+        avatar_background_color: backgroundColor
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      throw new Error('Unable to set preset avatar. Please try again.');
+    }
+
+    // Refresh user context to update UI
+    await refreshUser();
+  }
+
+  async function handleAvatarRemove() {
+    // Delete custom uploaded avatar if exists
+    if (user?.avatar_url) {
+      const filename = `${userId}.jpg`;
+      const { error: deleteError } = await supabase.storage.from('avatars').remove([filename]);
+      if (deleteError) {
+        console.error('Failed to delete avatar file:', deleteError);
+        // Continue anyway
+      }
+    }
+
+    // Clear all avatar fields (both custom and preset)
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        avatar_url: null,
+        avatar_preset_id: null,
+        avatar_background_color: null,
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      throw new Error('Unable to remove avatar. Please try again.');
+    }
+
+    // Refresh user context to update UI
+    await refreshUser();
+  }
+
   const isRateLimited = isRateLimitError(error);
 
   if (isLoadingPool && pool.length === 0) {
@@ -189,6 +251,30 @@ export function UsernamePickerForm({
             : "Pick a suggestion or create your own"}
         </p>
       </div>
+
+      {/* Avatar Section */}
+      {user && (
+        <div className="flex flex-col items-center gap-3">
+          <AvatarDisplay
+            key={user.avatar_url || 'default'} // Force re-render when avatar URL changes
+            profile={{
+              avatar_url: user.avatar_url,
+              avatar_preset_id: user.avatar_preset_id,
+              avatar_background_color: user.avatar_background_color,
+              username: user.username || 'User',
+            }}
+            size="lg"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsPresetPickerOpen(true)}
+            type="button"
+          >
+            Choose Preset Avatar
+          </Button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Unified Username Input */}
@@ -254,6 +340,18 @@ export function UsernamePickerForm({
           </p>
           <p className="mt-1 font-semibold">{currentUsername}</p>
         </div>
+      )}
+
+      {/* Preset Avatar Picker Modal */}
+      {user && (
+        <PresetAvatarPickerModal
+          isOpen={isPresetPickerOpen}
+          onClose={() => setIsPresetPickerOpen(false)}
+          currentPresetId={user.avatar_preset_id}
+          currentBackgroundColor={user.avatar_background_color}
+          onSelect={handlePresetSelect}
+          onRemove={handleAvatarRemove}
+        />
       )}
     </div>
   );

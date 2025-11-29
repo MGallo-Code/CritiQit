@@ -10,6 +10,8 @@ export interface UserProfile {
   id: string;
   email: string;
   avatar_url: string | null;
+  avatar_preset_id: string | null;
+  avatar_background_color: string | null;
   username: string;
   username_is_temporary: boolean;
   full_name: string | null;
@@ -34,6 +36,12 @@ export const mapAuthUserToProfile = (
     avatar_url:
       profile?.avatar_url ??
       metadata.avatar_url ??
+      null,
+    avatar_preset_id:
+      profile?.avatar_preset_id ??
+      null,
+    avatar_background_color:
+      profile?.avatar_background_color ??
       null,
     username:
       profile?.username ??

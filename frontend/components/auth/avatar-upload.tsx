@@ -7,6 +7,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { AvatarDisplay } from "@/components/avatar/avatar-display";
 import { Loader2, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,9 @@ type UploadPhase =
 interface AvatarUploadProps {
   userId: string;
   currentAvatarUrl: string | null;
+  currentPresetId: string | null;
+  currentBackgroundColor: string | null;
+  username: string | null;
   onUploadSuccess: (newUrl: string) => void;
   className?: string;
 }
@@ -87,6 +91,9 @@ const getInitialCrop = (imageWidth: number, imageHeight: number): Crop => {
 export function AvatarUpload({
   userId,
   currentAvatarUrl,
+  currentPresetId,
+  currentBackgroundColor,
+  username,
   onUploadSuccess,
   className,
 }: AvatarUploadProps) {
@@ -433,7 +440,11 @@ export function AvatarUpload({
   const updateProfile = async (newUrl: string): Promise<void> => {
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ avatar_url: newUrl })
+      .update({ 
+        avatar_url: newUrl,
+        avatar_preset_id: null,       // Clear preset fields when uploading custom image
+        avatar_background_color: null 
+      })
       .eq('id', userId);
 
     if (updateError) {
@@ -686,9 +697,16 @@ export function AvatarUpload({
       {phase === 'idle' && (
         <>
           <div className="relative group cursor-pointer" onClick={triggerFileInput}>
-            <Avatar className="h-40 w-40 border-4 border-background shadow-xl md:h-64 md:w-64 transition-opacity group-hover:opacity-80">
-              <AvatarImage src={currentAvatarUrl ?? undefined} alt="Current avatar" />
-            </Avatar>
+            <AvatarDisplay
+              profile={{
+                avatar_url: currentAvatarUrl,
+                avatar_preset_id: currentPresetId,
+                avatar_background_color: currentBackgroundColor,
+                username: username ?? '',
+              }}
+              size="lg"
+              className="h-40 w-40 border-4 border-background shadow-xl md:h-64 md:w-64 transition-opacity group-hover:opacity-80"
+            />
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
               <Upload className="h-8 w-8 text-white" />
             </div>
