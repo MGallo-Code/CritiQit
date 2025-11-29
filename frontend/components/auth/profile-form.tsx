@@ -95,7 +95,7 @@ export function ProfileForm({
 
     const avatarDisplay = getAvatarDisplay({
       avatar_url: currentUser.avatar_url,
-      avatar_preset_id: currentUser.avatar_preset_id,
+      avatar_preset_index: currentUser.avatar_preset_index,
       avatar_background_color: currentUser.avatar_background_color,
     });
 
@@ -199,7 +199,7 @@ export function ProfileForm({
     setHeaderGradient(
       "linear-gradient(135deg, hsl(0 0% 25% / 0.45), hsl(0 0% 40% / 0.65), hsl(0 0% 45% / 0.55), hsl(0 0% 40% / 0.65), hsl(0 0% 25% / 0.45))"
     );
-  }, [currentUser?.avatar_url, currentUser?.avatar_preset_id, currentUser?.avatar_background_color, currentUser]);
+  }, [currentUser?.avatar_url, currentUser?.avatar_preset_index, currentUser?.avatar_background_color, currentUser]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -349,7 +349,7 @@ export function ProfileForm({
               <AvatarUpload
                 userId={currentUser.id}
                 currentAvatarUrl={currentUser.avatar_url}
-                currentPresetId={currentUser.avatar_preset_id}
+                currentPresetIndex={currentUser.avatar_preset_index}
                 currentBackgroundColor={currentUser.avatar_background_color}
                 username={currentUser.username}
                 onUploadSuccess={async (newUrl) => {
@@ -363,7 +363,7 @@ export function ProfileForm({
               <AvatarDisplay
                 profile={{
                   avatar_url: currentUser.avatar_url,
-                  avatar_preset_id: currentUser.avatar_preset_id,
+                  avatar_preset_index: currentUser.avatar_preset_index,
                   avatar_background_color: currentUser.avatar_background_color,
                   username: currentUser.username,
                 }}

@@ -2,61 +2,64 @@
 
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
+import {
+  getPresetBackgroundPosition,
+  SPRITESHEET_CONFIG
+} from "@/lib/avatar-spritesheet";
 
 /**
  * PresetAvatar Component
  *
- * Displays a preset avatar: white silhouette PNG on a colored circular background.
+ * Displays a preset avatar using CSS sprite positioning from a spritesheet.
+ * Shows a white silhouette on a colored circular background.
  * Used in the avatar picker and throughout the app when users choose preset avatars.
+ *
+ * Uses CSS spritesheet for performance (single image load vs multiple individual images).
  */
 
 interface PresetAvatarProps {
-  presetId: string;
+  presetIndex: number;
   backgroundColor: string; // hex color
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
-const SIZE_CONFIG = {
-  sm: { container: 'w-10 h-10', padding: 'p-1.5' },
-  md: { container: 'w-20 h-20', padding: 'p-3' },
-  lg: { container: 'w-32 h-32', padding: 'p-4' },
+const SIZE_CLASSES = {
+  sm: 'w-10 h-10',
+  md: 'w-20 h-20',
+  lg: 'w-32 h-32',
 };
 
 export function PresetAvatar({
-  presetId,
+  presetIndex,
   backgroundColor,
   size = 'md',
   className,
 }: PresetAvatarProps) {
-  // Preset images: transparent PNG silhouettes composited on colored backgrounds
-  // Path: {supabase_url}/storage/v1/object/public/avatar-presets/{presetId}.png
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-
-  // Build image URL - memoized based on presetId only
-  // No cache busting needed: presets are immutable (if preset changes, presetId changes)
-  const imageUrl = useMemo(
-    () => `${supabaseUrl}/storage/v1/object/public/avatar-presets/${presetId}.png`,
-    [supabaseUrl, presetId]
+  // Get CSS background-position for this preset from spritesheet
+  const backgroundPosition = useMemo(
+    () => getPresetBackgroundPosition(presetIndex),
+    [presetIndex]
   );
-
-  const { container, padding } = SIZE_CONFIG[size];
 
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center overflow-hidden",
-        container,
-        padding,
+        "rounded-full overflow-hidden",
+        SIZE_CLASSES[size],
         className
       )}
-      style={{ backgroundColor }}
-    >
-      <img
-        src={imageUrl}
-        alt={`${presetId} avatar`}
-        className="w-full h-full object-contain"
-      />
-    </div>
+      style={{
+        backgroundColor,
+        backgroundImage: `url('${SPRITESHEET_CONFIG.imagePath}')`,
+        backgroundPosition,
+        backgroundRepeat: 'no-repeat',
+        // Scale spritesheet so one frame fills the container
+        // 300% width means each of the 3 frames = 100% of container
+        backgroundSize: `${SPRITESHEET_CONFIG.frameCount * 100}% 100%`,
+      }}
+      role="img"
+      aria-label={`Preset avatar ${presetIndex}`}
+    />
   );
 }

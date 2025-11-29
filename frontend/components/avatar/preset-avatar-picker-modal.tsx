@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { PresetAvatar } from "@/components/avatar/preset-avatar";
-import { PRESET_COLORS, AVATAR_PRESETS } from "@/lib/avatar-presets";
+import { PRESET_COLORS } from "@/lib/avatar-presets";
+import { SPRITESHEET_CONFIG } from "@/lib/avatar-spritesheet";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
@@ -25,24 +26,24 @@ import { Loader2 } from "lucide-react";
 interface PresetAvatarPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentPresetId?: string | null;
+  currentPresetIndex?: number | null;
   currentBackgroundColor?: string | null;
-  onSelect: (presetId: string, backgroundColor: string) => Promise<void>;
+  onSelect: (presetIndex: number, backgroundColor: string) => Promise<void>;
   onRemove?: () => Promise<void>;
 }
 
 export function PresetAvatarPickerModal({
   isOpen,
   onClose,
-  currentPresetId,
+  currentPresetIndex,
   currentBackgroundColor,
   onSelect,
   onRemove,
 }: PresetAvatarPickerModalProps) {
   const defaultColor = PRESET_COLORS[0].hex;
-  const defaultPreset = AVATAR_PRESETS[0]?.id || '';
+  const defaultPresetIndex = 0;
 
-  const [selectedPreset, setSelectedPreset] = useState<string>(currentPresetId || defaultPreset);
+  const [selectedPresetIndex, setSelectedPresetIndex] = useState<number>(currentPresetIndex ?? defaultPresetIndex);
   const [selectedColor, setSelectedColor] = useState<string>(
     currentBackgroundColor || defaultColor
   );
@@ -51,23 +52,23 @@ export function PresetAvatarPickerModal({
   const [error, setError] = useState<string | null>(null);
 
   // Ref to track preset button elements for auto-focus
-  const presetButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const presetButtonRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 
   // Reset selection when modal opens
   useEffect(() => {
     if (isOpen) {
-      setSelectedPreset(currentPresetId || defaultPreset);
+      setSelectedPresetIndex(currentPresetIndex ?? defaultPresetIndex);
       setSelectedColor(currentBackgroundColor || defaultColor);
       setError(null);
     }
-  }, [isOpen, currentPresetId, currentBackgroundColor, defaultColor, defaultPreset]);
+  }, [isOpen, currentPresetIndex, currentBackgroundColor, defaultColor, defaultPresetIndex]);
 
   // Auto-focus the selected preset when modal opens
   useEffect(() => {
-    if (isOpen && selectedPreset) {
+    if (isOpen) {
       // Small delay to ensure the button is rendered and ref is set
       const timeoutId = setTimeout(() => {
-        const selectedButton = presetButtonRefs.current.get(selectedPreset);
+        const selectedButton = presetButtonRefs.current.get(selectedPresetIndex);
         if (selectedButton) {
           selectedButton.focus();
         }
@@ -75,7 +76,7 @@ export function PresetAvatarPickerModal({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isOpen, selectedPreset]);
+  }, [isOpen, selectedPresetIndex]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -83,7 +84,7 @@ export function PresetAvatarPickerModal({
 
     try {
       // onSelect handles database update and refreshUser()
-      await onSelect(selectedPreset, selectedColor);
+      await onSelect(selectedPresetIndex, selectedColor);
       // Only close after success is confirmed
       onClose();
     } catch (err) {
@@ -123,15 +124,11 @@ export function PresetAvatarPickerModal({
         <div className="space-y-6">
           {/* Preview Section */}
           <div className="flex flex-col items-center gap-3 py-4">
-            {selectedPreset ? (
-              <PresetAvatar
-                presetId={selectedPreset}
-                backgroundColor={selectedColor}
-                size="lg"
-              />
-            ) : (
-              <div className="w-32 h-32 rounded-full bg-muted animate-pulse" />
-            )}
+            <PresetAvatar
+              presetIndex={selectedPresetIndex}
+              backgroundColor={selectedColor}
+              size="lg"
+            />
             <p className="text-sm text-muted-foreground">Preview</p>
             {onRemove && (
               <Button
@@ -151,31 +148,31 @@ export function PresetAvatarPickerModal({
           <div className="space-y-3">
             <h3 className="text-sm font-semibold">Avatar Presets</h3>
             <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
-              {AVATAR_PRESETS.map((preset) => (
+              {SPRITESHEET_CONFIG.frames.map((frame) => (
                   <button
-                    key={preset.id}
+                    key={frame.index}
                     ref={(el) => {
                       if (el) {
-                        presetButtonRefs.current.set(preset.id, el);
+                        presetButtonRefs.current.set(frame.index, el);
                       } else {
-                        presetButtonRefs.current.delete(preset.id);
+                        presetButtonRefs.current.delete(frame.index);
                       }
                     }}
                     type="button"
-                    onClick={() => setSelectedPreset(preset.id)}
+                    onClick={() => setSelectedPresetIndex(frame.index)}
                     disabled={isSaving}
                     className={cn(
                       "relative rounded-lg p-2 transition-all hover:bg-accent",
                       // Focus state: Subtle outline (different from selection)
                       "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-muted-foreground/50",
                       // Selected state: Bold primary ring with background (visually distinct)
-                      selectedPreset === preset.id &&
+                      selectedPresetIndex === frame.index &&
                         "ring-2 ring-primary ring-offset-2 ring-offset-background bg-accent"
                     )}
-                    title={preset.name}
+                    title={frame.name}
                   >
                     <PresetAvatar
-                      presetId={preset.id}
+                      presetIndex={frame.index}
                       backgroundColor={selectedColor}
                       size="sm"
                     />

@@ -14,7 +14,7 @@ export const CurrentUserAvatar = () => {
       <AvatarDisplay
         profile={{
           avatar_url: user.avatar_url,
-          avatar_preset_id: user.avatar_preset_id,
+          avatar_preset_index: user.avatar_preset_index,
           avatar_background_color: user.avatar_background_color,
           username: user.username || 'User',
         }}

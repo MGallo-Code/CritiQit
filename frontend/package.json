@@ -4,7 +4,8 @@
     "dev": "if [ -n \"$(lsof -t -i:3000)\" ]; then kill -9 $(lsof -t -i:3000); fi && next dev --turbopack -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "lint": "next lint"
+    "lint": "next lint",
+    "sprites": "./scripts/generate-sprites.sh"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.4",

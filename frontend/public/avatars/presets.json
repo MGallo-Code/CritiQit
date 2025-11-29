@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2025-11-29T22:17:10Z",
+  "frameWidth": 512,
+  "frameHeight": 512,
+  "frameCount": 3,
+  "totalWidth": 1536,
+  "layout": "horizontal",
+  "frames": [
+    {"index": 0, "id": "bear", "name": "bear"},
+    {"index": 1, "id": "bird", "name": "bird"},
+    {"index": 2, "id": "t-rex", "name": "t-rex"}
+  ]
+}

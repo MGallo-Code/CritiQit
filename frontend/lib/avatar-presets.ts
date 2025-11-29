@@ -13,11 +13,6 @@ export interface PresetColor {
   description: string;
 }
 
-export interface AvatarPreset {
-  id: string;
-  name: string;
-}
-
 /**
  * 10 curated colors following the movie theater theme
  */
@@ -35,42 +30,27 @@ export const PRESET_COLORS: PresetColor[] = [
 ];
 
 /**
- * Available avatar presets (transparent PNG white silhouettes)
- * Rendered on colored backgrounds via PresetAvatar component
- *
- * To add a new preset:
- * 1. Add PNG to supabase/seed/avatar-presets/{id}.png
- * 2. Add entry here
- * 3. Run ./db reset to upload
- */
-export const AVATAR_PRESETS: AvatarPreset[] = [
-  { id: 'bear', name: 'Bear' },
-  { id: 'bird', name: 'Bird' },
-  { id: 't-rex', name: 'T-Rex' },
-];
-
-/**
  * Determine how to display an avatar based on profile data
  * Priority: custom avatar > preset avatar > default
  *
  * Strategy C: Strict Separation
- * - Custom Avatar: avatar_url is set (and not a preset string), preset fields are null/ignored
+ * - Custom Avatar: avatar_url is set, preset fields are null/ignored
  * - Preset Avatar: avatar_url is null/empty, preset fields are set
  * - Default: both are null/empty
  */
 export function getAvatarDisplay(
-  profile: Pick<UserProfile, 'avatar_url' | 'avatar_preset_id' | 'avatar_background_color'>
+  profile: Pick<UserProfile, 'avatar_url' | 'avatar_preset_index' | 'avatar_background_color'>
 ):
   | { type: 'custom'; url: string }
-  | { type: 'preset'; presetId: string; backgroundColor: string }
+  | { type: 'preset'; presetIndex: number; backgroundColor: string }
   | { type: 'default' }
 {
 
   // Preset via Columns (Priority 1)
-  if (profile.avatar_preset_id && profile.avatar_background_color) {
+  if (profile.avatar_preset_index !== null && profile.avatar_preset_index !== undefined && profile.avatar_background_color) {
     return {
       type: 'preset',
-      presetId: profile.avatar_preset_id,
+      presetIndex: profile.avatar_preset_index,
       backgroundColor: profile.avatar_background_color
     };
   }
@@ -82,13 +62,6 @@ export function getAvatarDisplay(
 
   // Default (Priority 3)
   return { type: 'default' };
-}
-
-/**
- * Get preset by ID
- */
-export function getPresetById(id: string): AvatarPreset | undefined {
-  return AVATAR_PRESETS.find(preset => preset.id === id);
 }
 
 /**

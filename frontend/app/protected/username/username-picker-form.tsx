@@ -166,7 +166,7 @@ export function UsernamePickerForm({
     router.push(redirectTo);
   }
 
-  async function handlePresetSelect(presetId: string, backgroundColor: string) {
+  async function handlePresetSelect(presetIndex: number, backgroundColor: string) {
     // If user has a custom uploaded avatar (real file), delete it
     // We check if avatar_url exists (meaning it's a custom upload now that we don't use preset strings)
     if (user?.avatar_url) {
@@ -180,7 +180,7 @@ export function UsernamePickerForm({
       .from('profiles')
       .update({
         avatar_url: null, // Clear custom avatar URL
-        avatar_preset_id: presetId,
+        avatar_preset_index: presetIndex,
         avatar_background_color: backgroundColor
       })
       .eq('id', userId);
@@ -206,7 +206,7 @@ export function UsernamePickerForm({
       .from('profiles')
       .update({
         avatar_url: null,
-        avatar_preset_id: null,
+        avatar_preset_index: null,
         avatar_background_color: null,
       })
       .eq('id', userId);
@@ -251,7 +251,7 @@ export function UsernamePickerForm({
             key={user.avatar_url || 'default'} // Force re-render when avatar URL changes
             profile={{
               avatar_url: user.avatar_url,
-              avatar_preset_id: user.avatar_preset_id,
+              avatar_preset_index: user.avatar_preset_index,
               avatar_background_color: user.avatar_background_color,
               username: user.username || 'User',
             }}
@@ -339,7 +339,7 @@ export function UsernamePickerForm({
         <PresetAvatarPickerModal
           isOpen={isPresetPickerOpen}
           onClose={() => setIsPresetPickerOpen(false)}
-          currentPresetId={user.avatar_preset_id}
+          currentPresetIndex={user.avatar_preset_index}
           currentBackgroundColor={user.avatar_background_color}
           onSelect={handlePresetSelect}
           onRemove={handleAvatarRemove}

@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
  * AvatarDisplay Component
  *
  * Unified avatar display that handles all three avatar types:
- * 1. Preset avatars (avatar_preset_id + avatar_background_color)
+ * 1. Preset avatars (avatar_preset_index + avatar_background_color)
  * 2. Custom uploaded images (avatar_url)
  * 3. Default placeholder
  *
@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 interface AvatarDisplayProps {
   profile: Pick<
     UserProfile,
-    'avatar_url' | 'avatar_preset_id' | 'avatar_background_color' | 'username'
+    'avatar_url' | 'avatar_preset_index' | 'avatar_background_color' | 'username'
   >;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
@@ -53,7 +53,7 @@ export function AvatarDisplay({
   if (display.type === 'preset') {
     return (
       <PresetAvatar
-        presetId={display.presetId}
+        presetIndex={display.presetIndex}
         backgroundColor={display.backgroundColor}
         size={size}
         className={className}

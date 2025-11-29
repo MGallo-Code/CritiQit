@@ -54,7 +54,7 @@ type UploadPhase =
 interface AvatarUploadProps {
   userId: string;
   currentAvatarUrl: string | null;
-  currentPresetId: string | null;
+  currentPresetIndex: number | null;
   currentBackgroundColor: string | null;
   username: string | null;
   onUploadSuccess: (newUrl: string) => void;
@@ -91,7 +91,7 @@ const getInitialCrop = (imageWidth: number, imageHeight: number): Crop => {
 export function AvatarUpload({
   userId,
   currentAvatarUrl,
-  currentPresetId,
+  currentPresetIndex,
   currentBackgroundColor,
   username,
   onUploadSuccess,
@@ -384,10 +384,10 @@ export function AvatarUpload({
   const updateProfile = async (newUrl: string): Promise<void> => {
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         avatar_url: newUrl,
-        avatar_preset_id: null,       // Clear preset fields when uploading custom image
-        avatar_background_color: null 
+        avatar_preset_index: null,       // Clear preset fields when uploading custom image
+        avatar_background_color: null
       })
       .eq('id', userId);
 
@@ -640,7 +640,7 @@ export function AvatarUpload({
             <AvatarDisplay
               profile={{
                 avatar_url: currentAvatarUrl,
-                avatar_preset_id: currentPresetId,
+                avatar_preset_index: currentPresetIndex,
                 avatar_background_color: currentBackgroundColor,
                 username: username ?? '',
               }}
