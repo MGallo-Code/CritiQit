@@ -4,7 +4,50 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
-## Session 12 - 2025-11-28 [IN PROGRESS]
+## Session 13 - 2025-11-29 [IN PROGRESS]
+
+### Summary
+[IN PROGRESS] Rebuilding preset avatar system with simplified encoding scheme and fixing critical RLS policy issue preventing avatar uploads. Successfully rebuilt preset picker frontend but blocked on storage RLS policy that rejects uploads despite correct owner_id configuration.
+
+### Accomplishments
+- **Frontend**: Rebuilt preset avatar picker with `preset:id:color` encoding (replaced fragile regex with string split)
+- **Frontend**: Fixed cache busting issues (removed Date.now() from useMemo) and double highlight bug (browser focus vs React state)
+- **Frontend**: Added "Remove Avatar" functionality and integrated preset avatars into profile page with color-matched gradient
+- **Frontend**: Profile page now uses AvatarDisplay component and shows preset avatars correctly in edit mode
+
+### Technical Decisions [IN PROGRESS]
+- **Encoding scheme**: Use `preset:t-rex:#8B1E3F` format instead of URL query params (simpler parsing, no URL encoding issues)
+- **RLS field**: Changed from `owner` (UUID, always NULL) to `owner_id` (text, set by storage service) for upload policies
+- **Local development**: Configured frontend to use http://127.0.0.1:8000 for Supabase connection
+- **Migration strategy**: Database reset to apply RLS policy fixes cleanly
+
+### Lessons Learned [IN PROGRESS]
+- **Storage service authentication**: Storage service runs as service account, not authenticated user (auth.uid() returns NULL for uploads)
+- **Owner field duality**: Two fields exist - `owner` (UUID, NULL) and `owner_id` (text, set by storage service during upload)
+- **Cache busting anti-pattern**: Date.now() in useMemo dependency array defeats memoization purpose
+- **Focus ring conflicts**: Browser focus rings can look identical to selection states without visual differentiation
+- **RLS policy structure**: Must check INSERT VALUES for owner_id match, not auth.uid() which is NULL during storage uploads
+
+### Known Issues [BLOCKED]
+- **Critical**: Avatar upload RLS policy still rejecting uploads with "new row violates row-level security policy" despite using owner_id
+- **Mystery**: Original `owner` policy worked previously but doesn't now - unclear what changed in Supabase configuration
+- **Testing gap**: CLI tests with curl + JWT may not match SDK behavior in browser
+
+### Migrations Created
+- `20251129000000_add_list_preset_avatars.sql` - Dynamic preset fetching function
+- `20251129010000_fix_avatar_upload_rls.sql` - DELETED (used auth.uid(), didn't work)
+- `20251129020000_fix_avatar_rls_owner_id.sql` - DELETED (used owner_id + auth.uid(), didn't work)
+- `20251129030000_fix_avatar_rls_final.sql` - Current attempt (uses owner_id without auth.uid())
+
+### Next Steps [BLOCKED ON RLS]
+- [ ] **Critical**: Test avatar upload in browser with real authenticated session (CLI tests may differ from SDK)
+- [ ] **If still fails**: Investigate Supabase storage-api configuration or version changes
+- [ ] **Workaround option**: Consider database trigger to set owner from owner_id
+- [ ] **Investigation**: Compare with previous working version in git history to identify what changed
+
+---
+
+## Session 12 - 2025-11-28 [COMPLETED]
 
 ### Summary
 Implementing storage-based preset avatar system using transparent PNG silhouettes with CSS compositing for colored backgrounds. Simplified architecture uses avatar_url field with query param colors, eliminating complex database triggers. Created comprehensive database management tools (clean commands, upload scripts) and strengthened security with role-based MIME type validation in RLS policies.

@@ -159,7 +159,6 @@ export function AvatarUpload({
     // Step 2.5: Check for suspiciously large files that might crash during processing
     // Safari's HEIC-to-JPEG conversion can create very large files (>2MB)
     if (file.size > 3 * 1024 * 1024 && file.name.includes('tempImages')) {
-      console.warn('Large Safari-converted image detected:', file.size, 'bytes');
       return {
         valid: false,
         error: "This image is too large to process (Safari converted it from HEIC). Please use a smaller image or convert to JPEG using another app.",
@@ -207,9 +206,8 @@ export function AvatarUpload({
         };
 
         img.src = url;
-      } catch (err) {
+      } catch {
         // Catch crashes from unsupported formats (HEIC, corrupted files, etc.)
-        console.error('Image validation crashed:', err);
         resolve({
           valid: false,
           error: "This image format isn't supported. Please try a JPEG, PNG, or WebP file.",
@@ -313,8 +311,6 @@ export function AvatarUpload({
 
       return compressedBlob;
     } catch (err) {
-      console.error('Image compression failed:', err);
-
       // Re-throw with original message if it's already a user-friendly error
       if (err instanceof Error && err.message.includes('processing')) {
         throw err;
@@ -333,103 +329,51 @@ export function AvatarUpload({
 
   /**
    * Upload processed image to Supabase Storage
-   *
-   * DEBUG: Enhanced logging to diagnose RLS policy violation
    */
   const uploadToStorage = async (blob: Blob): Promise<string> => {
-    console.group('🔍 Avatar Upload Debug');
-
-    // Step 1: Verify authentication
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('Auth session check:', {
-      hasSession: !!session,
-      sessionUserId: session?.user?.id,
-      sessionError,
-      providedUserId: userId,
-      userIdMatch: session?.user?.id === userId,
-    });
+    // Verify authentication
+    const { data: { session } } = await supabase.auth.getSession();
 
     if (!session?.user?.id) {
-      console.error('❌ No authenticated session found!');
-      console.groupEnd();
       throw new Error('You must be logged in to upload an avatar.');
     }
 
     if (session.user.id !== userId) {
-      console.error('❌ User ID mismatch!', {
-        sessionUserId: session.user.id,
-        providedUserId: userId,
-      });
-      console.groupEnd();
       throw new Error('User ID mismatch. Please refresh the page and try again.');
     }
 
     const filename = `${userId}.jpg`;
     const path = filename;
 
-    console.log('Upload parameters:', {
-      filename,
-      path,
-      blobSize: blob.size,
-      blobType: blob.type,
-      bucket: 'avatars',
-    });
-
-    // Step 2: Upload with upsert: true (atomic operation, no race condition)
+    // Upload with upsert: true (atomic operation, no race condition)
     // This will either INSERT (first upload) or UPDATE (replacing existing)
-    // RLS policies allow both operations for the file owner
-    console.log('Attempting upload with upsert...');
     const { data, error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(path, blob, {
         cacheControl: '3600',
-        upsert: true, // Atomic operation - preserves existing avatar on failure
+        upsert: true,
         contentType: 'image/jpeg',
       });
 
     if (uploadError) {
-      console.error('❌ Upload failed:', {
-        error: uploadError,
-        message: uploadError.message,
-        statusCode: (uploadError as any).statusCode,
-        details: (uploadError as any).details,
-        hint: (uploadError as any).hint,
-        fullError: JSON.stringify(uploadError, null, 2),
-      });
-      console.groupEnd();
-
-      // Check if it's a rate limit error
       if (uploadError.message?.toLowerCase().includes('rate limit')) {
         throw new Error('You\'ve changed your profile picture too many times. Please try again later.');
       }
-
-      // Check if it's an RLS policy error
       if (uploadError.message?.includes('row-level security') || uploadError.message?.includes('policy')) {
         throw new Error('Unable to save your profile picture. Please try again later.');
       }
-
       throw new Error('Unable to upload your profile picture. Please try again.');
     }
 
     if (!data) {
-      console.error('❌ Upload succeeded but no data returned.');
-      console.groupEnd();
       throw new Error('Unable to confirm upload. Please refresh the page.');
     }
-
-    console.log('✅ Upload successful:', {
-      data,
-      path: data.path,
-    });
 
     // Generate public URL with cache-busting timestamp
     const timestamp = Date.now();
     const { data: urlData } = supabase.storage
       .from('avatars')
       .getPublicUrl(path);
-
-    console.log('✅ Public URL generated:', urlData.publicUrl);
-    console.groupEnd();
 
     return `${urlData.publicUrl}?v=${timestamp}`;
   };
@@ -448,7 +392,6 @@ export function AvatarUpload({
       .eq('id', userId);
 
     if (updateError) {
-      console.error('Profile update error:', updateError);
       throw new Error('Unable to update your profile. Please refresh the page and try again.');
     }
   };
@@ -491,13 +434,11 @@ export function AvatarUpload({
         setCompletedCrop(null);
         setPhase('cropping');
       } catch (urlError) {
-        console.error('Failed to create object URL:', urlError);
         throw new Error('Unable to load image. The file may be corrupted.');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to validate image. Please try again.';
       setError(errorMessage);
-      console.error('Validation error:', err);
       setPhase('idle');
       // Clear file input on error
       if (fileInputRef.current) {
@@ -531,7 +472,6 @@ export function AvatarUpload({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to crop image. Please try again.';
       setError(errorMessage);
-      console.error('Crop error:', err);
       setPhase('cropping'); // Return to cropping on error
     }
   };

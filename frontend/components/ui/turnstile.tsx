@@ -23,12 +23,10 @@ export function Turnstile({
   }, [onTokenReceived]);
 
   const handleError = useCallback((error: string) => {
-    console.error("Turnstile error:", error);
     onError?.(error);
   }, [onError]);
 
   const handleExpired = useCallback(() => {
-    console.log("Turnstile token expired");
     onExpired?.();
   }, [onExpired]);
 
@@ -38,9 +36,8 @@ export function Turnstile({
 
   // Get site key from environment variables
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-  
+
   if (!siteKey) {
-    console.error("Turnstile site key is not set in environment variables");
     return (
       <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-700">
         Turnstile site key is not configured. Please set NEXT_PUBLIC_TURNSTILE_SITE_KEY in your environment variables.

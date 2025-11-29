@@ -71,7 +71,6 @@ export function UsernamePickerForm({
         }
       } catch (err) {
         if (!silent) {
-          console.error("Error fetching username pool:", err);
           setError("Unable to load suggestions. Please try again.");
         }
       } finally {
@@ -158,7 +157,6 @@ export function UsernamePickerForm({
       // Success! Navigate to intended destination
       router.push(redirectTo);
     } catch (err) {
-      console.error("Error setting username:", err);
       setError("Unable to set username. Please try again.");
       setIsSubmitting(false);
     }
@@ -173,11 +171,8 @@ export function UsernamePickerForm({
     // We check if avatar_url exists (meaning it's a custom upload now that we don't use preset strings)
     if (user?.avatar_url) {
       const filename = `${userId}.jpg`;
-      const { error: deleteError } = await supabase.storage.from('avatars').remove([filename]);
-      if (deleteError) {
-        console.error('Failed to delete old avatar:', deleteError);
-        // Continue anyway
-      }
+      await supabase.storage.from('avatars').remove([filename]);
+      // Ignore delete errors - continue anyway
     }
 
     // Update profile: set preset fields and CLEAR custom URL
@@ -202,11 +197,8 @@ export function UsernamePickerForm({
     // Delete custom uploaded avatar if exists
     if (user?.avatar_url) {
       const filename = `${userId}.jpg`;
-      const { error: deleteError } = await supabase.storage.from('avatars').remove([filename]);
-      if (deleteError) {
-        console.error('Failed to delete avatar file:', deleteError);
-        // Continue anyway
-      }
+      await supabase.storage.from('avatars').remove([filename]);
+      // Ignore delete errors - continue anyway
     }
 
     // Clear all avatar fields (both custom and preset)

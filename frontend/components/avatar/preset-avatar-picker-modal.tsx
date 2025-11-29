@@ -11,8 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { PresetAvatar } from "@/components/avatar/preset-avatar";
-import { PRESET_COLORS, type AvatarPreset } from "@/lib/avatar-presets";
-import { createClient } from "@/lib/supabase/client";
+import { PRESET_COLORS, AVATAR_PRESETS } from "@/lib/avatar-presets";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
@@ -40,12 +39,10 @@ export function PresetAvatarPickerModal({
   onSelect,
   onRemove,
 }: PresetAvatarPickerModalProps) {
-  const supabase = createClient();
   const defaultColor = PRESET_COLORS[0].hex;
+  const defaultPreset = AVATAR_PRESETS[0]?.id || '';
 
-  const [presets, setPresets] = useState<AvatarPreset[]>([]);
-  const [isLoadingPresets, setIsLoadingPresets] = useState(true);
-  const [selectedPreset, setSelectedPreset] = useState<string>(currentPresetId || '');
+  const [selectedPreset, setSelectedPreset] = useState<string>(currentPresetId || defaultPreset);
   const [selectedColor, setSelectedColor] = useState<string>(
     currentBackgroundColor || defaultColor
   );
@@ -56,76 +53,18 @@ export function PresetAvatarPickerModal({
   // Ref to track preset button elements for auto-focus
   const presetButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
-  // Fetch available presets from backend with caching
+  // Reset selection when modal opens
   useEffect(() => {
-    // Simple in-memory cache with 5-minute TTL
-    // CACHE_VERSION: Increment when adding new presets to force cache refresh
-    const CACHE_VERSION = 1;
-    const CACHE_KEY = `avatar_presets_cache_v${CACHE_VERSION}`;
-    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-    async function fetchPresets() {
-      setIsLoadingPresets(true);
-      try {
-        // Check cache first
-        const cached = sessionStorage.getItem(CACHE_KEY);
-        if (cached) {
-          const { data: cachedPresets, timestamp } = JSON.parse(cached);
-          const age = Date.now() - timestamp;
-
-          if (age < CACHE_TTL) {
-            // Use cached data
-            setPresets(cachedPresets);
-            if (!currentPresetId && cachedPresets.length > 0) {
-              setSelectedPreset(cachedPresets[0].id);
-            }
-            setIsLoadingPresets(false);
-            return;
-          }
-        }
-
-        // Cache miss or expired - fetch from backend
-        const { data, error: fetchError } = await supabase.rpc('list_preset_avatars');
-        if (fetchError) throw fetchError;
-
-        // Convert preset IDs to AvatarPreset objects
-        const presetList: AvatarPreset[] = (data || []).map((id: string) => ({
-          id,
-          name: id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-        }));
-
-        // Store in cache
-        sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-          data: presetList,
-          timestamp: Date.now(),
-        }));
-
-        setPresets(presetList);
-
-        // Set default preset if none selected
-        if (!currentPresetId && presetList.length > 0) {
-          setSelectedPreset(presetList[0].id);
-        }
-      } catch (err) {
-        console.error('Failed to fetch presets:', err);
-        setError('Unable to load presets. Please try again.');
-      } finally {
-        setIsLoadingPresets(false);
-      }
-    }
-
     if (isOpen) {
-      fetchPresets();
-      // Reset selection to current preset when modal opens
-      setSelectedPreset(currentPresetId || '');
+      setSelectedPreset(currentPresetId || defaultPreset);
       setSelectedColor(currentBackgroundColor || defaultColor);
       setError(null);
     }
-  }, [isOpen, currentPresetId, currentBackgroundColor, defaultColor, supabase]);
+  }, [isOpen, currentPresetId, currentBackgroundColor, defaultColor, defaultPreset]);
 
   // Auto-focus the selected preset when modal opens
   useEffect(() => {
-    if (isOpen && selectedPreset && !isLoadingPresets) {
+    if (isOpen && selectedPreset) {
       // Small delay to ensure the button is rendered and ref is set
       const timeoutId = setTimeout(() => {
         const selectedButton = presetButtonRefs.current.get(selectedPreset);
@@ -136,7 +75,7 @@ export function PresetAvatarPickerModal({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isOpen, selectedPreset, isLoadingPresets]);
+  }, [isOpen, selectedPreset]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -211,18 +150,8 @@ export function PresetAvatarPickerModal({
           {/* Preset Grid */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold">Avatar Presets</h3>
-            {isLoadingPresets ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading presets...</span>
-              </div>
-            ) : presets.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No presets available
-              </p>
-            ) : (
-              <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
-                {presets.map((preset) => (
+            <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
+              {AVATAR_PRESETS.map((preset) => (
                   <button
                     key={preset.id}
                     ref={(el) => {
@@ -252,8 +181,7 @@ export function PresetAvatarPickerModal({
                     />
                   </button>
                 ))}
-              </div>
-            )}
+            </div>
           </div>
 
           {/* Color Palette */}

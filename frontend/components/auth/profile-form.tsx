@@ -179,26 +179,25 @@ export function ProfileForm({
             `linear-gradient(135deg, hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness + 10}% / 0.55), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45))`
           );
         } catch (err) {
-          console.error("Failed to extract avatar color:", err);
-          // Fallback to dramatic default
+          // Fallback to neutral gray
           setHeaderGradient(
-            "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
+            "linear-gradient(135deg, hsl(0 0% 25% / 0.45), hsl(0 0% 40% / 0.65), hsl(0 0% 45% / 0.55), hsl(0 0% 40% / 0.65), hsl(0 0% 25% / 0.45))"
           );
         }
       };
 
       img.onerror = () => {
-        // Fallback to dramatic default on error
+        // Fallback to neutral gray on error
         setHeaderGradient(
-          "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
+          "linear-gradient(135deg, hsl(0 0% 25% / 0.45), hsl(0 0% 40% / 0.65), hsl(0 0% 45% / 0.55), hsl(0 0% 40% / 0.65), hsl(0 0% 25% / 0.45))"
         );
       };
       return;
     }
 
-    // Default: use dramatic default primary color gradient
+    // Default: neutral gray gradient
     setHeaderGradient(
-      "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
+      "linear-gradient(135deg, hsl(0 0% 25% / 0.45), hsl(0 0% 40% / 0.65), hsl(0 0% 45% / 0.55), hsl(0 0% 40% / 0.65), hsl(0 0% 25% / 0.45))"
     );
   }, [currentUser?.avatar_url, currentUser?.avatar_preset_id, currentUser?.avatar_background_color, currentUser]);
 

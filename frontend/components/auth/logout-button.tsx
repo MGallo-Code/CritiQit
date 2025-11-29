@@ -10,23 +10,14 @@ export function LogoutButton() {
   const { refreshUser } = useCurrentUser();
 
   const logout = async () => {
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signOut();
+    const supabase = createClient();
+    await supabase.auth.signOut();
 
-      if (error) {
-        console.error("Logout error:", error);
-        return;
-      }
+    // Manually refresh the provider to clear the user
+    await refreshUser();
 
-      // Manually refresh the provider to clear the user
-      await refreshUser();
-
-      // Navigate to login page
-      router.push("/auth/login");
-    } catch (error) {
-      console.error("Unexpected logout error:", error);
-    }
+    // Navigate to login page
+    router.push("/auth/login");
   };
 
   return <Button onClick={logout}>Logout</Button>;

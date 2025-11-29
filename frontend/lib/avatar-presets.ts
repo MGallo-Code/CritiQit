@@ -37,8 +37,15 @@ export const PRESET_COLORS: PresetColor[] = [
 /**
  * Available avatar presets (transparent PNG white silhouettes)
  * Rendered on colored backgrounds via PresetAvatar component
+ *
+ * To add a new preset:
+ * 1. Add PNG to supabase/seed/avatar-presets/{id}.png
+ * 2. Add entry here
+ * 3. Run ./db reset to upload
  */
 export const AVATAR_PRESETS: AvatarPreset[] = [
+  { id: 'bear', name: 'Bear' },
+  { id: 'bird', name: 'Bird' },
   { id: 't-rex', name: 'T-Rex' },
 ];
 

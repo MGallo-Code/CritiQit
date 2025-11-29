@@ -36,7 +36,6 @@ export const getCurrentUser = cache(async (): Promise<CurrentUserResult> => {
 
   // if error, return the verified auth user without extra profile data
   if (profileError) {
-    console.error("[getCurrentUser] Failed to load user's profile", profileError);
     return {
       user: mapAuthUserToProfile(userClaims, null),
     };

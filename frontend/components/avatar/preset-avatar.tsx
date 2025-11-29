@@ -30,13 +30,13 @@ export function PresetAvatar({
   className,
 }: PresetAvatarProps) {
   // Preset images: transparent PNG silhouettes composited on colored backgrounds
-  // Path: {supabase_url}/storage/v1/object/public/avatars/presets/{presetId}.png
+  // Path: {supabase_url}/storage/v1/object/public/avatar-presets/{presetId}.png
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 
   // Build image URL - memoized based on presetId only
   // No cache busting needed: presets are immutable (if preset changes, presetId changes)
   const imageUrl = useMemo(
-    () => `${supabaseUrl}/storage/v1/object/public/avatars/presets/${presetId}.png`,
+    () => `${supabaseUrl}/storage/v1/object/public/avatar-presets/${presetId}.png`,
     [supabaseUrl, presetId]
   );
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to delete all preset avatar images from the avatars/presets/ folder
+# Script to delete all preset avatar images from the avatar-presets bucket
 # Called by db script - assumes we're in supabase/ directory
 
 set -e  # Exit on any error
@@ -9,15 +9,15 @@ set -e  # Exit on any error
 source .env
 
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
-echo "Cleaning preset avatars from avatars/presets/ folder..."
+echo "Cleaning preset avatars from avatar-presets bucket..."
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
 
-# Get list of all files in presets folder using direct object list
-FILES=$(curl -s -X POST "${API_EXTERNAL_URL}/storage/v1/object/list/avatars" \
+# Get list of all files in avatar-presets bucket
+FILES=$(curl -s -X POST "${API_EXTERNAL_URL}/storage/v1/object/list/avatar-presets" \
     -H "apikey: ${ANON_KEY}" \
     -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
     -H "Content-Type: application/json" \
-    -d '{"prefix":"presets/"}' | \
+    -d '{"prefix":""}' | \
     grep -o '"name":"[^"]*"' | \
     sed 's/"name":"//g' | \
     sed 's/"//g' || echo "")
@@ -33,12 +33,11 @@ FILE_COUNT=$(echo "$FILES" | wc -l | tr -d ' ')
 echo "Found $FILE_COUNT preset file(s) to delete"
 echo ""
 
-# Delete each file (prepend presets/ to filename)
+# Delete each file
 echo "$FILES" | while read -r filename; do
     if [ -n "$filename" ]; then
-        filepath="presets/${filename}"
-        echo "--> Deleting ${filepath}..."
-        curl -s -o /dev/null -X DELETE "${API_EXTERNAL_URL}/storage/v1/object/avatars/${filepath}" \
+        echo "--> Deleting ${filename}..."
+        curl -s -o /dev/null -X DELETE "${API_EXTERNAL_URL}/storage/v1/object/avatar-presets/${filename}" \
             -H "apikey: ${ANON_KEY}" \
             -H "Authorization: Bearer ${SERVICE_ROLE_KEY}"
     fi
