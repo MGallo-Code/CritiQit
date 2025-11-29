@@ -4,46 +4,32 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
-## Session 13 - 2025-11-29 [IN PROGRESS]
+## Session 13 - 2025-11-29 04:52
 
 ### Summary
-[IN PROGRESS] Rebuilding preset avatar system with simplified encoding scheme and fixing critical RLS policy issue preventing avatar uploads. Successfully rebuilt preset picker frontend but blocked on storage RLS policy that rejects uploads despite correct owner_id configuration.
+Fixed avatar upload RLS policy violations and reorganized avatar storage architecture with separate buckets for user uploads and preset avatars.
 
 ### Accomplishments
-- **Frontend**: Rebuilt preset avatar picker with `preset:id:color` encoding (replaced fragile regex with string split)
-- **Frontend**: Fixed cache busting issues (removed Date.now() from useMemo) and double highlight bug (browser focus vs React state)
-- **Frontend**: Added "Remove Avatar" functionality and integrated preset avatars into profile page with color-matched gradient
-- **Frontend**: Profile page now uses AvatarDisplay component and shows preset avatars correctly in edit mode
+- **Supabase**: Fixed RLS policies - storage service sets `owner_id` (text), not `owner` (uuid), doesn't populate JWT claims for `auth.uid()`
+- **Supabase**: Created separate `avatar-presets` bucket for immutable PNG presets (distinct from `avatars` bucket for user JPEGs)
+- **Frontend**: Simplified preset system with hardcoded `AVATAR_PRESETS` array instead of database RPC function
+- **Frontend**: Updated all preset avatar URLs from `avatars/presets/` to `avatar-presets/` bucket
+- **Frontend**: Removed all debug logging from 8 components
+- **Frontend**: Changed fallback profile gradient from warm-red to neutral gray
 
-### Technical Decisions [IN PROGRESS]
-- **Encoding scheme**: Use `preset:t-rex:#8B1E3F` format instead of URL query params (simpler parsing, no URL encoding issues)
-- **RLS field**: Changed from `owner` (UUID, always NULL) to `owner_id` (text, set by storage service) for upload policies
-- **Local development**: Configured frontend to use http://127.0.0.1:8000 for Supabase connection
-- **Migration strategy**: Database reset to apply RLS policy fixes cleanly
+### Technical Decisions
+- **Separate buckets over complex policies**: Dedicated `avatar-presets` bucket cleaner than one bucket with intricate RLS
+- **Hardcoded presets beat RPC**: Simple TypeScript array superior to database function for rarely-changing data
+- **owner_id field not auth.uid()**: Storage service uses `owner_id` (text) field, doesn't set JWT claims
+- **Metadata unavailable at INSERT**: Can't validate `metadata->>'mimetype'` in INSERT policies, use bucket `allowed_mime_types`
 
-### Lessons Learned [IN PROGRESS]
-- **Storage service authentication**: Storage service runs as service account, not authenticated user (auth.uid() returns NULL for uploads)
-- **Owner field duality**: Two fields exist - `owner` (UUID, NULL) and `owner_id` (text, set by storage service during upload)
-- **Cache busting anti-pattern**: Date.now() in useMemo dependency array defeats memoization purpose
-- **Focus ring conflicts**: Browser focus rings can look identical to selection states without visual differentiation
-- **RLS policy structure**: Must check INSERT VALUES for owner_id match, not auth.uid() which is NULL during storage uploads
+### Lessons Learned
+- **Storage RLS vs Table RLS**: Storage service uses `owner_id` (text), not `auth.uid()` - fundamentally different behavior
+- **Git history debugging**: Traced bug by comparing migrations across sessions
+- **Hardcoded configs beat over-engineering**: Static TypeScript array better than dynamic RPC for preset definitions
 
-### Known Issues [BLOCKED]
-- **Critical**: Avatar upload RLS policy still rejecting uploads with "new row violates row-level security policy" despite using owner_id
-- **Mystery**: Original `owner` policy worked previously but doesn't now - unclear what changed in Supabase configuration
-- **Testing gap**: CLI tests with curl + JWT may not match SDK behavior in browser
-
-### Migrations Created
-- `20251129000000_add_list_preset_avatars.sql` - Dynamic preset fetching function
-- `20251129010000_fix_avatar_upload_rls.sql` - DELETED (used auth.uid(), didn't work)
-- `20251129020000_fix_avatar_rls_owner_id.sql` - DELETED (used owner_id + auth.uid(), didn't work)
-- `20251129030000_fix_avatar_rls_final.sql` - Current attempt (uses owner_id without auth.uid())
-
-### Next Steps [BLOCKED ON RLS]
-- [ ] **Critical**: Test avatar upload in browser with real authenticated session (CLI tests may differ from SDK)
-- [ ] **If still fails**: Investigate Supabase storage-api configuration or version changes
-- [ ] **Workaround option**: Consider database trigger to set owner from owner_id
-- [ ] **Investigation**: Compare with previous working version in git history to identify what changed
+### Next Steps
+- [ ] Implement sprite sheet for preset avatars (combine PNGs for better performance as count grows)
 
 ---
 

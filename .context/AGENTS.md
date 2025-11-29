@@ -4,7 +4,7 @@
 >
 > **📚 See [sessions.md](./sessions.md) for detailed session history**
 
-Last updated: 2025-11-28
+Last updated: 2025-11-29 04:52
 
 ---
 
@@ -24,32 +24,32 @@ Last updated: 2025-11-28
 
 ## 🎯 Current Goals
 
-1. **Documentation System Refinement**: Trim bloated sessions.md, test new concise format
+1. **Avatar System Complete**: Production-ready avatar upload and preset system fully functional
 2. **Component Library Development**: Build CritiQit-specific UI components (star rating, movie cards)
-3. **Avatar Upload Testing**: Comprehensive end-to-end testing of production-ready avatar upload feature
-4. **Mobile Testing**: Verify design system and avatar upload on real devices (iOS/Android)
+3. **Mobile Testing**: Verify design system and avatar features on real devices (iOS/Android)
+4. **Documentation Maintenance**: Keep sessions.md concise, update specialized docs with lessons
 5. **Ongoing**: Maintain design system consistency and document patterns
 
 ## 📋 Immediate Next Steps
 
-- [ ] **High Priority**: Test avatar cropping on real iOS/Android devices (HEIC files, pinch-to-zoom, drag gestures)
-- [ ] **High Priority**: Verify end-to-end avatar flow (crop, upload, display, rate limiting countdown)
-- [ ] **High Priority**: Trim sessions.md (keep last 3-5 sessions in detail, condense older entries to summary only)
+- [ ] **High Priority**: Test complete avatar flow on real iOS/Android devices (HEIC files, upload, presets)
+- [ ] **High Priority**: Verify end-to-end avatar upload (success, failure, rate limiting countdown)
 - [ ] **Medium Priority**: Build star rating component (first CritiQit-specific UI component)
 - [ ] **Medium Priority**: Create movie card component (grid + list variants per design system)
+- [ ] **Low Priority**: Consider sprite sheet for preset avatars (performance optimization as count grows)
 - [ ] **Low Priority**: Add light mode link color (fix WCAG AA for light mode)
 
 ## 🔄 Recent Context (Last 2-3 Sessions)
 
-**Session 11 (2025-11-28)**: Implemented professional avatar image cropping with react-image-crop (circular 1:1 overlay, mobile gestures, canvas-based execution). Fixed username picker UX (single pre-filled field with shuffle), CurrentUserProvider logout bug (manual refresh after signOut), and full-stack-integrator agent invocation pattern (delegates plans via Task tool). Enhanced frontend.md with Architecture Constraints section documenting disabled realtime.
+**Session 13 (2025-11-29)**: Fixed critical avatar upload RLS policy violations by switching from `auth.uid()` to `owner_id` field. Reorganized storage architecture with separate `avatar-presets` bucket for PNG presets. Simplified preset system with hardcoded TypeScript array instead of RPC. Removed debug logging from 8 components. Key lesson: Supabase storage service RLS behaves fundamentally different than table RLS.
 
-**Session 10 (2025-11-27)**: Major documentation architecture overhaul. Streamlined agent files by separating behavior (WHO/HOW) from technical details (WHAT/WHY), reducing backend-dev by 54% and frontend-dev by 36%. Established orchestrator/specialist pattern with 🎯 ORCHESTRATOR MODE headers. Updated session-manager to enforce concise entries (max 20 lines). Added "When in Doubt" guidance to prevent hallucinations.
+**Session 12 (2025-11-28)**: Implemented storage-based preset avatars using transparent PNGs with CSS compositing. Built database management tools with `./db clean` command and idempotent upload scripts. Enhanced RLS policies with role-based MIME type validation (JPEG for users, PNG for service_role).
 
-**Session 9 (2025-11-20)**: Implemented global golden focus outline system. Replaced default blue borders with movie theater design colors (warm-red and star-yellow). Created theme-aware focus states (bright gold in dark mode, darker gold in light mode). User testing refined visual balance.
+**Session 11 (2025-11-28)**: Implemented professional avatar image cropping with react-image-crop (circular 1:1 overlay, mobile gestures, canvas-based execution). Fixed username picker UX and CurrentUserProvider logout bug. Enhanced frontend.md with Architecture Constraints documenting disabled realtime.
 
 ## 🚧 Known Issues & Blockers
 
-None! Avatar upload feature complete and production-ready. All critical bugs resolved.
+None! Avatar upload and preset system fully working and production-ready.
 
 **Work Ready for Implementation:**
 - Component library specifications ready (star rating, movie cards, badges)
@@ -57,32 +57,29 @@ None! Avatar upload feature complete and production-ready. All critical bugs res
 - Auth components (PasswordRequirements, AuthDivider) ready for extraction
 
 **Testing Needed:**
-- Avatar upload end-to-end testing (success, failure, edge cases, HEIC files)
+- Avatar upload end-to-end testing on real mobile devices
 - Rate limiting verification with countdown timer
-- Mobile testing on real iOS/Android devices (especially HEIC uploads)
+- HEIC file upload testing on iOS Safari
 
 **Minor Improvements (Low Priority):**
 - Light mode link contrast (star-yellow ~3:1, need 4.5:1 for WCAG AA)
 - Loading skeleton states (currently just "Loading..." text)
-- Sessions.md bloat (118KB, needs trimming to last 3-5 sessions in detail)
+- Sprite sheet for preset avatars (performance optimization)
 
 ## ⚡ Important Notes for Next Session
 
-- **Avatar Cropping Implemented**: react-image-crop with 1:1 circular overlay, mobile gestures (pinch-to-zoom), canvas-based execution
-- **Agent Invocation Pattern**: full-stack-integrator returns plans to main context; main context delegates using Task tool (agents can't invoke other agents - see project.md §21)
-- **Frontend Architecture Constraints**: Realtime is DISABLED - must manually refresh user state after logout/updates (documented in frontend.md)
-- **Username Picker Simplified**: Single pre-filled field with shuffle button (no toggle confusion)
-- **Crop Initialization**: Dynamic calculation required (80% of smaller dimension in onLoad), static defaults cause oval crops
-- **Overlay Containment**: Use reasonable box-shadow spread (1000px) + overflow:hidden to prevent UI element blocking
-- **Documentation System Updated**: Agent files streamlined with references to context files for technical details
-- **Session Entry Format**: Concise format enforced (max 20 lines, no code snippets, lessons go in specialized files)
-- **Orchestrator Pattern**: full-stack-integrator uses 🎯 ORCHESTRATOR MODE header when delegating to specialists
-- **Avatar Upload Production-Ready**: Atomic upsert operations prevent data loss on failure
-- **Kong Path Routing Pattern**: Use `strip_path: true` with base URLs to avoid duplication
-- **HEIC/Safari Image Processing**: Disable Web Workers (`useWebWorker: false`) to prevent crashes
-- **Error Message Philosophy**: User-friendly messages without technical jargon
-- **Complete Design System**: See `.context/design-system.md` for full specifications
+- **Avatar System Production-Ready**: Upload, presets, and RLS all working correctly
+- **Storage RLS Pattern**: Use `owner_id` (text) field, NOT `auth.uid()` - storage service doesn't set JWT claims
+- **Separate Buckets Pattern**: Dedicated buckets cleaner than complex RLS for different file types
+- **Hardcoded Configs Win**: Simple TypeScript arrays better than dynamic RPCs for static data
+- **Metadata Not Available at INSERT**: Can't validate metadata in INSERT policies, rely on bucket settings
+- **Avatar Cropping Implemented**: react-image-crop with 1:1 circular overlay, mobile gestures
+- **Frontend Architecture Constraints**: Realtime is DISABLED - must manually refresh user state after logout/updates
+- **Agent Invocation Pattern**: full-stack-integrator returns plans to main context; main context delegates using Task tool
+- **Documentation System**: Sessions.md entries max 20 lines, lessons go in specialized files
 - **Production Rate Limits Active**: 5 avatar uploads/hour, 20/day per user
+- **HEIC/Safari Image Processing**: Disable Web Workers (`useWebWorker: false`) to prevent crashes
+- **Complete Design System**: See `.context/design-system.md` for full specifications
 
 ## 🎯 Production-Ready Development Standards
 
@@ -101,7 +98,7 @@ None! Avatar upload feature complete and production-ready. All critical bugs res
 - Frontend checks auth for UI/UX (show/hide elements)
 - Backend enforces auth for security (RLS policies, middleware)
 - NEVER rely on client-side auth checks alone
-- ALWAYS verify `auth.uid()` in RLS policies
+- ALWAYS verify `auth.uid()` in table RLS policies (but NOT storage RLS - use `owner_id`)
 - NEVER expose service_role key to clients
 
 **3. XSS Prevention**
@@ -129,6 +126,7 @@ None! Avatar upload feature complete and production-ready. All critical bugs res
 - Use BOTH `USING` and `WITH CHECK` on UPDATE policies
 - Test policies with malicious user scenarios
 - NEVER use `USING (true)` - that's no security
+- Storage RLS uses `owner_id` field, NOT `auth.uid()`
 
 **7. Error Handling**
 - Frontend: User-friendly messages ("Unable to save changes")

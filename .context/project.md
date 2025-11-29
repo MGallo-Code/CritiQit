@@ -469,6 +469,15 @@ CritiQit uses specialized agents located in `.claude/agents/` for complex develo
 - Sessions.md is an index pointing to detailed information, not a textbook containing it
 - Updated session-manager agent to enforce this structure and prevent future bloat
 
+**21. Supabase Storage RLS Behaves Differently Than Table RLS (Session 13)**
+- Storage service sets `owner_id` (text) field, NOT `auth.uid()` (uuid) - storage runs as service account
+- JWT claims are NOT populated during storage operations, so `auth.uid()` returns NULL in storage RLS policies
+- Must use `owner_id` field in storage RLS policies instead of `auth.uid()` for authentication
+- Metadata fields (like `mimetype`) are NULL at INSERT time - can't validate in INSERT policies, use bucket-level `allowed_mime_types`
+- Separate buckets for different file types (e.g., `avatars` for JPEGs, `avatar-presets` for PNGs) cleaner than complex RLS on single bucket
+- Traced bug by comparing migrations across sessions using git history - session 12 introduced issue by incorrectly using `auth.uid()`
+- See backend.md "CRITICAL: Storage RLS vs Table RLS" section for complete pattern
+
 ---
 
 ## Related Documentation

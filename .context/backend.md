@@ -210,12 +210,19 @@ Deletes rate_limits records older than 7 days. Run manually or via cron (not aut
 
 ### Storage Buckets
 
-#### `avatars` (public, 5MB limit, JPEG for users, PNG for presets)
+#### `avatars` (public, 5MB limit, JPEG only for user uploads)
 
 - **User avatars**: `{uuid}.jpg` - RLS allows authenticated users INSERT/UPDATE/DELETE own file (JPEG only)
-- **Preset avatars**: `presets/{id}.png` - Service role only (transparent PNG silhouettes)
 - **Public read**: Anyone can view (GET)
 - **Atomic upsert**: Requires both INSERT + UPDATE policies
+- **Allowed MIME types**: `image/jpeg` only
+
+#### `avatar-presets` (public read, service_role write, PNG only)
+
+- **Preset avatars**: `{id}.png` - Service role only (transparent PNG silhouettes)
+- **Public read**: Anyone can view (GET)
+- **Allowed MIME types**: `image/png` only
+- **Immutable**: Once uploaded, presets don't change
 
 #### `email-templates` (public read, service_role write)
 
@@ -234,6 +241,29 @@ Deletes rate_limits records older than 7 days. Run manually or via cron (not aut
 
 **Storage Objects:**
 - See [Storage Buckets](#storage-buckets) above
+- **CRITICAL**: Storage RLS behaves differently than table RLS (see below)
+
+#### CRITICAL: Storage RLS vs Table RLS
+
+**Storage RLS uses `owner_id` field, NOT `auth.uid()`**
+
+```sql
+-- ❌ WRONG - auth.uid() returns NULL for storage operations
+CREATE POLICY "Users upload own avatar" ON storage.objects FOR INSERT
+  WITH CHECK (auth.uid()::text = (storage.foldername(name))[1]);
+
+-- ✅ CORRECT - Use owner_id field set by storage service
+CREATE POLICY "Users upload own avatar" ON storage.objects FOR INSERT
+  WITH CHECK (owner_id = (storage.foldername(name))[1]);
+```
+
+**Why:** Supabase storage service runs as service account, not as authenticated user. It sets `owner_id` (text) field but doesn't populate JWT claims, so `auth.uid()` returns NULL.
+
+**Key Differences:**
+1. **Field**: Storage uses `owner_id` (text), tables use `auth.uid()` (uuid)
+2. **JWT Claims**: Storage service doesn't set claims, `auth.uid()` is NULL
+3. **Metadata**: Metadata fields (like `mimetype`) are NULL at INSERT time - use bucket-level `allowed_mime_types` instead
+4. **Best Practice**: Separate buckets for different file types cleaner than complex RLS on single bucket
 
 #### CRITICAL: UPDATE Policy Pattern
 
