@@ -127,7 +127,8 @@ Executable bash script at `supabase/db` - unified interface for ALL database ope
 ./db reset hard      # DESTRUCTIVE: Destroys all data, reapplies migrations, uploads seeds
 ./db reset soft      # Preserves volumes, drops schema only
 
-./db seed [all|templates]  # Upload seed data (idempotent)
+./db seed [all|templates|presets]  # Upload seed data (idempotent)
+./db clean [all|templates|presets] # Delete seed data from storage
 ./db migrate         # Apply new migrations only (⚠️ doesn't re-run existing)
 ./db status          # Container status + recent migrations
 ./db help            # Interactive menu if no args
@@ -209,9 +210,10 @@ Deletes rate_limits records older than 7 days. Run manually or via cron (not aut
 
 ### Storage Buckets
 
-#### `avatars` (public, 5MB limit, JPEG only)
+#### `avatars` (public, 5MB limit, JPEG for users, PNG for presets)
 
-- **User avatars**: `{uuid}.jpg` - RLS allows authenticated users INSERT/UPDATE/DELETE own file
+- **User avatars**: `{uuid}.jpg` - RLS allows authenticated users INSERT/UPDATE/DELETE own file (JPEG only)
+- **Preset avatars**: `presets/{id}.png` - Service role only (transparent PNG silhouettes)
 - **Public read**: Anyone can view (GET)
 - **Atomic upsert**: Requires both INSERT + UPDATE policies
 

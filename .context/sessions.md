@@ -4,6 +4,52 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
+## Session 12 - 2025-11-28 [IN PROGRESS]
+
+### Summary
+Implementing storage-based preset avatar system using transparent PNG silhouettes with CSS compositing for colored backgrounds. Simplified architecture uses avatar_url field with query param colors, eliminating complex database triggers. Created comprehensive database management tools (clean commands, upload scripts) and strengthened security with role-based MIME type validation in RLS policies.
+
+### Accomplishments
+- **Supabase**: Storage-based preset avatars using transparent PNGs with CSS background compositing (presets/{id}.png?bg={colorHex})
+- **Supabase**: Database management CLI with `./db clean` command (targets: templates, presets, all) and idempotent upload scripts
+- **Supabase**: Enhanced RLS policies to enforce JPEG for users, PNG for service_role with MIME type validation
+- **Frontend**: Updated PresetAvatar component and removed category system from preset picker (single grid view)
+- **Frontend**: Updated avatar URL parsing to support query param colors in getAvatarDisplay helper
+
+### Technical Decisions
+- **PNG over JPEG**: Transparent PNGs allow CSS background compositing (28 files vs 280 pre-generated color variants)
+- **Query param colors**: Store color selection in URL (?bg={hex}) instead of separate database columns
+- **Simple naming**: {preset-id}.png instead of {preset-id}-{color}.jpg reduces storage complexity
+- **Role-based file types**: Users restricted to JPEG uploads, service_role can upload PNG presets (enforced via RLS)
+- **Storage-based approach**: Simplified from complex database triggers to single avatar_url field
+
+### Lessons Learned
+- **Bash filename handling**: Files with spaces cause curl failures - use basename "$filepath" with proper quoting (will add to project.md)
+- **Storage API patterns**: Use POST to /object/list/{bucket} with JSON body for listing files, not GET (will add to backend.md)
+- **Idempotent uploads**: Check remote file existence before uploading to avoid duplicates and save bandwidth (will add to backend.md)
+- **Kong path routing**: Storage bucket must allow both JPEG and PNG in allowed_mime_types for mixed content (will add to backend.md)
+- **RLS MIME validation**: Can validate (metadata->>'mimetype')::text in policies for type-based access control (will add to backend.md)
+
+### Next Steps [IN PROGRESS]
+- [ ] Generate remaining 27 preset PNG files (currently only have t-rex.png)
+- [ ] Update AVATAR_PRESETS array in frontend/lib/avatar-presets.ts with all preset definitions
+- [ ] Test complete preset picker flow in browser
+- [ ] Consider adding preset preview images to documentation
+
+### Files Modified
+- `supabase/migrations/20250818043251_add_user_profiles.sql` - Updated bucket config and RLS policies
+- `supabase/scripts/upload-presets.sh` - Created (idempotent upload script)
+- `supabase/scripts/clean-presets.sh` - Created (cleanup script)
+- `supabase/scripts/clean-templates.sh` - Created (cleanup script)
+- `supabase/db` - Added clean command
+- `frontend/components/avatar/preset-avatar.tsx` - Simplified PNG format
+- `frontend/components/avatar/preset-avatar-picker-modal.tsx` - Removed categories
+- `frontend/app/protected/username/username-picker-form.tsx` - Updated preset selection
+- `frontend/lib/avatar-presets.ts` - Updated URL parsing
+- `.context/backend.md` - Updated commands and storage bucket documentation
+
+---
+
 ## Session 11 - 2025-11-28
 
 ### Summary

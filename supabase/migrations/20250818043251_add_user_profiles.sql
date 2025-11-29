@@ -78,6 +78,7 @@ CREATE TRIGGER on_auth_user_created
 -- Create the 'avatars' bucket
 -- File structure:
 --   - User avatars: {uuid}.jpg (one per user, managed by user)
+--   - Preset avatars: presets/{name}.jpg (managed by service_role only)
 INSERT INTO storage.buckets (id, name, public)
   VALUES ('avatars', 'avatars', true)
   on conflict (id) do nothing; -- prevent errors on subsequent runs
@@ -85,7 +86,7 @@ INSERT INTO storage.buckets (id, name, public)
 UPDATE storage.buckets
 SET
   file_size_limit = 5242880,  -- 5MB in bytes
-  allowed_mime_types = ARRAY['image/jpeg']  -- Accept common formats (frontend converts to JPEG)
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png']  -- JPEG for user uploads, PNG for preset avatars
 WHERE id = 'avatars';
 
 -- Create the 'email.templates' bucket
@@ -147,12 +148,15 @@ CREATE POLICY "Users can upload avatar as their UUID.jpg"
   WITH CHECK (
     (bucket_id = 'avatars'::text)
     AND (name = owner::text || '.jpg')
+    AND (storage.extension(name) = 'jpg')
+    AND ((metadata->>'mimetype')::text = 'image/jpeg')
   );
 
 COMMENT ON POLICY "Users can upload avatar as their UUID.jpg" ON storage.objects IS
 'Enforces one-avatar-per-user via {uuid}.jpg naming pattern.
 Storage service validates JWT and sets owner field.
 Policy validates filename matches owner being inserted.
+Also restricts users to JPEG only (PNG reserved for service_role presets).
 This works because owner is the NEW value from INSERT, not auth.uid() which returns NULL.';
 
 CREATE POLICY "Users can update their own avatar"
@@ -163,10 +167,13 @@ CREATE POLICY "Users can update their own avatar"
   USING (
     (bucket_id = 'avatars'::text)
     AND (name = owner::text || '.jpg')
+    AND (storage.extension(name) = 'jpg')
   )
   WITH CHECK (
     (bucket_id = 'avatars'::text)
     AND (name = owner::text || '.jpg')
+    AND (storage.extension(name) = 'jpg')
+    AND ((metadata->>'mimetype')::text = 'image/jpeg')
   );
 
 CREATE POLICY "Users can delete their own avatar"
@@ -178,7 +185,48 @@ CREATE POLICY "Users can delete their own avatar"
     (bucket_id = 'avatars'::text)
     AND (name = owner::text || '.jpg')
   );
-  
+
+-- ~~~~~~~ Avatar Presets ~~~~~~~
+
+CREATE POLICY "Service role can upload avatar presets"
+  ON storage.objects
+  AS permissive
+  FOR INSERT
+  TO service_role
+  WITH CHECK (
+    (bucket_id = 'avatars'::text)
+    AND (name LIKE 'presets/%')
+  );
+
+COMMENT ON POLICY "Service role can upload avatar presets" ON storage.objects IS
+'Allows admin/service_role to upload preset avatars to presets/ folder.
+Users are restricted to {uuid}.jpg pattern and cannot upload to presets/.
+Preset avatars are publicly readable via the main "Avatar images are publicly accessible" policy.';
+
+CREATE POLICY "Service role can update avatar presets"
+  ON storage.objects
+  AS permissive
+  FOR UPDATE
+  TO service_role
+  USING (
+    (bucket_id = 'avatars'::text)
+    AND (name LIKE 'presets/%')
+  )
+  WITH CHECK (
+    (bucket_id = 'avatars'::text)
+    AND (name LIKE 'presets/%')
+  );
+
+CREATE POLICY "Service role can delete avatar presets"
+  ON storage.objects
+  AS permissive
+  FOR DELETE
+  TO service_role
+  USING (
+    (bucket_id = 'avatars'::text)
+    AND (name LIKE 'presets/%')
+  );
+
 -- ~~~~~~~ Email Templates ~~~~~~~
 
 CREATE POLICY "Service role can insert email templates"

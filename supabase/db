@@ -115,14 +115,55 @@ cmd_seed() {
             ./scripts/upload-templates.sh
             print_success "Email templates uploaded!"
             ;;
+        presets)
+            print_info "Uploading avatar presets..."
+            ./scripts/upload-presets.sh
+            print_success "Avatar presets uploaded!"
+            ;;
         all)
             print_info "Uploading all seed data..."
             ./scripts/upload-templates.sh
+            ./scripts/upload-presets.sh
             print_success "All seed data uploaded!"
             ;;
         *)
             print_error "Unknown seed target: $target"
-            echo "Usage: db seed [templates|all]"
+            echo "Usage: db seed [templates|presets|all]"
+            exit 1
+            ;;
+    esac
+}
+
+cmd_clean() {
+    local target="${1:-}"
+    local skip_confirm=false
+    if [ "$2" = "--yes" ] || [ "$2" = "-y" ]; then
+        skip_confirm=true
+    fi
+
+    case "$target" in
+        templates)
+            confirm "This will DELETE all email templates from storage!" "$skip_confirm"
+            print_info "Cleaning email templates..."
+            ./scripts/clean-templates.sh
+            print_success "Email templates cleaned!"
+            ;;
+        presets)
+            confirm "This will DELETE all avatar presets from storage!" "$skip_confirm"
+            print_info "Cleaning avatar presets..."
+            ./scripts/clean-presets.sh
+            print_success "Avatar presets cleaned!"
+            ;;
+        all)
+            confirm "This will DELETE all templates AND presets from storage!" "$skip_confirm"
+            print_info "Cleaning all seed data..."
+            ./scripts/clean-templates.sh
+            ./scripts/clean-presets.sh
+            print_success "All seed data cleaned!"
+            ;;
+        *)
+            print_error "Unknown clean target: $target"
+            echo "Usage: db clean [templates|presets|all] [--yes]"
             exit 1
             ;;
     esac
@@ -163,7 +204,9 @@ show_help() {
     echo -e "    ${YELLOW}reset hard${NC} [--yes]    Reset database completely (DESTRUCTIVE)"
     echo -e "    ${YELLOW}reset soft${NC} [--yes]    Reset database, preserve volumes"
     echo -e "    ${YELLOW}seed${NC} [target]         Upload seed data"
-    echo "                          Targets: templates, all (default: all)"
+    echo "                          Targets: templates, presets, all (default: all)"
+    echo -e "    ${YELLOW}clean${NC} [target] [--yes] Delete seed data from storage"
+    echo "                          Targets: templates, presets, all"
     echo -e "    ${YELLOW}status${NC}                Show container status and recent migrations"
     echo -e "    ${YELLOW}migrate${NC}               Apply migrations without reset"
     echo -e "    ${YELLOW}help${NC}                  Show this help message"
@@ -178,6 +221,9 @@ show_help() {
     echo "    ./db reset hard         # Full reset with confirmation"
     echo "    ./db reset hard --yes   # Full reset, skip confirmation"
     echo "    ./db seed               # Upload all seed data"
+    echo "    ./db seed presets       # Upload only preset avatars"
+    echo "    ./db clean presets      # Delete all preset avatars"
+    echo "    ./db clean all --yes    # Delete all seed data, skip confirmation"
     echo "    ./db status             # Check status"
     echo "    ./db migrate            # Apply migrations"
     echo ""
@@ -203,11 +249,15 @@ show_interactive_menu() {
         echo "  5. Reset Database (soft - preserves volumes)"
         echo "  6. Seed Data (all)"
         echo "  7. Seed Templates Only"
-        echo "  8. Check Status"
-        echo " 9. Apply Migrations"
-        echo " 10. Exit"
+        echo "  8. Seed Presets Only"
+        echo "  9. Clean Data (all - DESTRUCTIVE)"
+        echo " 10. Clean Templates Only"
+        echo " 11. Clean Presets Only"
+        echo " 12. Check Status"
+        echo " 13. Apply Migrations"
+        echo " 14. Exit"
         echo ""
-        read -p "Select option (1-11): " choice
+        read -p "Select option (1-14): " choice
 
         case "$choice" in
             1) cmd_start ;;
@@ -217,10 +267,14 @@ show_interactive_menu() {
             5) cmd_reset_soft ;;
             6) cmd_seed all ;;
             7) cmd_seed templates ;;
-            8) cmd_status ;;
-            9) cmd_migrate ;;
-            10) echo "Goodbye!"; exit 0 ;;
-            *) print_error "Invalid option. Please select 1-11." ;;
+            8) cmd_seed presets ;;
+            9) cmd_clean all ;;
+            10) cmd_clean templates ;;
+            11) cmd_clean presets ;;
+            12) cmd_status ;;
+            13) cmd_migrate ;;
+            14) echo "Goodbye!"; exit 0 ;;
+            *) print_error "Invalid option. Please select 1-14." ;;
         esac
 
         echo ""
@@ -262,6 +316,9 @@ main() {
             ;;
         seed)
             cmd_seed "$2"
+            ;;
+        clean)
+            cmd_clean "$2" "$3"
             ;;
         status)
             cmd_status
