@@ -4,7 +4,7 @@
 >
 > **📚 See [sessions.md](./sessions.md) for detailed session history**
 
-Last updated: 2025-11-29 04:52
+Last updated: 2025-11-29 20:53
 
 ---
 
@@ -24,7 +24,7 @@ Last updated: 2025-11-29 04:52
 
 ## 🎯 Current Goals
 
-1. **Avatar System Complete**: Production-ready avatar upload and preset system fully functional
+1. **Avatar System Complete**: Production-ready avatar upload and preset system using CSS spritesheet
 2. **Component Library Development**: Build CritiQit-specific UI components (star rating, movie cards)
 3. **Mobile Testing**: Verify design system and avatar features on real devices (iOS/Android)
 4. **Documentation Maintenance**: Keep sessions.md concise, update specialized docs with lessons
@@ -36,20 +36,19 @@ Last updated: 2025-11-29 04:52
 - [ ] **High Priority**: Verify end-to-end avatar upload (success, failure, rate limiting countdown)
 - [ ] **Medium Priority**: Build star rating component (first CritiQit-specific UI component)
 - [ ] **Medium Priority**: Create movie card component (grid + list variants per design system)
-- [ ] **Low Priority**: Consider sprite sheet for preset avatars (performance optimization as count grows)
 - [ ] **Low Priority**: Add light mode link color (fix WCAG AA for light mode)
 
 ## 🔄 Recent Context (Last 2-3 Sessions)
 
-**Session 13 (2025-11-29)**: Fixed critical avatar upload RLS policy violations by switching from `auth.uid()` to `owner_id` field. Reorganized storage architecture with separate `avatar-presets` bucket for PNG presets. Simplified preset system with hardcoded TypeScript array instead of RPC. Removed debug logging from 8 components. Key lesson: Supabase storage service RLS behaves fundamentally different than table RLS.
+**Session 14 (2025-11-29)**: Migrated avatar preset system from Supabase storage to frontend CSS spritesheet for better performance. Created automated spritesheet generation with ImageMagick, changed database from TEXT IDs to SMALLINT index, removed avatar-presets bucket entirely. All components now use CSS sprite positioning from auto-generated JSON metadata.
 
-**Session 12 (2025-11-28)**: Implemented storage-based preset avatars using transparent PNGs with CSS compositing. Built database management tools with `./db clean` command and idempotent upload scripts. Enhanced RLS policies with role-based MIME type validation (JPEG for users, PNG for service_role).
+**Session 13 (2025-11-29)**: Fixed critical avatar upload RLS policy violations by switching from auth.uid() to owner_id field. Reorganized storage with separate avatar-presets bucket. Simplified preset system with hardcoded TypeScript array. Key lesson: Supabase storage service RLS behaves fundamentally different than table RLS.
 
-**Session 11 (2025-11-28)**: Implemented professional avatar image cropping with react-image-crop (circular 1:1 overlay, mobile gestures, canvas-based execution). Fixed username picker UX and CurrentUserProvider logout bug. Enhanced frontend.md with Architecture Constraints documenting disabled realtime.
+**Session 12 (2025-11-28)**: Implemented storage-based preset avatars using transparent PNGs with CSS compositing. Built database management tools with ./db clean command. Enhanced RLS policies with role-based MIME type validation.
 
 ## 🚧 Known Issues & Blockers
 
-None! Avatar upload and preset system fully working and production-ready.
+None! Avatar preset spritesheet system fully working and production-ready.
 
 **Work Ready for Implementation:**
 - Component library specifications ready (star rating, movie cards, badges)
@@ -60,19 +59,18 @@ None! Avatar upload and preset system fully working and production-ready.
 - Avatar upload end-to-end testing on real mobile devices
 - Rate limiting verification with countdown timer
 - HEIC file upload testing on iOS Safari
+- Preset avatar spritesheet performance testing
 
 **Minor Improvements (Low Priority):**
 - Light mode link contrast (star-yellow ~3:1, need 4.5:1 for WCAG AA)
 - Loading skeleton states (currently just "Loading..." text)
-- Sprite sheet for preset avatars (performance optimization)
 
 ## ⚡ Important Notes for Next Session
 
-- **Avatar System Production-Ready**: Upload, presets, and RLS all working correctly
+- **Spritesheet System Ready**: CSS sprites replace Supabase storage, single HTTP request, auto-generated from JSON
+- **Avatar Preset Index**: Now SMALLINT (0-9) instead of TEXT ID, database enforces non-negative constraint
+- **Spritesheet Build**: Run `npm run sprites` to regenerate from source PNGs in `frontend/assets/avatar-presets/`
 - **Storage RLS Pattern**: Use `owner_id` (text) field, NOT `auth.uid()` - storage service doesn't set JWT claims
-- **Separate Buckets Pattern**: Dedicated buckets cleaner than complex RLS for different file types
-- **Hardcoded Configs Win**: Simple TypeScript arrays better than dynamic RPCs for static data
-- **Metadata Not Available at INSERT**: Can't validate metadata in INSERT policies, rely on bucket settings
 - **Avatar Cropping Implemented**: react-image-crop with 1:1 circular overlay, mobile gestures
 - **Frontend Architecture Constraints**: Realtime is DISABLED - must manually refresh user state after logout/updates
 - **Agent Invocation Pattern**: full-stack-integrator returns plans to main context; main context delegates using Task tool

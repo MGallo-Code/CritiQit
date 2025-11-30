@@ -478,6 +478,15 @@ CritiQit uses specialized agents located in `.claude/agents/` for complex develo
 - Traced bug by comparing migrations across sessions using git history - session 12 introduced issue by incorrectly using `auth.uid()`
 - See backend.md "CRITICAL: Storage RLS vs Table RLS" section for complete pattern
 
+**22. Derive Configuration from Generated Files (Session 14)**
+- Auto-generated files (JSON, schemas) should be the single source of truth, not duplicated in code
+- Pattern: Build script generates both artifact AND metadata → TypeScript imports metadata
+- Prevents drift between implementation and configuration (e.g., spritesheet frames vs hardcoded array)
+- Example: Avatar spritesheet generates `presets.json` with frame count, dimensions → `avatar-spritesheet.ts` imports it
+- Eliminates manual sync overhead and reduces bugs from outdated hardcoded values
+- Trade-off: Build step required, but consistency benefits outweigh complexity
+- Works for: API schemas, asset manifests, database types, build configurations
+
 ---
 
 ## Related Documentation

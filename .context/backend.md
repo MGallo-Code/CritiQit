@@ -1,6 +1,6 @@
 # CritiQit Backend Documentation
 
-> **Last Updated**: 2025-11-27
+> **Last Updated**: 2025-11-29
 > **Architecture**: Self-hosted Supabase on Docker
 > **Purpose**: Essential backend infrastructure reference for AI agents
 
@@ -61,7 +61,7 @@ cd supabase/
 | **kong** | 8000/8443 | API gateway with custom rate limiting |
 | **auth** | 9999 | GoTrue authentication |
 | **rest** | 3000 | PostgREST auto-generated API |
-| **storage** | 5000 | Object storage (avatars) |
+| **storage** | 5000 | Object storage (avatars, email templates) |
 | **imgproxy** | 5001 | Image transformations |
 | **meta** | 8080 | Database introspection (Studio) |
 | **functions** | 9000 | Deno edge functions |
@@ -127,8 +127,8 @@ Executable bash script at `supabase/db` - unified interface for ALL database ope
 ./db reset hard      # DESTRUCTIVE: Destroys all data, reapplies migrations, uploads seeds
 ./db reset soft      # Preserves volumes, drops schema only
 
-./db seed [all|templates|presets]  # Upload seed data (idempotent)
-./db clean [all|templates|presets] # Delete seed data from storage
+./db seed            # Upload email templates (idempotent)
+./db clean           # Delete email templates from storage
 ./db migrate         # Apply new migrations only (⚠️ doesn't re-run existing)
 ./db status          # Container status + recent migrations
 ./db help            # Interactive menu if no args
@@ -157,6 +157,8 @@ User profile information.
 - `username` - UNIQUE, regex `^[a-zA-Z0-9_]{3,35}$`, case-insensitive
 - `username_is_temporary` - Flags auto-generated usernames (triggers UI prompt)
 - `full_name`, `bio`, `avatar_url` - Optional profile fields
+- `avatar_preset_index` - SMALLINT (0+), references frontend spritesheet frame
+- `avatar_background_color` - HEX color for preset avatar background
 - `created_at`, `updated_at` - Timestamps
 
 **Indexes:** `profiles_username_lower_idx` (GIN on `lower(username)`)
@@ -210,19 +212,14 @@ Deletes rate_limits records older than 7 days. Run manually or via cron (not aut
 
 ### Storage Buckets
 
+> **Note**: Avatar presets are served as a CSS spritesheet from frontend (`public/avatars/presets.png`), not from Supabase storage. Only custom user uploads use the `avatars` bucket.
+
 #### `avatars` (public, 5MB limit, JPEG only for user uploads)
 
 - **User avatars**: `{uuid}.jpg` - RLS allows authenticated users INSERT/UPDATE/DELETE own file (JPEG only)
 - **Public read**: Anyone can view (GET)
 - **Atomic upsert**: Requires both INSERT + UPDATE policies
 - **Allowed MIME types**: `image/jpeg` only
-
-#### `avatar-presets` (public read, service_role write, PNG only)
-
-- **Preset avatars**: `{id}.png` - Service role only (transparent PNG silhouettes)
-- **Public read**: Anyone can view (GET)
-- **Allowed MIME types**: `image/png` only
-- **Immutable**: Once uploaded, presets don't change
 
 #### `email-templates` (public read, service_role write)
 
@@ -288,6 +285,7 @@ CREATE POLICY "..." ON table FOR UPDATE TO authenticated
 1. `20250818043251_add_user_profiles.sql` - Profiles, storage buckets, RLS
 2. `20251112000000_create_rate_limiting.sql` - Rate limit infrastructure
 3. `20251120000000_add_username_picker_functions.sql` - Username generation
+4. `20251129040001_add_avatar_presets.sql` - Avatar preset fields (avatar_preset_index, avatar_background_color)
 
 **CRITICAL Patterns:**
 

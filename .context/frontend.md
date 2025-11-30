@@ -537,6 +537,20 @@ const Heavy = dynamic(() => import("./heavy"));
 
 **OAuth Timing:** Callbacks may take a moment, show loading state
 
+**1. CSS Sprite Percentage Positioning (Session 14)**
+- For horizontal spritesheets with scaled background-size, positioning formula is `(index * 100) / (frameCount - 1)`
+- Example: 10 frames (indices 0-9) → position for index 5 = (5 * 100) / 9 = 55.56%
+- This accounts for the scaled background-size that shows all frames in a single row
+- Incorrect formula (like `index * 100 / frameCount`) causes misalignment at ends of spritesheet
+- Always test first, middle, and last frames to verify positioning
+
+**2. ImageMagick Spritesheet Generation (Session 14)**
+- `montage` command requires all source images to be the same dimensions for proper horizontal layout
+- Normalize all images to target size BEFORE creating spritesheet: `convert input.png -resize 512x512 output.png`
+- Without normalization, montage creates uneven tile sizes and breaks CSS background positioning
+- Automated build script pattern: normalize → montage → generate JSON metadata
+- Single source of truth: JSON metadata drives TypeScript configuration
+
 ---
 
 ## Related Documentation

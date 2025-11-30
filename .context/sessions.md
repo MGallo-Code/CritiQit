@@ -4,6 +4,37 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
+## Session 14 - 2025-11-29 20:53
+
+### Summary
+Migrated avatar preset system from Supabase storage to frontend CSS spritesheet, improving performance and simplifying architecture.
+
+### Accomplishments
+- **Frontend**: Created spritesheet generation script with ImageMagick normalization and JSON metadata
+- **Frontend**: Migrated all preset source PNGs to static assets with automated build tooling
+- **Supabase**: Consolidated duplicate migrations into single file, removed avatar-presets bucket entirely
+- **Supabase**: Changed avatar_preset_id (TEXT) to avatar_preset_index (SMALLINT) with non-negative constraint
+- **Frontend**: Updated all components to use CSS sprite positioning from auto-generated JSON config
+- **Supabase**: Cleaned up deprecated scripts (upload-presets, clean-presets, generate-spritesheet)
+
+### Technical Decisions
+- **CSS sprites over individual images**: Single HTTP request, efficient browser caching, simpler architecture than storage bucket
+- **JSON as single source of truth**: Auto-generated metadata drives TypeScript config, eliminates manual sync
+- **Percentage-based positioning**: Formula (index * 100) / (frameCount - 1) works correctly with scaled backgrounds
+- **SMALLINT for index**: More efficient than TEXT IDs, constraint ensures validity
+
+### Lessons Learned
+- **CSS sprite positioning**: Percentage formula critical for proper alignment with scaled background-size
+- **ImageMagick normalization**: montage requires uniform image sizes for correct spritesheet layout
+- **Derive from generated files**: JSON metadata better than duplicating data structures in TypeScript
+
+### Next Steps
+- [ ] Test avatar flow on real iOS/Android devices
+- [ ] Build star rating component
+- [ ] Create movie card component
+
+---
+
 ## Session 13 - 2025-11-29 04:52
 
 ### Summary
