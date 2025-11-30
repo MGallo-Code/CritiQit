@@ -10,12 +10,12 @@ import { cn } from "@/lib/utils";
 /**
  * AvatarDisplay Component
  *
- * Unified avatar display that handles all three avatar types:
- * 1. Preset avatars (avatar_preset_index + avatar_background_color)
- * 2. Custom uploaded images (avatar_url)
- * 3. Default placeholder
+ * Unified avatar rendering component. Handles all three avatar types:
+ * 1. Preset avatar (avatar_preset_index + avatar_background_color)
+ * 2. Custom uploaded image (avatar_url)
+ * 3. Default placeholder icon
  *
- * This is the single source of truth for avatar rendering across the app.
+ * Single source of truth for avatar rendering across the app.
  */
 
 interface AvatarDisplayProps {
@@ -40,7 +40,6 @@ export function AvatarDisplay({
 }: AvatarDisplayProps) {
   const display = getAvatarDisplay(profile);
 
-  // Custom uploaded avatar
   if (display.type === 'custom') {
     return (
       <Avatar className={cn(className || SIZE_MAP[size])}>
@@ -49,7 +48,6 @@ export function AvatarDisplay({
     );
   }
 
-  // Preset avatar
   if (display.type === 'preset') {
     return (
       <PresetAvatar
@@ -61,7 +59,7 @@ export function AvatarDisplay({
     );
   }
 
-  // Default placeholder
+  // Default fallback
   return (
     <div
       className={cn(
@@ -69,12 +67,14 @@ export function AvatarDisplay({
         className || SIZE_MAP[size]
       )}
     >
-      <User className={cn(
-        "text-muted-foreground",
-        size === 'sm' && "w-5 h-5",
-        size === 'md' && "w-10 h-10",
-        size === 'lg' && "w-16 h-16"
-      )} />
+      <User
+        className={cn(
+          "text-muted-foreground",
+          size === 'sm' && "w-5 h-5",
+          size === 'md' && "w-10 h-10",
+          size === 'lg' && "w-16 h-16"
+        )}
+      />
     </div>
   );
 }

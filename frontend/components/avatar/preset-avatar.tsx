@@ -10,16 +10,15 @@ import {
 /**
  * PresetAvatar Component
  *
- * Displays a preset avatar using CSS sprite positioning from a spritesheet.
- * Shows a white silhouette on a colored circular background.
- * Used in the avatar picker and throughout the app when users choose preset avatars.
+ * Renders a preset avatar using CSS sprite positioning. Displays a white silhouette
+ * from the spritesheet on a colored circular background.
  *
- * Uses CSS spritesheet for performance (single image load vs multiple individual images).
+ * Uses CSS sprites for performance (single image load instead of multiple requests).
  */
 
 interface PresetAvatarProps {
   presetIndex: number;
-  backgroundColor: string; // hex color
+  backgroundColor: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -36,7 +35,6 @@ export function PresetAvatar({
   size = 'md',
   className,
 }: PresetAvatarProps) {
-  // Get CSS background-position for this preset from spritesheet
   const backgroundPosition = useMemo(
     () => getPresetBackgroundPosition(presetIndex),
     [presetIndex]
@@ -54,8 +52,8 @@ export function PresetAvatar({
         backgroundImage: `url('${SPRITESHEET_CONFIG.imagePath}')`,
         backgroundPosition,
         backgroundRepeat: 'no-repeat',
-        // Scale spritesheet so one frame fills the container
-        // 300% width means each of the 3 frames = 100% of container
+        // Scale spritesheet so each frame fills 100% of container width
+        // Example: 3 frames = 300% total width, so each frame = 100%
         backgroundSize: `${SPRITESHEET_CONFIG.frameCount * 100}% 100%`,
       }}
       role="img"

@@ -20,7 +20,11 @@ import { Loader2 } from "lucide-react";
  * PresetAvatarPickerModal Component
  *
  * Modal for selecting a preset avatar + background color combination.
- * Shows live preview, organized preset grid (Animals/Robots), and color palette.
+ * Features:
+ * - Live preview of selected preset + color
+ * - Grid of all available preset avatars
+ * - Color palette selection
+ * - Optional "Remove Avatar" action to revert to default
  */
 
 interface PresetAvatarPickerModalProps {
@@ -43,7 +47,9 @@ export function PresetAvatarPickerModal({
   const defaultColor = PRESET_COLORS[0].hex;
   const defaultPresetIndex = 0;
 
-  const [selectedPresetIndex, setSelectedPresetIndex] = useState<number>(currentPresetIndex ?? defaultPresetIndex);
+  const [selectedPresetIndex, setSelectedPresetIndex] = useState<number>(
+    currentPresetIndex ?? defaultPresetIndex
+  );
   const [selectedColor, setSelectedColor] = useState<string>(
     currentBackgroundColor || defaultColor
   );
@@ -51,7 +57,7 @@ export function PresetAvatarPickerModal({
   const [isRemoving, setIsRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Ref to track preset button elements for auto-focus
+  // Track preset button refs for auto-focus on selected item
   const presetButtonRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 
   // Reset selection when modal opens
@@ -83,14 +89,11 @@ export function PresetAvatarPickerModal({
     setError(null);
 
     try {
-      // onSelect handles database update and refreshUser()
       await onSelect(selectedPresetIndex, selectedColor);
-      // Only close after success is confirmed
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save preset avatar");
     } finally {
-      // Ensure loading state is cleared even on error
       setIsSaving(false);
     }
   };
@@ -149,35 +152,33 @@ export function PresetAvatarPickerModal({
             <h3 className="text-sm font-semibold">Avatar Presets</h3>
             <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
               {SPRITESHEET_CONFIG.frames.map((frame) => (
-                  <button
-                    key={frame.index}
-                    ref={(el) => {
-                      if (el) {
-                        presetButtonRefs.current.set(frame.index, el);
-                      } else {
-                        presetButtonRefs.current.delete(frame.index);
-                      }
-                    }}
-                    type="button"
-                    onClick={() => setSelectedPresetIndex(frame.index)}
-                    disabled={isSaving}
-                    className={cn(
-                      "relative rounded-lg p-2 transition-all hover:bg-accent",
-                      // Focus state: Subtle outline (different from selection)
-                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-muted-foreground/50",
-                      // Selected state: Bold primary ring with background (visually distinct)
-                      selectedPresetIndex === frame.index &&
-                        "ring-2 ring-primary ring-offset-2 ring-offset-background bg-accent"
-                    )}
-                    title={frame.name}
-                  >
-                    <PresetAvatar
-                      presetIndex={frame.index}
-                      backgroundColor={selectedColor}
-                      size="sm"
-                    />
-                  </button>
-                ))}
+                <button
+                  key={frame.index}
+                  ref={(el) => {
+                    if (el) {
+                      presetButtonRefs.current.set(frame.index, el);
+                    } else {
+                      presetButtonRefs.current.delete(frame.index);
+                    }
+                  }}
+                  type="button"
+                  onClick={() => setSelectedPresetIndex(frame.index)}
+                  disabled={isSaving}
+                  className={cn(
+                    "relative rounded-lg p-2 transition-all hover:bg-accent",
+                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-muted-foreground/50",
+                    selectedPresetIndex === frame.index &&
+                      "ring-2 ring-primary ring-offset-2 ring-offset-background bg-accent"
+                  )}
+                  title={frame.name}
+                >
+                  <PresetAvatar
+                    presetIndex={frame.index}
+                    backgroundColor={selectedColor}
+                    size="sm"
+                  />
+                </button>
+              ))}
             </div>
           </div>
 
