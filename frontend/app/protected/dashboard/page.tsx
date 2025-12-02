@@ -18,8 +18,8 @@ export default async function DashboardPage() {
     : "—";
 
   return (
-    <div className="flex w-full flex-1 flex-col gap-10">
-      <section className="rounded-xl border border-border-subtle bg-background-secondary p-6 shadow-sm sm:p-8">
+    <div className="flex w-full flex-1 flex-col gap-6 sm:gap-10">
+      <section className="rounded-xl border border-border-subtle bg-background-secondary p-4 shadow-sm sm:p-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-2 text-left">
             <h1 className="text-2xl font-semibold sm:text-3xl">
@@ -35,14 +35,14 @@ export default async function DashboardPage() {
             Preview
           </span>
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-lg border border-border-subtle bg-background-tertiary p-4">
+        <div className="mt-4 sm:mt-6 grid gap-3 sm:gap-4 sm:grid-cols-2">
+          <div className="rounded-lg border border-border-subtle bg-background-tertiary p-3 sm:p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Account email
             </p>
             <p className="mt-1 font-medium">{user.email ?? "—"}</p>
           </div>
-          <div className="rounded-lg border border-border-subtle bg-background-tertiary p-4">
+          <div className="rounded-lg border border-border-subtle bg-background-tertiary p-3 sm:p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Member since
             </p>
@@ -51,8 +51,8 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border-subtle bg-muted/20 p-8 text-center">
+      <section className="grid gap-4 sm:gap-6 lg:grid-cols-[2fr_1fr]">
+        <div className="flex min-h-[180px] sm:min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border-subtle bg-muted/20 p-4 sm:p-8 text-center">
           <Star className="mb-4 h-12 w-12 text-primary" />
           <h2 className="text-xl font-semibold">Your rating timeline</h2>
           <p className="mt-2 max-w-md text-sm text-muted-foreground">
@@ -60,7 +60,7 @@ export default async function DashboardPage() {
             ratings you gather will appear here with trends and highlights.
           </p>
         </div>
-        <div className="flex flex-col gap-3 rounded-xl border border-border bg-background-secondary p-6 shadow-sm">
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-background-secondary p-4 sm:p-6 shadow-sm">
           <div className="inline-flex items-center gap-2 text-sm font-medium">
             <ListChecks className="h-4 w-4 text-primary" />
             Next steps

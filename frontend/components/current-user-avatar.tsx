@@ -5,12 +5,15 @@ import { useCurrentUser } from '@/providers/current-user-provider'
 import { AvatarDisplay } from '@/components/avatar/avatar-display'
 
 export const CurrentUserAvatar = () => {
-  const { user, isLoading } = useCurrentUser()
+  const { user } = useCurrentUser()
 
   if (!user) return null
 
   return (
-    <Link className="flex items-center gap-2" href="/protected/profile">
+    <Link
+      className="flex items-center gap-2 px-2 sm:px-3 py-2 min-h-[44px]"
+      href="/protected/profile"
+    >
       <AvatarDisplay
         profile={{
           avatar_url: user.avatar_url,
@@ -20,7 +23,7 @@ export const CurrentUserAvatar = () => {
         }}
         size="sm"
       />
-      {user.username && <p>{user.username}</p>}
+      {user.username && <p className="text-base">{user.username}</p>}
     </Link>
   )
 }

@@ -178,7 +178,7 @@ export function ProfileForm({
           setHeaderGradient(
             `linear-gradient(135deg, hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness + 10}% / 0.55), hsl(${hsl.h} ${saturation}% ${baseLightness + 5}% / 0.65), hsl(${hsl.h} ${saturation}% ${baseLightness - 25}% / 0.45))`
           );
-        } catch (err) {
+        } catch {
           // Fallback to neutral gray
           setHeaderGradient(
             "linear-gradient(135deg, hsl(0 0% 25% / 0.45), hsl(0 0% 40% / 0.65), hsl(0 0% 45% / 0.55), hsl(0 0% 40% / 0.65), hsl(0 0% 25% / 0.45))"
@@ -310,11 +310,6 @@ export function ProfileForm({
     }).format(value);
   }, [currentUser?.created_at]);
 
-  // generate avatar alt text
-  const avatarAlt = currentUser?.username
-    ? `${currentUser.username}'s profile image`
-    : "User profile image";
-
   // if user is loading, show a loading message
   if (isUserLoading) {
     return (
@@ -343,7 +338,7 @@ export function ProfileForm({
           className="h-36 md:h-48 transition-colors duration-500"
           style={{ background: headerGradient }}
         />
-        <CardHeader className="px-6 pb-6 pt-0">
+        <CardHeader className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
           {mode === "edit" ? (
             <div className="-mt-20 md:-mt-32 mx-auto">
               <AvatarUpload
@@ -352,7 +347,7 @@ export function ProfileForm({
                 currentPresetIndex={currentUser.avatar_preset_index}
                 currentBackgroundColor={currentUser.avatar_background_color}
                 username={currentUser.username}
-                onUploadSuccess={async (newUrl) => {
+                onUploadSuccess={async () => {
                   // Refresh user context to update avatar everywhere
                   await refreshUser();
                 }}
@@ -402,10 +397,10 @@ export function ProfileForm({
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-8 px-6 pb-8">
+        <CardContent className="space-y-6 sm:space-y-8 px-4 sm:px-6 pb-6 sm:pb-8">
           {mode === "view" ? (
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-lg border border-border p-5">
+            <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
+              <div className="rounded-lg border border-border p-4 sm:p-5">
                 <h2 className="text-sm font-semibold uppercase text-muted-foreground">
                   Username
                 </h2>
@@ -413,7 +408,7 @@ export function ProfileForm({
                   {formData.username ? `@${formData.username}` : "Choose a username"}
                 </p>
               </div>
-              <div className="rounded-lg border border-border p-5">
+              <div className="rounded-lg border border-border p-4 sm:p-5">
                 <h2 className="text-sm font-semibold uppercase text-muted-foreground">
                   Full name
                 </h2>
@@ -422,7 +417,7 @@ export function ProfileForm({
                 </p>
               </div>
               <div className="md:col-span-2">
-                <div className="rounded-lg border border-border p-5">
+                <div className="rounded-lg border border-border p-4 sm:p-5">
                   <h2 className="text-sm font-semibold uppercase text-muted-foreground">
                     Bio
                   </h2>
@@ -433,8 +428,8 @@ export function ProfileForm({
               </div>
             </div>
           ) : (
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="grid gap-5 md:grid-cols-2">
+            <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
+              <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="full_name">Full name (optional)</Label>
                   <Input
@@ -494,7 +489,7 @@ export function ProfileForm({
             </form>
           )}
         </CardContent>
-        <CardFooter className="flex flex-col justify-between gap-4 border-t border-border bg-muted/30 px-6 py-5 sm:flex-row sm:items-center">
+        <CardFooter className="flex flex-col justify-between gap-4 border-t border-border bg-muted/30 px-4 sm:px-6 py-4 sm:py-5 sm:flex-row sm:items-center">
           <p className="text-sm text-muted-foreground">
             Need to switch accounts?
           </p>

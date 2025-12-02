@@ -8,7 +8,14 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { AvatarDisplay } from "@/components/avatar/avatar-display";
-import { Loader2, Upload, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -104,7 +111,6 @@ export function AvatarUpload({
 
   // Original image state (for cropping)
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
-  const [originalFile, setOriginalFile] = useState<File | null>(null);
 
   // Crop state
   const [crop, setCrop] = useState<Crop | undefined>(undefined);
@@ -429,11 +435,10 @@ export function AvatarUpload({
       try {
         const objectUrl = URL.createObjectURL(file);
         setOriginalImageUrl(objectUrl);
-        setOriginalFile(file);
         setCrop(undefined); // Will be set when image loads
         setCompletedCrop(null);
         setPhase('cropping');
-      } catch (urlError) {
+      } catch {
         throw new Error('Unable to load image. The file may be corrupted.');
       }
     } catch (err) {
@@ -528,7 +533,6 @@ export function AvatarUpload({
 
       // Reset all state
       setOriginalImageUrl(null);
-      setOriginalFile(null);
       setCroppedPreviewUrl(null);
       setCroppedBlob(null);
       setCrop(undefined);
@@ -566,7 +570,6 @@ export function AvatarUpload({
 
     // Reset all state
     setOriginalImageUrl(null);
-    setOriginalFile(null);
     setCroppedPreviewUrl(null);
     setCroppedBlob(null);
     setCrop(undefined);
@@ -587,6 +590,9 @@ export function AvatarUpload({
     fileInputRef.current?.click();
   };
 
+  // Dialog is open when not in idle phase
+  const isDialogOpen = phase !== 'idle';
+
   return (
     <div className={cn("flex flex-col items-center gap-4", className)}>
       {/* Custom CSS for circular crop overlay */}
@@ -601,9 +607,6 @@ export function AvatarUpload({
         .ReactCrop__crop-selection {
           border: 3px solid hsl(45 85% 75%);
           border-radius: 50%;
-          /* Use a reasonable box-shadow size that covers the image area
-             but doesn't extend beyond the container to cover buttons.
-             1000px is enough for most images while staying contained. */
           box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.6);
         }
 
@@ -633,179 +636,188 @@ export function AvatarUpload({
         disabled={isUploading}
       />
 
-      {/* Phase: Idle - Show current avatar */}
-      {phase === 'idle' && (
-        <>
-          <div className="relative group cursor-pointer" onClick={triggerFileInput}>
-            <AvatarDisplay
-              profile={{
-                avatar_url: currentAvatarUrl,
-                avatar_preset_index: currentPresetIndex,
-                avatar_background_color: currentBackgroundColor,
-                username: username ?? '',
-              }}
-              size="lg"
-              className="h-40 w-40 border-4 border-background shadow-xl md:h-64 md:w-64 transition-opacity group-hover:opacity-80"
-            />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-              <Upload className="h-8 w-8 text-white" />
-            </div>
-          </div>
+      {/* Idle state - Show current avatar with upload trigger */}
+      <div className="relative group cursor-pointer" onClick={triggerFileInput}>
+        <AvatarDisplay
+          profile={{
+            avatar_url: currentAvatarUrl,
+            avatar_preset_index: currentPresetIndex,
+            avatar_background_color: currentBackgroundColor,
+            username: username ?? '',
+          }}
+          size="lg"
+          className="h-40 w-40 border-4 border-background shadow-xl md:h-64 md:w-64 transition-opacity group-hover:opacity-80"
+        />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+          <Upload className="h-8 w-8 text-white" />
+        </div>
+      </div>
 
-          <Button
-            type="button"
-            onClick={triggerFileInput}
-            disabled={isUploading}
-            variant="outline"
-            size="lg"
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Change Avatar
-          </Button>
+      <Button
+        type="button"
+        onClick={triggerFileInput}
+        disabled={isUploading}
+        variant="outline"
+        size="lg"
+      >
+        <Upload className="mr-2 h-4 w-4" />
+        Change Avatar
+      </Button>
 
-          <p className="text-xs text-muted-foreground text-center max-w-xs">
-            JPEG, PNG, or WebP • Max {MAX_FILE_SIZE_MB}MB • Recommended 512x512px
-          </p>
-        </>
-      )}
+      <p className="text-xs text-muted-foreground text-center max-w-xs">
+        JPEG, PNG, or WebP • Max {MAX_FILE_SIZE_MB}MB • Recommended 512x512px
+      </p>
 
-      {/* Phase: Cropping - Show crop interface */}
-      {phase === 'cropping' && originalImageUrl && (
-        <>
-          <div className="w-full max-w-[600px] space-y-4">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold mb-1">Crop Your Avatar</h3>
-              <p className="text-sm text-muted-foreground">
-                Drag to adjust, scroll to zoom
-              </p>
-            </div>
-
-            <div className="crop-container relative w-full rounded-lg" style={{ maxHeight: '500px' }}>
-              <ReactCrop
-                crop={crop}
-                onChange={(c) => setCrop(c)}
-                onComplete={(c) => setCompletedCrop(c)}
-                aspect={1}
-                circularCrop
-              >
-                <img
-                  ref={imageRef}
-                  src={originalImageUrl}
-                  alt="Crop preview"
-                  className="max-w-full h-auto"
-                  onLoad={(e) => {
-                    // Set image ref and initialize crop on load
-                    imageRef.current = e.currentTarget;
-                    // Initialize crop as perfect square
-                    const initialCrop = getInitialCrop(
-                      e.currentTarget.width,
-                      e.currentTarget.height
-                    );
-                    setCrop(initialCrop);
-                  }}
-                />
-              </ReactCrop>
-            </div>
-
-            <div className="flex gap-3 justify-center">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                size="lg"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={handleCropComplete}
-                size="lg"
-                disabled={!completedCrop}
-              >
-                Crop & Next
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Phase: Preview - Show cropped image */}
-      {phase === 'preview' && croppedPreviewUrl && (
-        <>
-          <div className="text-center mb-2">
-            <h3 className="text-lg font-semibold mb-1">Preview</h3>
-            <p className="text-sm text-muted-foreground">
-              This is how your avatar will look
-            </p>
-          </div>
-
-          <div className="relative">
-            <Avatar className="h-40 w-40 border-4 border-primary shadow-xl md:h-64 md:w-64">
-              <AvatarImage src={croppedPreviewUrl} alt="Cropped preview" />
-            </Avatar>
-          </div>
-
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleBackToCrop}
-              size="lg"
-            >
-              Back to Crop
-            </Button>
-            <Button
-              type="button"
-              onClick={handleUpload}
-              size="lg"
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Image
-            </Button>
-          </div>
-        </>
-      )}
-
-      {/* Phase: Uploading - Show progress */}
-      {phase === 'uploading' && (
-        <>
-          <div className="relative">
-            <Avatar className="h-40 w-40 border-4 border-primary shadow-xl md:h-64 md:w-64 opacity-50">
-              <AvatarImage
-                src={croppedPreviewUrl || currentAvatarUrl || undefined}
-                alt="Uploading"
-              />
-            </Avatar>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-          </div>
-
-          <div className="w-full max-w-xs">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>
-                {uploadProgress === 0 ? 'Processing...' : `Uploading... ${uploadProgress}%`}
-              </span>
-            </div>
-            {uploadProgress > 0 && (
-              <div className="w-full bg-muted rounded-full h-2">
-                <div
-                  className="bg-primary h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Error Message */}
-      {error && (
+      {/* Error Message (shown in idle state) */}
+      {error && phase === 'idle' && (
         <p className="text-sm text-error text-center max-w-xs" role="alert">
           {error}
         </p>
       )}
+
+      {/* Dialog for cropping, preview, and uploading phases */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCancel()}>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          {/* Phase: Cropping */}
+          {phase === 'cropping' && originalImageUrl && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Crop Your Avatar</DialogTitle>
+                <DialogDescription>
+                  Drag to adjust the crop area
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="crop-container relative w-full rounded-lg overflow-hidden">
+                <ReactCrop
+                  crop={crop}
+                  onChange={(c) => setCrop(c)}
+                  onComplete={(c) => setCompletedCrop(c)}
+                  aspect={1}
+                  circularCrop
+                >
+                  <img
+                    ref={imageRef}
+                    src={originalImageUrl}
+                    alt="Crop preview"
+                    className="max-w-full max-h-[50vh] h-auto mx-auto"
+                    onLoad={(e) => {
+                      imageRef.current = e.currentTarget;
+                      const initialCrop = getInitialCrop(
+                        e.currentTarget.width,
+                        e.currentTarget.height
+                      );
+                      setCrop(initialCrop);
+                    }}
+                  />
+                </ReactCrop>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleCropComplete}
+                  disabled={!completedCrop}
+                >
+                  Continue
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Phase: Preview */}
+          {phase === 'preview' && croppedPreviewUrl && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Preview</DialogTitle>
+                <DialogDescription>
+                  This is how your avatar will look
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="flex justify-center py-4">
+                <Avatar className="h-40 w-40 border-4 border-primary shadow-xl">
+                  <AvatarImage src={croppedPreviewUrl} alt="Cropped preview" />
+                </Avatar>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBackToCrop}
+                >
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleUpload}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Phase: Uploading */}
+          {phase === 'uploading' && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Uploading</DialogTitle>
+                <DialogDescription>
+                  Please wait while we save your avatar
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="flex flex-col items-center gap-4 py-4">
+                <div className="relative">
+                  <Avatar className="h-32 w-32 border-4 border-primary shadow-xl opacity-50">
+                    <AvatarImage
+                      src={croppedPreviewUrl || currentAvatarUrl || undefined}
+                      alt="Uploading"
+                    />
+                  </Avatar>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  </div>
+                </div>
+
+                <div className="w-full max-w-xs">
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>
+                      {uploadProgress === 0 ? 'Processing...' : `Uploading... ${uploadProgress}%`}
+                    </span>
+                  </div>
+                  {uploadProgress > 0 && (
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Error Message (shown in dialog) */}
+          {error && phase !== 'idle' && (
+            <p className="text-sm text-error text-center" role="alert">
+              {error}
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

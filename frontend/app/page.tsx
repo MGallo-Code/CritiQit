@@ -33,19 +33,19 @@ const featureHighlights: FeatureHighlight[] = [
 
 export default function Home() {
   // Get current user from provider
-  const { user, isLoading } = useCurrentUser();
+  const { user } = useCurrentUser();
 
   return (
     <main className="flex flex-1 flex-col items-center">
-      <div className="flex w-full max-w-5xl flex-col gap-16 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+      <div className="flex w-full max-w-5xl flex-col gap-10 sm:gap-16 px-4 pb-12 sm:pb-16 pt-8 sm:pt-10 sm:px-6 lg:px-8">
         <Hero />
 
-        <section className="grid gap-6 md:grid-cols-3">
+        <section className="grid gap-4 sm:gap-6 md:grid-cols-3">
           {/* Show feature highlights, as defined above... */}
           {featureHighlights.map(({ title, description, icon: Icon }) => (
             <div
               key={title}
-              className="rounded-lg border border-border bg-card p-6 text-left shadow-md transition hover:-translate-y-1 hover:shadow-lg"
+              className="rounded-lg border border-border bg-card p-4 sm:p-6 text-left shadow-md transition hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" />
@@ -56,8 +56,8 @@ export default function Home() {
           ))}
         </section>
 
-        <section className="rounded-xl border border-border bg-card p-6 shadow-md sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <section className="rounded-xl border border-border bg-card p-4 shadow-md sm:p-8">
+          <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-xl space-y-3 text-left">
               <h2 className="text-2xl font-semibold sm:text-3xl">
                 Ready for your next critique session?
