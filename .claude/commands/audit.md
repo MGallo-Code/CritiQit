@@ -1,6 +1,6 @@
 ---
 name: audit
-description: Finalize and close the current coding session. Updates all context files (CLAUDE.md, GEMINI.md, AGENTS.md), completes the session entry in sessions.md, updates specialized docs if needed, and generates a commit message suggestion. Use this when you're done working for the day or completing a significant milestone.
+description: Initiate a comprehensive security audit of the CritiQit codebase. Launches the security-coordinator agent to audit frontend, backend, and infrastructure, presenting vulnerabilities by severity and allowing you to handle, debug, or ignore findings.
 slash_command: /audit
 ---
 
