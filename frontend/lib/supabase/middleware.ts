@@ -52,11 +52,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If user is authenticated and accessing protected routes (except username picker itself)
+  // If user is authenticated and accessing protected routes (except onboarding itself)
   if (
     user &&
     request.nextUrl.pathname.startsWith("/protected") &&
-    !request.nextUrl.pathname.startsWith("/protected/username")
+    !request.nextUrl.pathname.startsWith("/protected/onboarding")
   ) {
     // Fetch user profile to check if username is temporary
     const { data: profile } = await supabase
@@ -65,10 +65,10 @@ export async function updateSession(request: NextRequest) {
       .eq("id", user.sub)
       .maybeSingle();
 
-    // If username is temporary (auto-generated), redirect to username picker
+    // If username is temporary (auto-generated), redirect to onboarding
     if (needsUsernameSet(profile?.username_is_temporary)) {
       const url = request.nextUrl.clone();
-      url.pathname = "/protected/username";
+      url.pathname = "/protected/onboarding";
       url.searchParams.set("redirect", request.nextUrl.pathname);
       return NextResponse.redirect(url);
     }

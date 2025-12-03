@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import LoadingContent from "@/components/ui/loading-content";
 import { useCurrentUser } from "@/providers/current-user-provider";
-import { needsUsernameSet, getUsernamePickerUrl } from "@/lib/auth/username-check";
+import { needsUsernameSet, getOnboardingUrl } from "@/lib/auth/username-check";
 
 export default function AuthCallbackPage() {
   // use the provider to get user
@@ -39,9 +39,9 @@ export default function AuthCallbackPage() {
 
       // Check if username is temporary (auto-generated)
       if (needsUsernameSet(user.username_is_temporary)) {
-        // Redirect to username picker with intended destination
-        const usernamePickerUrl = getUsernamePickerUrl(redirectTo);
-        router.replace(usernamePickerUrl);
+        // Redirect to onboarding with intended destination
+        const onboardingUrl = getOnboardingUrl(redirectTo);
+        router.replace(onboardingUrl);
       } else {
         // Username is user-chosen, proceed to intended destination
         router.replace(redirectTo);

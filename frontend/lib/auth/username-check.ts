@@ -16,13 +16,13 @@ export function needsUsernameSet(usernameIsTemporary: boolean | null | undefined
 }
 
 /**
- * Generates a username picker URL with optional redirect parameter.
+ * Generates an onboarding URL with optional redirect parameter.
  *
- * @param redirectTo - Optional path to redirect to after setting username
- * @returns URL string for username picker page
+ * @param redirectTo - Optional path to redirect to after completing onboarding
+ * @returns URL string for onboarding page
  */
-export function getUsernamePickerUrl(redirectTo?: string): string {
-  const baseUrl = "/protected/username";
+export function getOnboardingUrl(redirectTo?: string): string {
+  const baseUrl = "/protected/onboarding";
 
   if (!redirectTo) {
     return baseUrl;
