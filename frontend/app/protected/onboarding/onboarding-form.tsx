@@ -13,7 +13,7 @@ import { Shuffle } from "lucide-react";
 import { AvatarDisplay } from "@/components/avatar/avatar-display";
 import { PresetAvatarPickerModal } from "@/components/avatar/preset-avatar-picker-modal";
 
-interface UsernamePickerFormProps {
+interface OnboardingFormProps {
   userId: string;
   currentUsername?: string | null;
 }
@@ -26,10 +26,10 @@ const errorMessages: Record<string, string> = {
   taken: "This username is already taken.",
 };
 
-export function UsernamePickerForm({
+export function OnboardingForm({
   userId,
   currentUsername,
-}: UsernamePickerFormProps) {
+}: OnboardingFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const { user, refreshUser } = useCurrentUser();

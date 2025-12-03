@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { UsernamePickerForm } from "./username-picker-form";
+import { OnboardingForm } from "./onboarding-form";
 
-export default async function UsernamePage() {
+export default async function OnboardingPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -25,7 +25,7 @@ export default async function UsernamePage() {
 
   return (
     <div className="w-full max-w-md sm:max-w-lg">
-      <UsernamePickerForm
+      <OnboardingForm
         userId={user.id}
         currentUsername={profile?.username}
       />
