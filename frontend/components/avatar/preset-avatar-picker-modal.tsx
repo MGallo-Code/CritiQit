@@ -149,8 +149,12 @@ export function PresetAvatarPickerModal({
 
           {/* Preset Grid */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold">Avatar Presets</h3>
-            <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border" />
+              <h3 className="text-sm font-semibold text-muted-foreground">Avatar Presets</h3>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
               {SPRITESHEET_CONFIG.frames.map((frame) => (
                 <button
                   key={frame.index}
@@ -164,18 +168,20 @@ export function PresetAvatarPickerModal({
                   type="button"
                   onClick={() => setSelectedPresetIndex(frame.index)}
                   disabled={isSaving}
-                  className={cn(
-                    "relative rounded-lg p-2 transition-all hover:bg-accent",
-                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-muted-foreground/50",
-                    selectedPresetIndex === frame.index &&
-                      "ring-2 ring-primary ring-offset-2 ring-offset-background bg-accent"
-                  )}
+                  className="w-10 h-10 focus-visible:outline-none"
                   title={frame.name}
                 >
                   <PresetAvatar
                     presetIndex={frame.index}
                     backgroundColor={selectedColor}
                     size="sm"
+                    className={cn(
+                      "ring-offset-background transition-shadow",
+                      "hover:ring-2 hover:ring-accent hover:ring-offset-1",
+                      "focus-visible:ring-2 focus-visible:ring-muted-foreground/50 focus-visible:ring-offset-2",
+                      selectedPresetIndex === frame.index &&
+                        "ring-2 ring-primary ring-offset-2"
+                    )}
                   />
                 </button>
               ))}
@@ -184,7 +190,11 @@ export function PresetAvatarPickerModal({
 
           {/* Color Palette */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold">Background Color</h3>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border" />
+              <h3 className="text-sm font-semibold text-muted-foreground">Background Color</h3>
+              <div className="flex-1 h-px bg-border" />
+            </div>
             <div className="flex flex-wrap gap-3">
               {PRESET_COLORS.map((color) => (
                 <button
@@ -213,10 +223,11 @@ export function PresetAvatarPickerModal({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="mt-6 gap-2">
           <Button
             type="button"
             variant="outline"
+            size="lg"
             onClick={onClose}
             disabled={isSaving}
           >
@@ -224,6 +235,7 @@ export function PresetAvatarPickerModal({
           </Button>
           <Button
             type="button"
+            size="lg"
             onClick={handleSave}
             disabled={isSaving}
           >
