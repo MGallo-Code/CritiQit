@@ -10,7 +10,8 @@ const nextConfig: NextConfig = {
 
   // Production: Standalone output for Docker deployment
   // Creates minimal production build in .next/standalone/
-  output: 'standalone',
+  // Note: Only enabled for production builds to avoid dev mode cache issues
+  ...(process.env.NODE_ENV === 'production' && { output: 'standalone' }),
 };
 
 export default nextConfig;

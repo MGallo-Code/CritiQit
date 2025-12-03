@@ -1,6 +1,6 @@
 export function Hero() {
   return (
-    <section className="flex flex-col items-center text-center gap-6 py-12">
+    <section className="flex flex-col items-center text-center gap-6 py-6 sm:py-8">
       <span className="rounded-full border border-border/40 bg-background px-3 py-1 text-xs uppercase tracking-wide text-muted-foreground">
         Built for thoughtful feedback
       </span>

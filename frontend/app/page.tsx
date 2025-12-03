@@ -37,7 +37,7 @@ export default function Home() {
 
   return (
     <main className="flex flex-1 flex-col items-center">
-      <div className="flex w-full max-w-5xl flex-col gap-10 sm:gap-16 px-4 pb-12 sm:pb-16 pt-8 sm:pt-10 sm:px-6 lg:px-8">
+      <div className="flex w-full max-w-5xl flex-col gap-10 sm:gap-16 px-4 pb-12 sm:pb-16 pt-4 sm:pt-6 sm:px-6 lg:px-8">
         <Hero />
 
         <section className="grid gap-4 sm:gap-6 md:grid-cols-3">

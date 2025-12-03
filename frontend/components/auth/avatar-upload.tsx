@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import imageCompression from "browser-image-compression";
 import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -15,6 +15,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer";
 import { Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +35,7 @@ import { cn } from "@/lib/utils";
  * - Progress indicator during upload
  * - Error handling with user-friendly messages
  * - Integration with existing dynamic gradient system
+ * - Mobile-optimized with Drawer instead of Dialog
  *
  * Security (Production-Grade):
  * - Comprehensive file validation before upload
@@ -71,6 +79,24 @@ interface AvatarUploadProps {
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+/**
+ * Hook to detect mobile viewport
+ * Uses SSR-safe initialization to prevent flash
+ */
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 640 : false
+  );
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return isMobile;
+}
 
 /**
  * Default crop configuration: 80% of image, centered, 1:1 aspect ratio locked
@@ -123,6 +149,7 @@ export function AvatarUpload({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
+  const isMobile = useIsMobile();
 
   // Compute isUploading based on phase
   const isUploading = phase === 'uploading';
@@ -591,7 +618,163 @@ export function AvatarUpload({
   };
 
   // Dialog is open when not in idle phase
-  const isDialogOpen = phase !== 'idle';
+  const isModalOpen = phase !== 'idle';
+
+  // Shared content for modal (used in both Dialog and Drawer)
+  const renderModalContent = () => (
+    <>
+      {/* Phase: Cropping */}
+      {phase === 'cropping' && originalImageUrl && (
+        <>
+          <div className={cn(
+            "crop-container relative w-full rounded-lg overflow-hidden",
+            isMobile ? "flex-1 min-h-0" : ""
+          )}>
+            <ReactCrop
+              crop={crop}
+              onChange={(c) => setCrop(c)}
+              onComplete={(c) => setCompletedCrop(c)}
+              aspect={1}
+              circularCrop
+            >
+              <img
+                ref={imageRef}
+                src={originalImageUrl}
+                alt="Crop preview"
+                className={cn(
+                  "max-w-full h-auto mx-auto object-contain",
+                  isMobile ? "max-h-[50vh]" : "max-h-[50vh]"
+                )}
+                onLoad={(e) => {
+                  imageRef.current = e.currentTarget;
+                  const initialCrop = getInitialCrop(
+                    e.currentTarget.width,
+                    e.currentTarget.height
+                  );
+                  setCrop(initialCrop);
+                }}
+              />
+            </ReactCrop>
+          </div>
+
+          <div className={cn(
+            "flex gap-3",
+            isMobile ? "flex-col" : "justify-end"
+          )}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              className={isMobile ? "min-h-[48px]" : ""}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCropComplete}
+              disabled={!completedCrop}
+              className={isMobile ? "min-h-[48px]" : ""}
+            >
+              Continue
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* Phase: Preview */}
+      {phase === 'preview' && croppedPreviewUrl && (
+        <>
+          <div className="flex justify-center py-4">
+            <Avatar className="h-40 w-40 border-4 border-primary shadow-xl">
+              <AvatarImage src={croppedPreviewUrl} alt="Cropped preview" />
+            </Avatar>
+          </div>
+
+          <div className={cn(
+            "flex gap-3",
+            isMobile ? "flex-col" : "justify-end"
+          )}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBackToCrop}
+              className={isMobile ? "min-h-[48px]" : ""}
+            >
+              Back
+            </Button>
+            <Button
+              type="button"
+              onClick={handleUpload}
+              className={isMobile ? "min-h-[48px]" : ""}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Upload
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* Phase: Uploading */}
+      {phase === 'uploading' && (
+        <div className="flex flex-col items-center gap-4 py-4">
+          <div className="relative">
+            <Avatar className="h-32 w-32 border-4 border-primary shadow-xl opacity-50">
+              <AvatarImage
+                src={croppedPreviewUrl || currentAvatarUrl || undefined}
+                alt="Uploading"
+              />
+            </Avatar>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+          </div>
+
+          <div className="w-full max-w-xs">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>
+                {uploadProgress === 0 ? 'Processing...' : `Uploading... ${uploadProgress}%`}
+              </span>
+            </div>
+            {uploadProgress > 0 && (
+              <div className="w-full bg-muted rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Error Message (shown in modal) */}
+      {error && phase !== 'idle' && (
+        <p className="text-sm text-error text-center" role="alert">
+          {error}
+        </p>
+      )}
+    </>
+  );
+
+  // Get title/description based on phase
+  const getPhaseTitle = () => {
+    switch (phase) {
+      case 'cropping': return 'Crop Your Avatar';
+      case 'preview': return 'Preview';
+      case 'uploading': return 'Uploading';
+      default: return '';
+    }
+  };
+
+  const getPhaseDescription = () => {
+    switch (phase) {
+      case 'cropping': return 'Drag to adjust the crop area';
+      case 'preview': return 'This is how your avatar will look';
+      case 'uploading': return 'Please wait while we save your avatar';
+      default: return '';
+    }
+  };
 
   return (
     <div className={cn("flex flex-col items-center gap-4", className)}>
@@ -675,149 +858,33 @@ export function AvatarUpload({
         </p>
       )}
 
-      {/* Dialog for cropping, preview, and uploading phases */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCancel()}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          {/* Phase: Cropping */}
-          {phase === 'cropping' && originalImageUrl && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Crop Your Avatar</DialogTitle>
-                <DialogDescription>
-                  Drag to adjust the crop area
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="crop-container relative w-full rounded-lg overflow-hidden">
-                <ReactCrop
-                  crop={crop}
-                  onChange={(c) => setCrop(c)}
-                  onComplete={(c) => setCompletedCrop(c)}
-                  aspect={1}
-                  circularCrop
-                >
-                  <img
-                    ref={imageRef}
-                    src={originalImageUrl}
-                    alt="Crop preview"
-                    className="max-w-full max-h-[50vh] h-auto mx-auto"
-                    onLoad={(e) => {
-                      imageRef.current = e.currentTarget;
-                      const initialCrop = getInitialCrop(
-                        e.currentTarget.width,
-                        e.currentTarget.height
-                      );
-                      setCrop(initialCrop);
-                    }}
-                  />
-                </ReactCrop>
-              </div>
-
-              <div className="flex gap-3 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancel}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleCropComplete}
-                  disabled={!completedCrop}
-                >
-                  Continue
-                </Button>
-              </div>
-            </>
-          )}
-
-          {/* Phase: Preview */}
-          {phase === 'preview' && croppedPreviewUrl && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Preview</DialogTitle>
-                <DialogDescription>
-                  This is how your avatar will look
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="flex justify-center py-4">
-                <Avatar className="h-40 w-40 border-4 border-primary shadow-xl">
-                  <AvatarImage src={croppedPreviewUrl} alt="Cropped preview" />
-                </Avatar>
-              </div>
-
-              <div className="flex gap-3 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleBackToCrop}
-                >
-                  Back
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleUpload}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload
-                </Button>
-              </div>
-            </>
-          )}
-
-          {/* Phase: Uploading */}
-          {phase === 'uploading' && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Uploading</DialogTitle>
-                <DialogDescription>
-                  Please wait while we save your avatar
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="flex flex-col items-center gap-4 py-4">
-                <div className="relative">
-                  <Avatar className="h-32 w-32 border-4 border-primary shadow-xl opacity-50">
-                    <AvatarImage
-                      src={croppedPreviewUrl || currentAvatarUrl || undefined}
-                      alt="Uploading"
-                    />
-                  </Avatar>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                  </div>
-                </div>
-
-                <div className="w-full max-w-xs">
-                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>
-                      {uploadProgress === 0 ? 'Processing...' : `Uploading... ${uploadProgress}%`}
-                    </span>
-                  </div>
-                  {uploadProgress > 0 && (
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div
-                        className="bg-primary h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Error Message (shown in dialog) */}
-          {error && phase !== 'idle' && (
-            <p className="text-sm text-error text-center" role="alert">
-              {error}
-            </p>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Mobile: Use Drawer for better touch experience */}
+      {isMobile ? (
+        <Drawer open={isModalOpen} onOpenChange={(open) => !open && handleCancel()}>
+          <DrawerContent className="max-h-[85vh] flex flex-col">
+            <DrawerHeader className="text-center">
+              <DrawerTitle>{getPhaseTitle()}</DrawerTitle>
+              <DrawerDescription>{getPhaseDescription()}</DrawerDescription>
+            </DrawerHeader>
+            <div className="flex-1 flex flex-col gap-4 px-4 pb-8 overflow-hidden">
+              {renderModalContent()}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        /* Desktop: Use Dialog for centered modal */
+        <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleCancel()}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{getPhaseTitle()}</DialogTitle>
+              <DialogDescription>{getPhaseDescription()}</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4">
+              {renderModalContent()}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
