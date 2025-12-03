@@ -13,9 +13,9 @@ export default async function Page({
   const redirectTo = params?.redirectTo ?? "/protected/dashboard";
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+    <div className="flex min-h-svh w-full items-center justify-center p-4 sm:p-6">
       <ForgotPasswordForm
-        className="w-full max-w-sm"
+        className="w-full sm:max-w-md"
         initialEmail={email}
         redirectTo={redirectTo}
       />

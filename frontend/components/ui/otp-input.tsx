@@ -153,7 +153,7 @@ export function OTPInput({
   };
 
   return (
-    <div className={cn("flex gap-3 justify-center", className)} role="group" aria-label="Verification code input">
+    <div className={cn("flex gap-1 sm:gap-3 justify-center", className)} role="group" aria-label="Verification code input">
       {Array.from({ length: LENGTH }).map((_, index) => (
         <input
           key={index}
@@ -172,7 +172,7 @@ export function OTPInput({
           disabled={disabled}
           aria-label={`Digit ${index + 1} of ${LENGTH}`}
           className={cn(
-            "w-12 h-12 text-center text-2xl font-semibold",
+            "w-9 h-9 sm:w-12 sm:h-12 text-center text-base sm:text-2xl font-semibold",
             "rounded-md border-2 transition-all duration-200",
             "focus:outline-none",
             "text-foreground caret-star-yellow",

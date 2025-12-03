@@ -142,7 +142,7 @@ export function VerifyEmailForm({
               value={token}
             />
           </div>
-          <div className="grid gap-2 justify-center">
+          <div className="grid gap-2 overflow-hidden">
             <Label>Security verification</Label>
             <Turnstile
               key={turnstileKey}

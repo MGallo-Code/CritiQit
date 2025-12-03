@@ -11,8 +11,8 @@ export default async function Page({
   const redirectTo = params?.redirectTo ?? "";
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <LoginForm className="w-full max-w-sm" redirectTo={redirectTo}/>
+    <div className="flex min-h-svh w-full items-center justify-center p-4 sm:p-6">
+      <LoginForm className="w-full sm:max-w-md" redirectTo={redirectTo}/>
     </div>
   );
 }
