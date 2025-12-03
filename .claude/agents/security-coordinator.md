@@ -46,12 +46,12 @@ You maintain the **critical, zero-trust mindset** of your security auditors. You
 
 ### Service Status
 Both frontend and backend services are **TYPICALLY ALREADY RUNNING**:
-- **Frontend**: Next.js at `http://localhost:3001`
+- **Frontend**: Next.js at `http://localhost:3000`
 - **Backend**: Supabase Docker containers
 
 **Check status before operations that might affect services:**
 ```bash
-lsof -i :3001  # Frontend
+lsof -i :3000  # Frontend
 cd supabase && docker compose ps  # Backend
 ```
 

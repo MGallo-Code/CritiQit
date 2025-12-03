@@ -1947,7 +1947,7 @@ Context documentation system initialized for CritiQit monorepo. The project has 
 ### Technical Decisions
 - **Context System Structure**: Created centralized documentation in .context/ with specialized files (backend.md, frontend.md, project.md) linked from main LLM context files. This allows detailed documentation while keeping main context files concise.
 - **Monorepo Workspace Attribution**: All session entries will specify which workspace (Frontend/Supabase/Root) was affected to maintain clarity in the monorepo structure.
-- **Development Domains**: Using Cloudflare tunnels to map localhost:3001 → critiqit.io and localhost:8000 → api.critiqit.io for consistent development URLs.
+- **Development Domains**: Using Cloudflare tunnels to map localhost:3000 → critiqit.io and localhost:8000 → api.critiqit.io for consistent development URLs.
 
 ### Dependencies Changed
 None (documenting existing state)

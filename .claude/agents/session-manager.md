@@ -53,7 +53,7 @@ CritiQit/
 
 Domains:
 - Production: critiqit.io (frontend), api.critiqit.io (backend)
-- Development: localhost:3001 (frontend), localhost:8000 (backend)
+- Development: localhost:3000 (frontend), localhost:8000 (backend)
 
 ## CRITICAL SECURITY RULE
 
@@ -187,7 +187,7 @@ Last updated: [YYYY-MM-DD HH:MM]
 - **Frontend**: `frontend/` (Next.js workspace)
 - **Backend**: `supabase/` (Supabase + PostgreSQL)
 - **Domains**:
-  - Frontend: `critiqit.io` (dev: localhost:3001)
+  - Frontend: `critiqit.io` (dev: localhost:3000)
   - Backend: `api.critiqit.io` (dev: localhost:8000)
 
 For detailed information:

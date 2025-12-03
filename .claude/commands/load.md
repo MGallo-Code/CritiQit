@@ -13,7 +13,7 @@ Then reference specialized documentation as needed:
 Project structure:
 - Monorepo: `frontend/` (Next.js) + `supabase/` (backend)
 - Domains: `critiqit.io` (frontend), `api.critiqit.io` (backend)
-- Development: localhost:3001 (frontend), localhost:8000 (backend)
+- Development: localhost:3000 (frontend), localhost:8000 (backend)
 
 Important reminders:
 - Never expose actual environment variable values

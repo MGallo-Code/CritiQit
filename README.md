@@ -126,7 +126,7 @@ CritiQit/
    ```
 
 7. **Access the application:**
-   - Frontend: http://localhost:3001
+   - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
    - Supabase Studio: http://localhost:8443
 
