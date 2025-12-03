@@ -24,13 +24,11 @@ export default async function UsernamePage() {
   }
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-md">
-        <UsernamePickerForm
-          userId={user.id}
-          currentUsername={profile?.username}
-        />
-      </div>
+    <div className="w-full max-w-md sm:max-w-lg">
+      <UsernamePickerForm
+        userId={user.id}
+        currentUsername={profile?.username}
+      />
     </div>
   );
 }
