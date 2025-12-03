@@ -132,15 +132,13 @@ export function PresetAvatarPickerModal({
               backgroundColor={selectedColor}
               size="lg"
             />
-            <p className="text-sm text-muted-foreground">Preview</p>
+            <p className="text-muted-foreground">Preview</p>
             {onRemove && (
               <Button
                 type="button"
-                variant="ghost"
-                size="sm"
+                variant="outline"
                 onClick={handleRemove}
                 disabled={isSaving || isRemoving}
-                className="text-muted-foreground hover:text-foreground"
               >
                 {isRemoving ? "Removing..." : "Remove Avatar (Use Default)"}
               </Button>
@@ -151,7 +149,7 @@ export function PresetAvatarPickerModal({
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-border" />
-              <h3 className="text-sm font-semibold text-muted-foreground">Avatar Presets</h3>
+              <h3 className="font-semibold text-muted-foreground">Avatar Presets</h3>
               <div className="flex-1 h-px bg-border" />
             </div>
             <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
@@ -192,7 +190,7 @@ export function PresetAvatarPickerModal({
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-border" />
-              <h3 className="text-sm font-semibold text-muted-foreground">Background Color</h3>
+              <h3 className="font-semibold text-muted-foreground">Background Color</h3>
               <div className="flex-1 h-px bg-border" />
             </div>
             <div className="flex flex-wrap gap-3">
@@ -217,7 +215,7 @@ export function PresetAvatarPickerModal({
 
           {/* Error Message */}
           {error && (
-            <p className="text-sm text-error text-center" role="alert">
+            <p className="text-error text-center" role="alert">
               {error}
             </p>
           )}
