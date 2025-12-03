@@ -10,7 +10,10 @@ const defaultUrl = `https://${process.env.VERCEL_URL}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "CritiQit",
+  title: {
+    template: '%s | CritiQit',
+    default: 'CritiQit - The ultimate rating platform',
+  },
   description: "The ultimate rating platform",
 };
 
@@ -30,6 +33,12 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.className} antialiased flex flex-col bg-curtain-folds`}>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -38,7 +47,7 @@ export default async function RootLayout({
         >
           <CurrentUserProvider initialUser={currentUser}>
             <Nav />
-            <main className="flex-1 flex flex-col min-h-[calc(100vh-4rem)]">{children}</main>
+            <main id="main-content" className="flex-1 flex flex-col min-h-[calc(100vh-4rem)]">{children}</main>
             <Footer />
           </CurrentUserProvider>
         </ThemeProvider>

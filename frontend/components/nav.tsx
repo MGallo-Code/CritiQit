@@ -91,7 +91,7 @@ export function Nav() {
                                 <Link
                                     href="/protected/profile"
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="flex items-center gap-4 px-4 py-4 rounded-lg bg-card/50 hover:bg-muted active:bg-muted transition-colors min-h-[72px] mb-3 border border-border shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                    className="flex items-center gap-4 px-4 py-4 rounded-lg bg-card/50 hover:bg-muted active:bg-muted transition-colors min-h-[72px] mb-3 border border-border shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                 >
                                     <AvatarDisplay
                                         profile={{
@@ -122,7 +122,7 @@ export function Nav() {
                                         key={item.href}
                                         href={item.href}
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-4 px-4 py-4 text-lg rounded-lg hover:bg-muted active:bg-muted transition-colors min-h-[56px]"
+                                        className="flex items-center gap-4 px-4 py-4 text-lg rounded-lg hover:bg-muted active:bg-muted transition-colors min-h-[56px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                     >
                                         <Icon className="h-6 w-6 text-muted-foreground" />
                                         {item.label}
@@ -135,7 +135,7 @@ export function Nav() {
                                 <Link
                                     href="/auth/login"
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="flex items-center gap-4 px-4 py-4 text-lg font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 transition-colors min-h-[56px] mt-3 shadow-md"
+                                    className="flex items-center gap-4 px-4 py-4 text-lg font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 transition-colors min-h-[56px] mt-3 shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                 >
                                     <LogIn className="h-6 w-6" />
                                     Sign in
