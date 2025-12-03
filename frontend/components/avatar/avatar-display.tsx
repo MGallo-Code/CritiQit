@@ -55,6 +55,7 @@ export function AvatarDisplay({
         backgroundColor={display.backgroundColor}
         size={size}
         className={className}
+        username={profile.username ?? undefined}
       />
     );
   }
@@ -66,6 +67,8 @@ export function AvatarDisplay({
         "rounded-full bg-muted flex items-center justify-center",
         className || SIZE_MAP[size]
       )}
+      role="img"
+      aria-label={profile.username ? `${profile.username}'s avatar` : "User avatar"}
     >
       <User
         className={cn(
@@ -74,6 +77,7 @@ export function AvatarDisplay({
           size === 'md' && "w-10 h-10",
           size === 'lg' && "w-16 h-16"
         )}
+        aria-hidden="true"
       />
     </div>
   );

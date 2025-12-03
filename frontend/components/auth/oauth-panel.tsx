@@ -76,6 +76,7 @@ export function OAuthPanel({
           onClick={() => handleOAuthSignIn(provider.provider)}
           disabled={isPending !== null || isRateLimited}
           aria-label={`Continue with ${provider.name}`}
+          aria-busy={isPending === provider.provider}
         >
           <img
             src={provider.iconUrl}

@@ -482,7 +482,7 @@ export function ProfileForm({
                 <p className="text-sm text-error" role="alert" aria-live="polite">{error}</p>
               )}
               <div className="flex flex-wrap gap-3">
-                <Button type="submit" size="lg" disabled={isSaving || !hasChanges}>
+                <Button type="submit" size="lg" disabled={isSaving || !hasChanges} aria-busy={isSaving}>
                   {isSaving ? "Saving…" : "Save changes"}
                 </Button>
               </div>

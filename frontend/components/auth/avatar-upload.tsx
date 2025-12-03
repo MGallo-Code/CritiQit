@@ -725,13 +725,13 @@ export function AvatarUpload({
               />
             </Avatar>
             <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden="true" />
             </div>
           </div>
 
-          <div className="w-full max-w-xs">
+          <div className="w-full max-w-xs" role="status" aria-live="polite" aria-atomic="true">
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               <span>
                 {uploadProgress === 0 ? 'Processing...' : `Uploading... ${uploadProgress}%`}
               </span>

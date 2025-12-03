@@ -21,6 +21,7 @@ interface PresetAvatarProps {
   backgroundColor: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  username?: string;
 }
 
 const SIZE_CLASSES = {
@@ -34,6 +35,7 @@ export function PresetAvatar({
   backgroundColor,
   size = 'md',
   className,
+  username,
 }: PresetAvatarProps) {
   const backgroundPosition = useMemo(
     () => getPresetBackgroundPosition(presetIndex),
@@ -57,7 +59,7 @@ export function PresetAvatar({
         backgroundSize: `${SPRITESHEET_CONFIG.frameCount * 100}% 100%`,
       }}
       role="img"
-      aria-label={`Preset avatar ${presetIndex}`}
+      aria-label={username ? `${username}'s avatar` : "User avatar"}
     />
   );
 }

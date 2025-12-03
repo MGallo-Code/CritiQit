@@ -167,7 +167,7 @@ export function SignUpForm({
             ) : error ? (
               <div className="text-sm text-red-500">{error}</div>
             ) : null}
-            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken || isRateLimited}>
+            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken || isRateLimited} aria-busy={isLoading}>
               {isLoading ? "Creating an account..." : "Sign up"}
             </Button>
           </div>

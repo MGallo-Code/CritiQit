@@ -133,7 +133,7 @@ export function LoginForm({
               />
             </div>
             <FormError error={error} />
-            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken || isRateLimited}>
+            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken || isRateLimited} aria-busy={isLoading}>
               {isLoading ? "Logging in..." : "Login"}
             </Button>
           </div>
