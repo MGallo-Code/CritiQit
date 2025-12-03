@@ -11,7 +11,7 @@ import { FormError } from "@/components/ui/form-error";
 import { isRateLimitError, type RateLimitError } from "@/lib/form-state";
 import { Shuffle } from "lucide-react";
 import { AvatarDisplay } from "@/components/avatar/avatar-display";
-import { PresetAvatarPickerModal } from "@/components/avatar/preset-avatar-picker-modal";
+import { AvatarPickerModal } from "@/components/avatar/avatar-picker-modal";
 
 interface OnboardingFormProps {
   userId: string;
@@ -45,7 +45,7 @@ export function OnboardingForm({
   const [isLoadingPool, setIsLoadingPool] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | RateLimitError | null>(null);
-  const [isPresetPickerOpen, setIsPresetPickerOpen] = useState(false);
+  const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
 
   const fetchUsernamePool = useCallback(
     async (silent = false) => {
@@ -219,6 +219,25 @@ export function OnboardingForm({
     await refreshUser();
   }
 
+  async function handleUploadSuccess(newUrl: string) {
+    // Update profile with new avatar URL and clear preset fields
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        avatar_url: newUrl,
+        avatar_preset_index: null,
+        avatar_background_color: null
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      throw new Error('Unable to update your profile. Please refresh the page and try again.');
+    }
+
+    // Refresh user context to update UI
+    await refreshUser();
+  }
+
   const isRateLimited = isRateLimitError(error);
 
   if (isLoadingPool && pool.length === 0) {
@@ -260,10 +279,10 @@ export function OnboardingForm({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setIsPresetPickerOpen(true)}
+            onClick={() => setIsAvatarPickerOpen(true)}
             type="button"
           >
-            Choose Preset Avatar
+            Choose Profile Picture
           </Button>
         </div>
       )}
@@ -304,7 +323,7 @@ export function OnboardingForm({
         {error && <FormError error={error} />}
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row-reverse">
           <Button
             type="submit"
             className="flex-1"
@@ -334,14 +353,17 @@ export function OnboardingForm({
         </div>
       )}
 
-      {/* Preset Avatar Picker Modal */}
+      {/* Avatar Picker Modal (Preset + Upload) */}
       {user && (
-        <PresetAvatarPickerModal
-          isOpen={isPresetPickerOpen}
-          onClose={() => setIsPresetPickerOpen(false)}
+        <AvatarPickerModal
+          isOpen={isAvatarPickerOpen}
+          onClose={() => setIsAvatarPickerOpen(false)}
+          userId={userId}
+          currentAvatarUrl={user.avatar_url}
           currentPresetIndex={user.avatar_preset_index}
           currentBackgroundColor={user.avatar_background_color}
-          onSelect={handlePresetSelect}
+          onPresetSelect={handlePresetSelect}
+          onUploadSuccess={handleUploadSuccess}
           onRemove={handleAvatarRemove}
         />
       )}
