@@ -459,6 +459,12 @@ Realtime service (WebSocket subscriptions) intentionally disabled for CritiQit.
 
 ---
 
+## Known Issues
+
+*Backend-specific gotchas, lessons learned, and non-obvious patterns that developers should be aware of.*
+
+---
+
 ## Related Documentation
 
 - [project.md](./project.md) - Project overview

@@ -216,7 +216,7 @@ For each lesson learned in the session, determine WHERE it belongs:
 - Infrastructure/deployment gotcha
 - **Criteria**: "Does this affect how we build features across the entire project?"
 
-**backend.md §Related Documentation** - Add when lesson is:
+**backend.md §Known Issues** - Add when lesson is:
 - Backend-specific gotcha (RLS, migrations, Kong, PostgreSQL)
 - Supabase CLI quirk or limitation
 - Database performance or security issue
