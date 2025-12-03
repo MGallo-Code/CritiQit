@@ -4,6 +4,40 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
+## Session 15 - 2025-12-03
+
+### Summary
+Refactored onboarding flow and created unified avatar picker modal combining preset selection and custom uploads with enhanced UX.
+
+### Accomplishments
+- **Frontend**: Renamed `/protected/username/` to `/protected/onboarding/` (folder, components, functions, all references)
+- **Frontend**: Created unified AvatarPickerModal with tabbed interface (Choose Preset + Upload Photo)
+- **Frontend**: Built new Tabs component using Radix UI with responsive touch targets
+- **Frontend**: Fixed modal positioning (top-aligned to prevent tab switch shifts)
+- **Frontend**: Increased base font size to text-base sm:text-lg for better readability
+- **Frontend**: Improved button layouts with responsive flex-col-reverse for mobile-first stacking
+
+### Technical Decisions
+- **Top-aligned modal**: Used `top-[5%] translate-y-0` instead of centered to prevent layout shifts when switching tabs
+- **Plain Tailwind buttons**: Replaced Button components with Tailwind-only for consistent sizing in modal
+- **Mobile-first tabs**: `min-h-[48px]` ensures touch targets meet accessibility standards
+- **Responsive stacking**: Continue above Skip on mobile (flex-col), Continue to right of Skip on desktop (flex-row-reverse)
+
+### Lessons Learned
+- **Modal stability**: Top-aligned modals prevent content height changes from shifting UI during tab switches (see frontend.md)
+- **Touch targets**: Mobile tabs need min-h-[48px] for comfortable touch interaction on real devices
+
+### Next Steps
+- [ ] Delete unused `preset-avatar-picker-modal.tsx` file
+- [ ] Test unified avatar modal on real iOS/Android devices
+- [ ] Build star rating component
+
+### Files Created
+- `frontend/components/ui/tabs.tsx`
+- `frontend/components/avatar/avatar-picker-modal.tsx`
+
+---
+
 ## Session 14 - 2025-11-29 20:53
 
 ### Summary

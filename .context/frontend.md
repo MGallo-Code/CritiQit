@@ -551,6 +551,20 @@ const Heavy = dynamic(() => import("./heavy"));
 - Automated build script pattern: normalize → montage → generate JSON metadata
 - Single source of truth: JSON metadata drives TypeScript configuration
 
+**3. Top-Aligned Modal Positioning (Session 15)**
+- Top-aligned modals (`top-[5%] translate-y-0`) prevent layout shifts when content height changes
+- Centered modals shift vertically when tab content differs in height, creating jarring UX
+- Critical for tabbed modals where each tab may have different content heights
+- Use fixed top position instead of centering transform for stable UI during tab switches
+- Pattern: `className="fixed left-[50%] top-[5%] translate-x-[-50%] translate-y-0"`
+
+**4. Mobile Touch Target Sizing (Session 15)**
+- Tab components need `min-h-[48px]` for comfortable mobile interaction
+- Apple and Android guidelines recommend 44-48px minimum touch targets
+- Default shadcn/ui tabs (`h-10` = 40px) fall below recommended minimums
+- Use `min-h-[48px] sm:h-11` for mobile-first responsive touch targets
+- Applies to all interactive elements: buttons, tabs, toggles, form inputs
+
 ---
 
 ## Related Documentation

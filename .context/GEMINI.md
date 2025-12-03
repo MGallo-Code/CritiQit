@@ -4,7 +4,7 @@
 >
 > **📚 See [sessions.md](./sessions.md) for detailed session history**
 
-Last updated: 2025-11-29 20:53
+Last updated: 2025-12-03
 
 ---
 
@@ -24,39 +24,37 @@ Last updated: 2025-11-29 20:53
 
 ## 🎯 Current Goals
 
-1. **Avatar System Complete**: Production-ready avatar upload and preset system using CSS spritesheet
+1. **Mobile Testing Priority**: Test complete onboarding and avatar flows on real iOS/Android devices
 2. **Component Library Development**: Build CritiQit-specific UI components (star rating, movie cards)
-3. **Mobile Testing**: Verify design system and avatar features on real devices (iOS/Android)
+3. **Code Cleanup**: Remove unused components and deprecated files
 4. **Documentation Maintenance**: Keep sessions.md concise, update specialized docs with lessons
 5. **Ongoing**: Maintain design system consistency and document patterns
 
 ## 📋 Immediate Next Steps
 
-- [ ] **High Priority**: Test complete avatar flow on real iOS/Android devices (HEIC files, upload, presets)
-- [ ] **High Priority**: Verify end-to-end avatar upload (success, failure, rate limiting countdown)
+- [ ] **High Priority**: Delete unused `preset-avatar-picker-modal.tsx` file
+- [ ] **High Priority**: Test unified avatar modal on real iOS/Android devices
+- [ ] **High Priority**: Test complete onboarding flow (username + avatar selection)
 - [ ] **Medium Priority**: Build star rating component (first CritiQit-specific UI component)
 - [ ] **Medium Priority**: Create movie card component (grid + list variants per design system)
 - [ ] **Low Priority**: Add light mode link color (fix WCAG AA for light mode)
 
 ## 🔄 Recent Context (Last 2-3 Sessions)
 
-**Session 14 (2025-11-29)**: Migrated avatar preset system from Supabase storage to frontend CSS spritesheet for better performance. Created automated spritesheet generation with ImageMagick, changed database from TEXT IDs to SMALLINT index, removed avatar-presets bucket entirely. All components now use CSS sprite positioning from auto-generated JSON metadata.
+**Session 15 (2025-12-03)**: Refactored onboarding flow and created unified avatar picker modal. Renamed /protected/username/ to /protected/onboarding/ across all files. Built tabbed modal combining preset selection and custom upload. Enhanced UX with top-aligned modal positioning, responsive button layouts, and increased base font size for better readability.
 
-**Session 13 (2025-11-29)**: Fixed critical avatar upload RLS policy violations by switching from auth.uid() to owner_id field. Reorganized storage with separate avatar-presets bucket. Simplified preset system with hardcoded TypeScript array. Key lesson: Supabase storage service RLS behaves fundamentally different than table RLS.
+**Session 14 (2025-11-29)**: Migrated avatar preset system from Supabase storage to frontend CSS spritesheet for better performance. Created automated spritesheet generation with ImageMagick, changed database from TEXT IDs to SMALLINT index, removed avatar-presets bucket entirely.
 
-**Session 12 (2025-11-28)**: Implemented storage-based preset avatars using transparent PNGs with CSS compositing. Built database management tools with ./db clean command. Enhanced RLS policies with role-based MIME type validation.
+**Session 13 (2025-11-29)**: Fixed critical avatar upload RLS policy violations by switching from auth.uid() to owner_id field. Reorganized storage with separate avatar-presets bucket. Simplified preset system with hardcoded TypeScript array.
 
 ## 🚧 Known Issues & Blockers
 
-None! Avatar preset spritesheet system fully working and production-ready.
-
-**Work Ready for Implementation:**
-- Component library specifications ready (star rating, movie cards, badges)
-- Security audit system created but not yet tested with real codebase
-- Auth components (PasswordRequirements, AuthDivider) ready for extraction
+**Technical Debt:**
+- Unused `preset-avatar-picker-modal.tsx` file needs deletion (replaced by unified AvatarPickerModal)
 
 **Testing Needed:**
-- Avatar upload end-to-end testing on real mobile devices
+- Unified avatar modal end-to-end testing on real mobile devices
+- Complete onboarding flow (username + avatar) on iOS/Android
 - Rate limiting verification with countdown timer
 - HEIC file upload testing on iOS Safari
 - Preset avatar spritesheet performance testing
@@ -67,6 +65,9 @@ None! Avatar preset spritesheet system fully working and production-ready.
 
 ## ⚡ Important Notes for Next Session
 
+- **Unified Avatar Modal**: AvatarPickerModal combines preset selection + custom upload in tabbed interface (mobile: Drawer, desktop: Dialog)
+- **Onboarding Path**: Now `/protected/onboarding/` (renamed from /protected/username/)
+- **Modal Positioning**: Use top-aligned (top-[5%]) instead of centered to prevent layout shifts on tab changes
 - **Spritesheet System Ready**: CSS sprites replace Supabase storage, single HTTP request, auto-generated from JSON
 - **Avatar Preset Index**: Now SMALLINT (0-9) instead of TEXT ID, database enforces non-negative constraint
 - **Spritesheet Build**: Run `npm run sprites` to regenerate from source PNGs in `frontend/assets/avatar-presets/`
