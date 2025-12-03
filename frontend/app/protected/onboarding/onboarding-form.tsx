@@ -255,11 +255,9 @@ export function OnboardingForm({
     <div className="flex flex-col space-y-6 rounded-xl border border-border bg-background-secondary p-6 shadow-sm md:p-10">
       {/* Header */}
       <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold">Choose Your Username</h1>
+        <h1 className="text-3xl font-bold">Set Up Your Profile</h1>
         <p className="text-muted-foreground">
-          {currentUsername
-            ? "Update your username or keep your current one"
-            : "Pick a suggestion or create your own"}
+          Choose a profile picture and username
         </p>
       </div>
 
