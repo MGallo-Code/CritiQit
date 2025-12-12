@@ -138,6 +138,7 @@ export function AvatarTrigger({
           onClick={handleClick}
           disabled={disabled}
           type="button"
+          className="bg-white text-black hover:bg-white/90 border-black/30"
         >
           {buttonText}
         </Button>

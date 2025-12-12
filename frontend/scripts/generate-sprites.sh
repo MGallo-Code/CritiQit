@@ -85,13 +85,25 @@ echo ""
 echo "Creating spritesheet..."
 
 # Create horizontal sprite sheet (all images in a row)
+SPRITESHEET_TEMP="${OUTPUT_DIR}/presets_temp.png"
 magick montage "${RESIZED_FILES[@]}" \
     -tile "${COUNT}x1" \
     -geometry "${FRAME_SIZE}x${FRAME_SIZE}+0+0" \
     -background transparent \
-    "$SPRITESHEET"
+    "$SPRITESHEET_TEMP"
 
-echo -e "  ${GREEN}✓${NC} ${SPRITESHEET}"
+# Optimize: convert to 8-bit palette (sufficient for silhouette avatars)
+# and add interlacing for progressive loading
+echo "Optimizing spritesheet..."
+magick "$SPRITESHEET_TEMP" \
+    -strip \
+    -interlace PNG \
+    PNG8:"$SPRITESHEET"
+rm "$SPRITESHEET_TEMP"
+
+# Show size comparison
+FINAL_SIZE=$(ls -lh "$SPRITESHEET" | awk '{print $5}')
+echo -e "  ${GREEN}✓${NC} ${SPRITESHEET} (${FINAL_SIZE}, optimized + interlaced)"
 
 # Generate metadata JSON file
 cat > "$METADATA" << EOF

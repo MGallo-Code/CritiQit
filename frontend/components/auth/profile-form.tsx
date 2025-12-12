@@ -78,9 +78,10 @@ export function ProfileForm({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [headerGradient, setHeaderGradient] = useState<string>(
-    "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
+    "linear-gradient(135deg, hsl(0 0% 30% / 0.45), hsl(0 0% 45% / 0.65), hsl(0 0% 50% / 0.55), hsl(0 0% 45% / 0.65), hsl(0 0% 30% / 0.45))"
   );
   const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
+  const [modeAnnouncement, setModeAnnouncement] = useState<string>("");
 
   const supabase = useMemo(() => createClient(), []);
   const { user: currentUser, isLoading: isUserLoading, refreshUser } =
@@ -230,6 +231,7 @@ export function ProfileForm({
       setFormData(initialProfile);
     }
     setMode("view");
+    setModeAnnouncement("Edit mode cancelled. Viewing profile.");
     setError(null);
   };
 
@@ -343,12 +345,48 @@ export function ProfileForm({
   }
 
   return (
-      <Card {...props} className={cn("w-full max-w-4xl overflow-hidden shadow-lg", className)}>
+      <Card {...props} className={cn("w-full max-w-4xl shadow-lg relative", className)}>
+        {/* Desktop: Button in top right of gradient - positioned relative to Card */}
+        <div className="hidden md:flex absolute top-6 right-6 z-50">
+          {mode === "view" ? (
+            <Button
+              type="button"
+              onClick={() => {
+                setMode("edit");
+                setModeAnnouncement("Edit mode activated. Form fields are now editable.");
+              }}
+              className="border border-black/30"
+            >
+              Edit profile
+            </Button>
+          ) : (
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isSaving}
+                className="bg-white text-black hover:bg-white/90 border-black/30"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="profile-form"
+                disabled={isSaving || !hasChanges}
+                aria-busy={isSaving}
+              >
+                {isSaving ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          )}
+        </div>
+
         <div
-          className="h-36 md:h-48 transition-colors duration-500"
+          className="h-36 md:h-48"
           style={{ background: headerGradient }}
         />
-        <CardHeader className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
+        <CardHeader className="relative px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
           {mode === "edit" ? (
             <AvatarTrigger
               profile={{
@@ -377,7 +415,7 @@ export function ProfileForm({
               />
             </div>
           )}
-          <div className="mt-4 flex flex-col gap-6 w-full md:flex-row md:items-center md:justify-between">
+          <div className="mt-4 flex flex-col gap-6 w-full">
             <div className="space-y-2 text-center md:text-left">
               <h1 className="text-3xl font-semibold">
                 {displayName}
@@ -391,20 +429,6 @@ export function ProfileForm({
                 </p>
               )}
             </div>
-            {mode === "view" ? (
-              <Button size="lg" onClick={() => setMode("edit")}>
-                Edit profile
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={isSaving}
-              >
-                Cancel
-              </Button>
-            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-6 sm:space-y-8 px-4 sm:px-6 pb-6 sm:pb-8">
@@ -438,7 +462,7 @@ export function ProfileForm({
               </div>
             </div>
           ) : (
-            <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
+            <form id="profile-form" className="space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
               <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="full_name">Full name (optional)</Label>
@@ -452,7 +476,7 @@ export function ProfileForm({
                       }))
                     }
                     disabled={isSaving}
-                    placeholder="Add the name you’d like people to see"
+                    placeholder="Add the name you'd like people to see"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -491,14 +515,48 @@ export function ProfileForm({
               {error && (
                 <p className="text-sm text-error" role="alert" aria-live="polite">{error}</p>
               )}
-              <div className="flex flex-wrap gap-3">
-                <Button type="submit" size="lg" disabled={isSaving || !hasChanges} aria-busy={isSaving}>
-                  {isSaving ? "Saving…" : "Save changes"}
-                </Button>
-              </div>
             </form>
           )}
         </CardContent>
+
+        {/* Mobile: Edit/Save buttons above footer */}
+        <div className="md:hidden px-4 pb-4">
+          {mode === "view" ? (
+            <Button
+              size="lg"
+              onClick={() => {
+                setMode("edit");
+                setModeAnnouncement("Edit mode activated. Form fields are now editable.");
+              }}
+              className="w-full"
+            >
+              Edit profile
+            </Button>
+          ) : (
+            <div className="flex gap-3 w-full">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isSaving}
+                className="flex-1 bg-white text-black hover:bg-white/90 border-black/30"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="profile-form"
+                size="lg"
+                disabled={isSaving || !hasChanges}
+                aria-busy={isSaving}
+                className="flex-1"
+              >
+                {isSaving ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          )}
+        </div>
+
         <CardFooter className="flex flex-col justify-between gap-4 border-t border-border bg-muted/30 px-4 sm:px-6 py-4 sm:py-5 sm:flex-row sm:items-center">
           <p className="text-sm text-muted-foreground">
             Need to switch accounts?
@@ -518,6 +576,11 @@ export function ProfileForm({
           onUploadSuccess={handleUploadSuccess}
           onRemove={handleAvatarRemove}
         />
+
+        {/* Screen reader announcements for mode changes */}
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {modeAnnouncement}
+        </div>
       </Card>
   );
 }

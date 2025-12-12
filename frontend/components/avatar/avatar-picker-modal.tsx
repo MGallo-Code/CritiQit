@@ -780,7 +780,7 @@ export function AvatarPickerModal({
               type="button"
               variant="outline"
               onClick={() => setUploadPhase('idle')}
-              className={isMobile ? "min-h-[48px]" : ""}
+              className={cn("bg-white text-black hover:bg-white/90 border-black/30", isMobile && "min-h-[48px]")}
             >
               Cancel
             </Button>
@@ -958,7 +958,7 @@ export function AvatarPickerModal({
             type="button"
             onClick={handleCancel}
             disabled={isSavingPreset}
-            className="flex-1 py-2 px-4 rounded-md border border-input bg-background font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 py-2 px-4 rounded-md border border-black/30 bg-white text-black font-medium hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Cancel
           </button>
