@@ -16,7 +16,9 @@ import { Label } from "@/components/ui/label";
 import { useCurrentUser } from "@/providers/current-user-provider";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { AvatarDisplay } from "@/components/avatar/avatar-display";
-import { AvatarUpload } from "@/components/auth/avatar-upload";
+import { AvatarTrigger } from "@/components/avatar/avatar-trigger";
+import { AvatarPickerModal } from "@/components/avatar/avatar-picker-modal";
+import { useAvatarPicker } from "@/hooks/use-avatar-picker";
 import { getAvatarDisplay } from "@/lib/avatar-presets";
 
 type EditableProfile = {
@@ -78,6 +80,7 @@ export function ProfileForm({
   const [headerGradient, setHeaderGradient] = useState<string>(
     "linear-gradient(135deg, hsl(355 70% 35% / 0.45), hsl(355 70% 55% / 0.65), hsl(355 70% 60% / 0.55), hsl(355 70% 55% / 0.65), hsl(355 70% 35% / 0.45))"
   );
+  const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
 
   const supabase = useMemo(() => createClient(), []);
   const { user: currentUser, isLoading: isUserLoading, refreshUser } =
@@ -293,6 +296,13 @@ export function ProfileForm({
     }
   };
 
+  // Avatar picker handlers (extracted to hook)
+  const { handlePresetSelect, handleUploadSuccess, handleAvatarRemove } = useAvatarPicker({
+    userId: currentUser?.id ?? "",
+    currentAvatarUrl: currentUser?.avatar_url,
+    onAvatarChange: refreshUser,
+  });
+
   // generate display name
   const displayName =
     currentUser?.username ||
@@ -340,19 +350,19 @@ export function ProfileForm({
         />
         <CardHeader className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
           {mode === "edit" ? (
-            <div className="-mt-20 md:-mt-32 mx-auto">
-              <AvatarUpload
-                userId={currentUser.id}
-                currentAvatarUrl={currentUser.avatar_url}
-                currentPresetIndex={currentUser.avatar_preset_index}
-                currentBackgroundColor={currentUser.avatar_background_color}
-                username={currentUser.username}
-                onUploadSuccess={async () => {
-                  // Refresh user context to update avatar everywhere
-                  await refreshUser();
-                }}
-              />
-            </div>
+            <AvatarTrigger
+              profile={{
+                avatar_url: currentUser.avatar_url,
+                avatar_preset_index: currentUser.avatar_preset_index,
+                avatar_background_color: currentUser.avatar_background_color,
+                username: currentUser.username,
+              }}
+              onTrigger={() => setIsAvatarPickerOpen(true)}
+              showHoverOverlay={true}
+              hoverText="Change Avatar"
+              avatarClassName="h-40 w-40 border-4 border-background shadow-xl md:h-64 md:w-64"
+              className="-mt-20 md:-mt-32 mx-auto"
+            />
           ) : (
             <div className="-mt-20 md:-mt-32 mx-auto">
               <AvatarDisplay
@@ -495,6 +505,19 @@ export function ProfileForm({
           </p>
           <LogoutButton />
         </CardFooter>
+
+        {/* Avatar Picker Modal (Preset + Upload) */}
+        <AvatarPickerModal
+          isOpen={isAvatarPickerOpen}
+          onClose={() => setIsAvatarPickerOpen(false)}
+          userId={currentUser.id}
+          currentAvatarUrl={currentUser.avatar_url}
+          currentPresetIndex={currentUser.avatar_preset_index}
+          currentBackgroundColor={currentUser.avatar_background_color}
+          onPresetSelect={handlePresetSelect}
+          onUploadSuccess={handleUploadSuccess}
+          onRemove={handleAvatarRemove}
+        />
       </Card>
   );
 }

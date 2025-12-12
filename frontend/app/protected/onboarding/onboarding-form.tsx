@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { FormError } from "@/components/ui/form-error";
 import { isRateLimitError, type RateLimitError } from "@/lib/form-state";
 import { Shuffle } from "lucide-react";
-import { AvatarDisplay } from "@/components/avatar/avatar-display";
+import { AvatarTrigger } from "@/components/avatar/avatar-trigger";
 import { AvatarPickerModal } from "@/components/avatar/avatar-picker-modal";
+import { useAvatarPicker } from "@/hooks/use-avatar-picker";
 
 interface OnboardingFormProps {
   userId: string;
@@ -166,77 +167,12 @@ export function OnboardingForm({
     router.push(redirectTo);
   }
 
-  async function handlePresetSelect(presetIndex: number, backgroundColor: string) {
-    // If user has a custom uploaded avatar (real file), delete it
-    // We check if avatar_url exists (meaning it's a custom upload now that we don't use preset strings)
-    if (user?.avatar_url) {
-      const filename = `${userId}.jpg`;
-      await supabase.storage.from('avatars').remove([filename]);
-      // Ignore delete errors - continue anyway
-    }
-
-    // Update profile: set preset fields and CLEAR custom URL
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        avatar_url: null, // Clear custom avatar URL
-        avatar_preset_index: presetIndex,
-        avatar_background_color: backgroundColor
-      })
-      .eq('id', userId);
-
-    if (updateError) {
-      throw new Error('Unable to set preset avatar. Please try again.');
-    }
-
-    // Refresh user context to update UI
-    await refreshUser();
-  }
-
-  async function handleAvatarRemove() {
-    // Delete custom uploaded avatar if exists
-    if (user?.avatar_url) {
-      const filename = `${userId}.jpg`;
-      await supabase.storage.from('avatars').remove([filename]);
-      // Ignore delete errors - continue anyway
-    }
-
-    // Clear all avatar fields (both custom and preset)
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        avatar_url: null,
-        avatar_preset_index: null,
-        avatar_background_color: null,
-      })
-      .eq('id', userId);
-
-    if (updateError) {
-      throw new Error('Unable to remove avatar. Please try again.');
-    }
-
-    // Refresh user context to update UI
-    await refreshUser();
-  }
-
-  async function handleUploadSuccess(newUrl: string) {
-    // Update profile with new avatar URL and clear preset fields
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        avatar_url: newUrl,
-        avatar_preset_index: null,
-        avatar_background_color: null
-      })
-      .eq('id', userId);
-
-    if (updateError) {
-      throw new Error('Unable to update your profile. Please refresh the page and try again.');
-    }
-
-    // Refresh user context to update UI
-    await refreshUser();
-  }
+  // Avatar picker handlers (extracted to hook)
+  const { handlePresetSelect, handleUploadSuccess, handleAvatarRemove } = useAvatarPicker({
+    userId,
+    currentAvatarUrl: user?.avatar_url,
+    onAvatarChange: refreshUser,
+  });
 
   const isRateLimited = isRateLimitError(error);
 
@@ -263,26 +199,17 @@ export function OnboardingForm({
 
       {/* Avatar Section */}
       {user && (
-        <div className="flex flex-col items-center gap-3">
-          <AvatarDisplay
-            key={`${user.avatar_url}-${user.avatar_preset_index}-${user.avatar_background_color}`}
-            profile={{
-              avatar_url: user.avatar_url,
-              avatar_preset_index: user.avatar_preset_index,
-              avatar_background_color: user.avatar_background_color,
-              username: user.username || 'User',
-            }}
-            size="lg"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsAvatarPickerOpen(true)}
-            type="button"
-          >
-            Choose Profile Picture
-          </Button>
-        </div>
+        <AvatarTrigger
+          profile={{
+            avatar_url: user.avatar_url,
+            avatar_preset_index: user.avatar_preset_index,
+            avatar_background_color: user.avatar_background_color,
+            username: user.username || "User",
+          }}
+          onTrigger={() => setIsAvatarPickerOpen(true)}
+          showHoverOverlay={false}
+          buttonText="Choose Profile Picture"
+        />
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
