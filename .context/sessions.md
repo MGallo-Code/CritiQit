@@ -7,7 +7,7 @@ This file tracks detailed session history for the CritiQit project. Each session
 ## Session 15 - 2025-12-03
 
 ### Summary
-Refactored onboarding flow and created unified avatar picker modal combining preset selection and custom uploads with enhanced UX.
+Refactored onboarding flow, created unified avatar picker modal, and fixed mobile responsiveness for auth pages.
 
 ### Accomplishments
 - **Frontend**: Renamed `/protected/username/` to `/protected/onboarding/` (folder, components, functions, all references)
@@ -16,25 +16,45 @@ Refactored onboarding flow and created unified avatar picker modal combining pre
 - **Frontend**: Fixed modal positioning (top-aligned to prevent tab switch shifts)
 - **Frontend**: Increased base font size to text-base sm:text-lg for better readability
 - **Frontend**: Improved button layouts with responsive flex-col-reverse for mobile-first stacking
+- **Frontend**: Deleted unused `preset-avatar-picker-modal.tsx` file (replaced by unified modal)
+- **Frontend**: Fixed OTP input mobile sizing (36px mobile, 48px desktop with tighter gaps)
+- **Frontend**: Fixed Turnstile widget responsiveness with `size: "flexible"` and `w-full` wrapper
+- **Frontend**: Updated all 7 auth pages with mobile-first layouts (p-4 sm:p-6, sm:max-w-md)
+- **Frontend**: Updated onboarding header to "Set Up Your Profile" with combined description
 
 ### Technical Decisions
 - **Top-aligned modal**: Used `top-[5%] translate-y-0` instead of centered to prevent layout shifts when switching tabs
 - **Plain Tailwind buttons**: Replaced Button components with Tailwind-only for consistent sizing in modal
 - **Mobile-first tabs**: `min-h-[48px]` ensures touch targets meet accessibility standards
 - **Responsive stacking**: Continue above Skip on mobile (flex-col), Continue to right of Skip on desktop (flex-row-reverse)
+- **OTP sizing formula**: 36px × 6 inputs + 4px × 5 gaps = 236px (fits 256px content area on 320px screens)
+- **Turnstile flexible mode**: `size: "flexible"` with `w-full` wrapper stretches to fill card, `overflow-hidden` on parent prevents bleed
 
 ### Lessons Learned
-- **Modal stability**: Top-aligned modals prevent content height changes from shifting UI during tab switches (see frontend.md)
+- **Modal stability**: Top-aligned modals prevent content height changes from shifting UI during tab switches
 - **Touch targets**: Mobile tabs need min-h-[48px] for comfortable touch interaction on real devices
+- **Turnstile sizing**: Standard Turnstile (300px) overflows on mobile - use flexible mode with responsive wrapper
+- **justify-center ignores padding**: Adding padding to a flex container with justify-center doesn't affect centered content width
 
 ### Next Steps
-- [ ] Delete unused `preset-avatar-picker-modal.tsx` file
 - [ ] Test unified avatar modal on real iOS/Android devices
 - [ ] Build star rating component
+- [ ] Create movie card component
 
 ### Files Created
 - `frontend/components/ui/tabs.tsx`
 - `frontend/components/avatar/avatar-picker-modal.tsx`
+
+### Files Modified
+- `frontend/components/ui/otp-input.tsx` (mobile sizing)
+- `frontend/components/ui/turnstile.tsx` (flexible mode)
+- `frontend/components/auth/login-form.tsx` (overflow-hidden)
+- `frontend/components/auth/sign-up-form.tsx` (overflow-hidden)
+- `frontend/components/auth/forgot-password-form.tsx` (overflow-hidden)
+- `frontend/components/auth/verify-email-form.tsx` (overflow-hidden)
+- `frontend/components/auth/verify-reset-form.tsx` (overflow-hidden)
+- `frontend/app/auth/*/page.tsx` (7 pages - mobile-first layouts)
+- `frontend/app/protected/onboarding/onboarding-form.tsx` (header text)
 
 ---
 
