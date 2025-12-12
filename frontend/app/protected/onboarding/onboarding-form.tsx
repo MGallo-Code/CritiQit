@@ -235,6 +235,7 @@ export function OnboardingForm({
               onClick={handleRandomize}
               disabled={isSubmitting || isRateLimited || pool.length === 0}
               title="Get a random username"
+              aria-label="Get a random username suggestion"
             >
               <Shuffle className="h-5 w-5" />
             </Button>
