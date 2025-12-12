@@ -1,6 +1,6 @@
 # CritiQit Frontend Documentation
 
-> **Last Updated**: 2025-11-27
+> **Last Updated**: 2025-12-11
 > **Architecture**: Next.js 15 App Router + React 19
 > **Purpose**: Essential frontend reference for AI agents
 
@@ -564,6 +564,21 @@ const Heavy = dynamic(() => import("./heavy"));
 - Default shadcn/ui tabs (`h-10` = 40px) fall below recommended minimums
 - Use `min-h-[48px] sm:h-11` for mobile-first responsive touch targets
 - Applies to all interactive elements: buttons, tabs, toggles, form inputs
+
+**5. overflow-hidden and Absolute Positioning (Session 16)**
+- `overflow-hidden` on a parent element creates a new stacking context that can prevent clicks on absolutely positioned children
+- If absolutely positioned buttons become unclickable, check if parent has `overflow-hidden` set
+- Remove `overflow-hidden` from parent container when using absolute positioning for interactive elements
+- Example: Profile Card with `overflow-hidden` prevented clicks on absolutely positioned Edit/Save button
+- Alternative solutions: restructure layout to avoid absolute positioning, or use different overflow values (`overflow-clip`, `overflow-auto`)
+
+**6. Spritesheet Optimization (Session 16)**
+- PNG8 with interlacing provides optimal balance for flat-color spritesheets (icons, avatars)
+- Reduces file size significantly (75% reduction: 672KB → 169KB for avatar presets)
+- Interlacing enables progressive loading (perceived performance improvement)
+- ImageMagick command: `pngquant --quality=65-80 --speed 1 input.png -o temp.png && convert temp.png -interlace PNG output.png`
+- Build scripts should automate optimization to prevent regression
+- Best for: UI elements with limited color palettes (icons, avatars, badges)
 
 ---
 

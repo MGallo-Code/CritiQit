@@ -4,6 +4,36 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
+## Session 16 - 2025-12-11
+
+### Summary
+Repositioned Edit/Save buttons on profile page and completed design system cleanup from design-reviewer audit.
+
+### Accomplishments
+- **Frontend**: Repositioned Edit/Save buttons (desktop: top-right absolute, mobile: above logout footer)
+- **Frontend**: Fixed critical button click bug by removing `overflow-hidden` from Card component
+- **Frontend**: Optimized avatar spritesheet from 672KB to 169KB (75% reduction) with automated script update
+- **Frontend**: Design system cleanup (removed debug logs, simplified z-index, standardized Cancel button borders)
+- **Frontend**: Added accessibility improvements (screen reader announcements, aria-labels)
+- **Frontend**: Removed unused avatar preset backup files
+
+### Technical Decisions
+- **overflow-hidden removal**: Fixed stacking context preventing absolutely positioned button clicks
+- **z-index standardization**: Use z-50 from Tailwind scale instead of arbitrary z-[9999]
+- **White Cancel buttons**: Explicit white styling for visibility on gradients and dark backgrounds
+- **PNG8 with interlacing**: Spritesheet optimization enables progressive loading
+
+### Lessons Learned
+- **overflow-hidden stacking**: Removing overflow-hidden from parent when child uses absolute positioning prevents click issues
+- **Spritesheet optimization**: PNG8 with interlacing reduces file size while maintaining quality for flat-color assets
+
+### Next Steps
+- [ ] Test complete profile page flow on real iOS/Android devices
+- [ ] Build star rating component
+- [ ] Create movie card component
+
+---
+
 ## Session 15 - 2025-12-03
 
 ### Summary
