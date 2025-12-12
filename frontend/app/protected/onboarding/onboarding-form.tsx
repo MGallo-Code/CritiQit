@@ -254,18 +254,18 @@ export function OnboardingForm({
   return (
     <div className="flex flex-col space-y-6 rounded-xl border border-border bg-background-secondary p-6 shadow-sm md:p-10">
       {/* Header */}
-      <div className="space-y-2 text-center">
+      <header className="space-y-2 text-center">
         <h1 className="text-3xl font-bold">Set Up Your Profile</h1>
         <p className="text-muted-foreground">
           Choose a profile picture and username
         </p>
-      </div>
+      </header>
 
       {/* Avatar Section */}
       {user && (
         <div className="flex flex-col items-center gap-3">
           <AvatarDisplay
-            key={user.avatar_url || 'default'} // Force re-render when avatar URL changes
+            key={`${user.avatar_url}-${user.avatar_preset_index}-${user.avatar_background_color}`}
             profile={{
               avatar_url: user.avatar_url,
               avatar_preset_index: user.avatar_preset_index,
@@ -336,7 +336,7 @@ export function OnboardingForm({
             disabled={isSubmitting}
             className="flex-1"
           >
-            Skip for now
+            Skip
           </Button>
         </div>
       </form>
