@@ -110,21 +110,21 @@ create policy "Users can insert their own profile."
   as permissive
   for insert
   to authenticated
-  with check (auth.uid() = id);
+  with check ((SELECT auth.uid()) = id);
 
 create policy "Users can update own profile."
   on public.profiles
   as permissive
   for update
   to authenticated
-  using (auth.uid() = id);
+  using ((SELECT auth.uid()) = id);
 
 create policy "Users can delete their own profile."
   on public.profiles
   as permissive
   for delete
   to authenticated
-  using (auth.uid() = id);
+  using ((SELECT auth.uid()) = id);
 
 
 -- ~~~~~~~ Avatars ~~~~~~~
