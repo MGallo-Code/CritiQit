@@ -34,7 +34,13 @@ Implemented pgTAP database testing infrastructure for RLS policies and discovere
 **Fix**: Policies now check `owner_id = auth.uid()::text` to verify requester owns the file.
 **Location**: `supabase/migrations/20250818043251_add_user_profiles.sql`
 
+### Known Issues & Blockers [IN PROGRESS]
+- **Critical**: Frontend application failing to start or load properly
+- **Critical**: Test suite failing to execute
+
 ### Next Steps [IN PROGRESS]
+- [ ] **URGENT**: Debug and fix frontend startup/loading failure
+- [ ] **URGENT**: Debug and fix test execution failures
 - [ ] Add database constraint tests (CHECK constraints, foreign keys, NOT NULL)
 - [ ] Add function tests for email validation, username validation
 - [ ] Document pgTAP testing workflow in backend.md
