@@ -146,6 +146,49 @@ cmd_migrate() {
     print_success "Migrations applied!"
 }
 
+cmd_test() {
+    local skip_confirm=false
+    local fresh_db=false
+
+    # Parse options
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --yes|-y)
+                skip_confirm=true
+                shift
+                ;;
+            --fresh)
+                fresh_db=true
+                shift
+                ;;
+            *)
+                print_error "Unknown option: $1"
+                echo "Usage: ./db test [--fresh] [--yes]"
+                exit 1
+                ;;
+        esac
+    done
+
+    if [ "$fresh_db" = true ]; then
+        confirm "This will reset the database before running tests!" "$skip_confirm"
+        print_info "Resetting database for fresh test state..."
+        ./scripts/reset-hard-db.sh
+    fi
+
+    print_info "Running pgTAP tests..."
+    echo ""
+
+    # Run test-runner service
+    if docker compose -f compose.yml -f docker-compose.test.yml run --rm test-runner; then
+        echo ""
+        print_success "All tests passed!"
+    else
+        echo ""
+        print_error "Some tests failed!"
+        exit 1
+    fi
+}
+
 show_help() {
     echo -e "${BLUE}CritiQit Supabase Database Management Tool${NC}"
     echo ""
@@ -162,10 +205,12 @@ show_help() {
     echo -e "    ${YELLOW}clean${NC} [--yes]         Delete email templates from storage"
     echo -e "    ${YELLOW}status${NC}                Show container status and recent migrations"
     echo -e "    ${YELLOW}migrate${NC}               Apply migrations without reset"
+    echo -e "    ${YELLOW}test${NC} [--fresh] [--yes]  Run pgTAP database tests"
     echo -e "    ${YELLOW}help${NC}                  Show this help message"
     echo ""
     echo -e "${GREEN}OPTIONS:${NC}"
     echo -e "    ${YELLOW}--yes, -y${NC}             Skip confirmation prompts"
+    echo -e "    ${YELLOW}--fresh${NC}               Reset database before running tests"
     echo ""
     echo -e "${GREEN}EXAMPLES:${NC}"
     echo "    ./db                    # Interactive menu"
@@ -178,11 +223,15 @@ show_help() {
     echo "    ./db clean --yes        # Delete templates, skip confirmation"
     echo "    ./db status             # Check status"
     echo "    ./db migrate            # Apply migrations"
+    echo "    ./db test               # Run database tests"
+    echo "    ./db test --fresh       # Reset DB and run tests"
+    echo "    ./db test --fresh --yes # Reset DB and run tests, skip confirmation"
     echo ""
     echo -e "${GREEN}NOTES:${NC}"
     echo "    - Can be run from anywhere (auto-navigates to supabase/)"
     echo "    - Destructive operations require confirmation (unless --yes is used)"
     echo "    - Use 'reset hard' for testing migrations from scratch"
+    echo "    - Use 'test --fresh' for isolated test runs with clean state"
     echo "    - Avatar presets: Use 'npm run sprites' in frontend/"
     echo ""
 }
@@ -203,9 +252,11 @@ show_interactive_menu() {
         echo "  7. Clean Email Templates"
         echo "  8. Check Status"
         echo "  9. Apply Migrations"
-        echo " 10. Exit"
+        echo " 10. Run Database Tests"
+        echo " 11. Run Tests (with fresh DB)"
+        echo " 12. Exit"
         echo ""
-        read -p "Select option (1-10): " choice
+        read -p "Select option (1-12): " choice
 
         case "$choice" in
             1) cmd_start ;;
@@ -217,8 +268,10 @@ show_interactive_menu() {
             7) cmd_clean ;;
             8) cmd_status ;;
             9) cmd_migrate ;;
-            10) echo "Goodbye!"; exit 0 ;;
-            *) print_error "Invalid option. Please select 1-10." ;;
+            10) cmd_test ;;
+            11) cmd_test --fresh ;;
+            12) echo "Goodbye!"; exit 0 ;;
+            *) print_error "Invalid option. Please select 1-12." ;;
         esac
 
         echo ""
@@ -269,6 +322,10 @@ main() {
             ;;
         migrate)
             cmd_migrate
+            ;;
+        test)
+            shift  # Remove 'test' from args
+            cmd_test "$@"
             ;;
         help|--help|-h)
             show_help

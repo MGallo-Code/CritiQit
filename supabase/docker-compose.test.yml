@@ -1,0 +1,56 @@
+# Docker Compose overlay for pgTAP database testing
+# Usage: docker compose -f compose.yml -f docker-compose.test.yml run --rm test-runner
+#
+# This overlay extends compose.yml with testing-specific configuration:
+# - Mounts test files into test-runner container
+# - Provides pg_prove test runner with pgTAP
+#
+# IMPORTANT: Tests run in ISOLATION from production data
+# Always use fresh database state: docker compose down -v before tests
+
+services:
+  # Extend database service with test file mounts (for direct psql access if needed)
+  db:
+    volumes:
+      # Mount test files into container for direct psql access
+      - ./tests:/tests:ro
+
+  # Test runner service using pg_prove
+  test-runner:
+    image: supabase/postgres:15.8.1.060
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: supabase_admin
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: postgres
+    volumes:
+      - ./tests:/tests:ro
+    working_dir: /tests
+    entrypoint: []
+    command: >
+      sh -c "
+        echo '🧪 Installing pg_prove test harness...' &&
+        apt-get update -qq &&
+        apt-get install -y -qq libtap-parser-sourcehandler-pgtap-perl postgresql-client > /dev/null 2>&1 &&
+        echo '📦 Waiting for database to be ready...' &&
+        until pg_isready -h db -U supabase_admin -d postgres; do sleep 1; done &&
+        echo '🔧 Installing pgTAP extension...' &&
+        psql -h db -U supabase_admin -d postgres -c 'CREATE EXTENSION IF NOT EXISTS pgtap;' &&
+        echo '📊 Loading test fixtures...' &&
+        psql -h db -U supabase_admin -d postgres -f /tests/fixtures/test-users.sql &&
+        echo '🧪 Running pgTAP tests...' &&
+        pg_prove -h db -U supabase_admin -d postgres --verbose /tests/rls/*.test.sql &&
+        echo '✅ All tests completed!'
+      "
+    profiles:
+      - test
+
+networks:
+  default:
+    name: supabase_network_critiqit

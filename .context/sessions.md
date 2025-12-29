@@ -4,6 +4,56 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
+## Session 17 - 2025-12-29 [IN PROGRESS]
+
+### Summary
+Implemented pgTAP database testing infrastructure for RLS policies and discovered/fixed critical storage security vulnerability.
+
+### Accomplishments
+- **Root**: Created comprehensive testing strategy document (`.context/testing.md`) defining 5-layer test pyramid
+- **Supabase**: Implemented pgTAP testing infrastructure (docker-compose.test.yml, test fixtures, pg_prove runner)
+- **Supabase**: Created 13 RLS tests for profiles table and 10 RLS tests for storage buckets
+- **Supabase**: Fixed critical security vulnerability in storage UPDATE/DELETE policies
+- **Supabase**: Added `./db test` command to CLI for running pgTAP tests
+
+### Technical Decisions
+- **Testing Strategy**: pgTAP for database/RLS → Unit for functions → Component for UI → Integration for flows → E2E for critical paths
+- **Test Fixtures**: Created 4 seeded test users (Alice, Bob, Charlie, David) for consistent RLS testing
+- **Storage RLS Fix**: Changed UPDATE/DELETE policies from filename validation (`name = owner_id || '.jpg'`) to ownership check (`owner_id = auth.uid()::text`)
+- **Policy Pattern**: INSERT uses `owner_id` (efficient, Storage API sets from JWT), UPDATE/DELETE use `auth.uid()` (verify requester matches owner)
+
+### Lessons Learned [IN PROGRESS]
+- **RLS Testing**: RLS with no matching policy returns 0 rows, not an exception - use `ok(COUNT(*) = 0, ...)` not `throws_ok(...)`
+- **Storage API Behavior**: `auth.uid()` DOES work with Storage API (contrary to old comments in codebase)
+- **Storage owner_id**: Set by Storage API from JWT, efficient to use in INSERT policies
+- **USING vs WITH CHECK**: USING filters visible rows, WITH CHECK validates new data being written
+- **pgTAP with pg_prove**: Test overlay extends production compose without duplicating config
+
+### Security Vulnerability Fixed
+**Original Issue**: Storage UPDATE/DELETE policies only validated filename format, allowing ANY authenticated user to modify ANY avatar file.
+**Fix**: Policies now check `owner_id = auth.uid()::text` to verify requester owns the file.
+**Location**: `supabase/migrations/20250818043251_add_user_profiles.sql`
+
+### Next Steps [IN PROGRESS]
+- [ ] Add database constraint tests (CHECK constraints, foreign keys, NOT NULL)
+- [ ] Add function tests for email validation, username validation
+- [ ] Document pgTAP testing workflow in backend.md
+- [ ] Run full test suite in CI pipeline
+- [ ] Add tests for future tables (reviews, watchlists, ratings)
+
+### Files Created
+- `.context/testing.md`
+- `supabase/docker-compose.test.yml`
+- `supabase/tests/fixtures/test-users.sql`
+- `supabase/tests/rls/profiles.test.sql`
+- `supabase/tests/rls/storage.test.sql`
+
+### Files Modified
+- `supabase/db` (added `test` command)
+- `supabase/migrations/20250818043251_add_user_profiles.sql` (fixed storage RLS policies)
+
+---
+
 ## Session 16 - 2025-12-11
 
 ### Summary
