@@ -163,13 +163,18 @@ CREATE POLICY "Users can update their own avatar"
   TO authenticated
   USING (
     (bucket_id = 'avatars'::text)
-    AND (name = owner_id || '.jpg')
+    AND (owner_id = (SELECT auth.uid())::text)
   )
   WITH CHECK (
     (bucket_id = 'avatars'::text)
-    AND (name = owner_id || '.jpg')
+    AND (name = (SELECT auth.uid())::text || '.jpg')
     AND (storage.extension(name) = 'jpg')
   );
+
+COMMENT ON POLICY "Users can update their own avatar" ON storage.objects IS
+'Allows authenticated users to update only their own avatar file.
+USING clause verifies owner_id matches current user (auth.uid()).
+WITH CHECK ensures filename stays as {user_id}.jpg format.';
 
 CREATE POLICY "Users can delete their own avatar"
   ON storage.objects
@@ -178,8 +183,12 @@ CREATE POLICY "Users can delete their own avatar"
   TO authenticated
   USING (
     (bucket_id = 'avatars'::text)
-    AND (name = owner_id || '.jpg')
+    AND (owner_id = (SELECT auth.uid())::text)
   );
+
+COMMENT ON POLICY "Users can delete their own avatar" ON storage.objects IS
+'Allows authenticated users to delete only their own avatar file.
+USING clause verifies owner_id matches current user (auth.uid()).';
 
 -- ~~~~~~~ Email Templates ~~~~~~~
 
