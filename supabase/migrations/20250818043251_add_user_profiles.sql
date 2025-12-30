@@ -53,11 +53,13 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
   SET search_path TO ''
 AS $function$
 begin
-  INSERT INTO public.profiles (id, full_name, avatar_url, username, username_is_temporary)
+  -- Note: avatar_url intentionally NOT copied from metadata for security
+  -- (prevents user-injected tracking pixels/malicious URLs during signup)
+  -- Users set avatar via storage upload or preset selection after signup
+  INSERT INTO public.profiles (id, full_name, username, username_is_temporary)
   VALUES (
     new.id,
     new.raw_user_meta_data->>'full_name',
-    new.raw_user_meta_data->>'avatar_url',
     'User_' || substr(md5(new.email || NOW()::text), 1, 10),
     true  -- Mark temporary username
   );
@@ -117,7 +119,8 @@ create policy "Users can update own profile."
   as permissive
   for update
   to authenticated
-  using ((SELECT auth.uid()) = id);
+  using ((SELECT auth.uid()) = id)
+  with check ((SELECT auth.uid()) = id);
 
 create policy "Users can delete their own profile."
   on public.profiles
