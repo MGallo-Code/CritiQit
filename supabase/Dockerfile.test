@@ -1,0 +1,16 @@
+# Test runner image with pgTAP and pg_prove pre-installed
+# Build: docker build -f Dockerfile.test -t critiqit-test-runner .
+# Used by: compose.test.yml
+
+FROM supabase/postgres:15.8.1.060
+
+# Install pgTAP test harness (pg_prove) and PostgreSQL client
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+        libtap-parser-sourcehandler-pgtap-perl \
+        postgresql-client \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Set working directory for tests
+WORKDIR /tests

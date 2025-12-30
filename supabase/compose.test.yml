@@ -1,23 +1,23 @@
-# Docker Compose overlay for pgTAP database testing
-# Usage: docker compose -f compose.yml -f docker-compose.test.yml run --rm test-runner
+# Compose overlay for pgTAP database testing
+# Usage: docker compose -f compose.yml -f compose.test.yml run --rm test-runner
 #
-# This overlay extends compose.yml with testing-specific configuration:
-# - Mounts test files into test-runner container
-# - Provides pg_prove test runner with pgTAP
+# This overlay extends compose.yml with testing-specific configuration.
+# Tests run in transactions and ROLLBACK, leaving the database unchanged.
 #
-# IMPORTANT: Tests run in ISOLATION from production data
-# Always use fresh database state: docker compose down -v before tests
+# First-time setup (builds the test runner image):
+#   docker compose -f compose.yml -f compose.test.yml build test-runner
 
 services:
-  # Extend database service with test file mounts (for direct psql access if needed)
+  # Extend database service with test file mounts
   db:
     volumes:
-      # Mount test files into container for direct psql access
       - ./tests:/tests:ro
 
-  # Test runner service using pg_prove
+  # Test runner service with pg_prove pre-installed
   test-runner:
-    image: supabase/postgres:15.8.1.060
+    build:
+      context: .
+      dockerfile: Dockerfile.test
     depends_on:
       db:
         condition: service_healthy
@@ -35,9 +35,6 @@ services:
     entrypoint: []
     command: >
       sh -c "
-        echo '🧪 Installing pg_prove test harness...' &&
-        apt-get update -qq &&
-        apt-get install -y -qq libtap-parser-sourcehandler-pgtap-perl postgresql-client > /dev/null 2>&1 &&
         echo '📦 Waiting for database to be ready...' &&
         until pg_isready -h db -U supabase_admin -d postgres; do sleep 1; done &&
         echo '🔧 Installing pgTAP extension...' &&
@@ -45,7 +42,7 @@ services:
         echo '📊 Loading test fixtures...' &&
         psql -h db -U supabase_admin -d postgres -f /tests/fixtures/test-users.sql &&
         echo '🧪 Running pgTAP tests...' &&
-        pg_prove -h db -U supabase_admin -d postgres --verbose /tests/rls/*.test.sql &&
+        pg_prove -h db -U supabase_admin -d postgres --verbose /tests/rls/*.test.sql /tests/functions/*.test.sql &&
         echo '✅ All tests completed!'
       "
     profiles:

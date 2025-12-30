@@ -1,9 +1,10 @@
 # Usage
-#   Start:              docker compose up
-#   With helpers:       docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml up
-#   Stop:               docker compose down
-#   Destroy:            docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down -v --remove-orphans
-#   Reset everything:  ./reset.sh
+#   Start:          docker compose up
+#   With dev:       docker compose -f compose.yml -f compose.dev.yml up
+#   With tests:     docker compose -f compose.yml -f compose.test.yml run --rm test-runner
+#   Stop:           docker compose down
+#   Destroy:        docker compose down -v --remove-orphans
+#   Run tests:      ./db test
 
 name: supabase
 
