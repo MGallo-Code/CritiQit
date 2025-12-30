@@ -348,7 +348,8 @@ BEGIN
 END;
 $function$;
 
--- Grant execute permission to authenticated users only
+-- Restrict function to authenticated users only
+REVOKE EXECUTE ON FUNCTION public.generate_usernames() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.generate_usernames() TO authenticated;
 
 -- Add comment documenting the function
@@ -464,7 +465,8 @@ BEGIN
 END;
 $function$;
 
--- Grant execute permission to authenticated users only
+-- Restrict function to authenticated users only
+REVOKE EXECUTE ON FUNCTION public.check_username_available(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.check_username_available(text) TO authenticated;
 
 -- Add comment documenting the function

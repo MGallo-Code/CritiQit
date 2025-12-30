@@ -200,6 +200,8 @@ BEGIN
 END;
 $function$;
 
--- Grant execute permissions
+-- Restrict functions to service_role only
+REVOKE EXECUTE ON FUNCTION public.check_rate_limit FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cleanup_old_rate_limits FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.check_rate_limit TO service_role;
 GRANT EXECUTE ON FUNCTION public.cleanup_old_rate_limits TO service_role;
