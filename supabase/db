@@ -178,8 +178,11 @@ cmd_test() {
     print_info "Running pgTAP tests..."
     echo ""
 
+    # Build test runner image if needed (fast if already built)
+    docker compose -f compose.yml -f compose.test.yml build test-runner > /dev/null 2>&1
+
     # Run test-runner service
-    if docker compose -f compose.yml -f docker-compose.test.yml run --rm test-runner; then
+    if docker compose -f compose.yml -f compose.test.yml run --rm test-runner; then
         echo ""
         print_success "All tests passed!"
     else
