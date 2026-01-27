@@ -4,7 +4,7 @@
 >
 > **📚 See [sessions.md](./sessions.md) for detailed session history**
 
-Last updated: 2025-12-11
+Last updated: 2025-12-30
 
 ---
 
@@ -24,27 +24,27 @@ Last updated: 2025-12-11
 
 ## 🎯 Current Goals
 
-1. **Mobile Testing Priority**: Test complete profile page and avatar flows on real iOS/Android devices
-2. **Component Library Development**: Build CritiQit-specific UI components (star rating, movie cards)
-3. **Code Cleanup**: Remove unused components and deprecated files
-4. **Documentation Maintenance**: Keep sessions.md concise, update specialized docs with lessons
-5. **Ongoing**: Maintain design system consistency and document patterns
+1. **Security Testing Priority**: Expand pgTAP test coverage for database constraints and functions
+2. **Mobile Testing**: Test complete profile page and avatar flows on real iOS/Android devices
+3. **Component Library Development**: Build CritiQit-specific UI components (star rating, movie cards)
+4. **Code Quality**: Maintain comprehensive test suite and security best practices
+5. **Ongoing**: Document security patterns and maintain design system consistency
 
 ## 📋 Immediate Next Steps
 
+- [ ] **High Priority**: Continue building test coverage for database constraints and functions
+- [ ] **High Priority**: Document security audit findings and resolution patterns in backend.md
 - [ ] **High Priority**: Test repositioned Edit/Save buttons on real iOS/Android devices
-- [ ] **High Priority**: Test complete profile flow (edit mode, avatar changes, save)
+- [ ] **Medium Priority**: Test complete profile flow (edit mode, avatar changes, save)
 - [ ] **Medium Priority**: Build star rating component (first CritiQit-specific UI component)
-- [ ] **Medium Priority**: Create movie card component (grid + list variants per design system)
-- [ ] **Low Priority**: Add light mode link color (fix WCAG AA for light mode)
 
 ## 🔄 Recent Context (Last 2-3 Sessions)
 
-**Session 16 (2025-12-11)**: Repositioned Edit/Save buttons on profile page with absolute positioning for desktop and standard flow for mobile. Fixed critical overflow-hidden bug preventing button clicks. Optimized avatar spritesheet from 672KB to 169KB with automated PNG8+interlacing. Completed design system cleanup audit (z-index, borders, console.logs, accessibility).
+**Session 18 (2025-12-30)**: Security audit of pgTAP suite fixed three critical vulnerabilities: avatar_url injection in OAuth signup, missing WITH CHECK on profile updates, and function permission bypass. Optimized test infrastructure with pre-built Docker image (3min→3sec). Added 12 security tests, total 78 passing.
 
-**Session 15 (2025-12-03)**: Refactored onboarding flow and created unified avatar picker modal. Renamed /protected/username/ to /protected/onboarding/ across all files. Built tabbed modal combining preset selection and custom upload. Enhanced UX with top-aligned modal positioning, responsive button layouts, and increased base font size for better readability.
+**Session 17 (2025-12-29)**: Implemented pgTAP testing infrastructure with docker-compose overlay, test fixtures, and RLS validation. Fixed critical storage RLS vulnerability allowing unauthorized file modifications. Created comprehensive testing strategy document.
 
-**Session 14 (2025-11-29)**: Migrated avatar preset system from Supabase storage to frontend CSS spritesheet for better performance. Created automated spritesheet generation with ImageMagick, changed database from TEXT IDs to SMALLINT index, removed avatar-presets bucket entirely.
+**Session 16 (2025-12-11)**: Repositioned Edit/Save buttons with absolute positioning (desktop) and standard flow (mobile). Fixed overflow-hidden click bug. Optimized avatar spritesheet 75% (672KB→169KB). Completed design system cleanup audit.
 
 ## 🚧 Known Issues & Blockers
 
@@ -61,6 +61,10 @@ Last updated: 2025-12-11
 
 ## ⚡ Important Notes for Next Session
 
+- **Function Permission Security**: REVOKE FROM PUBLIC doesn't affect named Supabase roles - must explicitly revoke from anon, authenticated individually
+- **pgTAP Test Performance**: Pre-built Dockerfile.test with pg_prove eliminates 3min dependency install, tests run in ~3sec
+- **WITH CHECK Pattern**: Always use both USING (row visibility) and WITH CHECK (value validation) in UPDATE policies
+- **OAuth Security**: Don't copy user-controlled fields (avatar_url) from OAuth metadata - prevents tracking pixels and injection
 - **Profile Button Positioning**: Desktop uses absolute positioning (top-right of gradient), mobile uses standard flow (above logout footer)
 - **overflow-hidden Gotcha**: Removing from Card fixed button click bug - stacking context prevented clicks on absolutely positioned elements
 - **Spritesheet Optimization**: Run `npm run sprites` regenerates with PNG8+interlacing automatically (75% size reduction)

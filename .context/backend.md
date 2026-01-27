@@ -463,6 +463,15 @@ Realtime service (WebSocket subscriptions) intentionally disabled for CritiQit.
 
 *Backend-specific gotchas, lessons learned, and non-obvious patterns that developers should be aware of.*
 
+**1. Supabase Function Permissions and Named Role Grants (Session 18)**
+- `REVOKE FROM PUBLIC` does NOT affect named roles (`anon`, `authenticated`, `service_role`)
+- Supabase grants function execution to named roles by default, bypassing PUBLIC revocation
+- Must explicitly revoke from unauthorized roles individually
+- Pattern for authenticated-only functions: `REVOKE ALL ON FUNCTION func() FROM PUBLIC, anon;`
+- Pattern for service_role-only functions: `REVOKE ALL ON FUNCTION func() FROM PUBLIC, anon, authenticated;`
+- Without explicit revocation, any authenticated user can call service_role-intended functions
+- Always test function permissions with different role contexts in pgTAP tests
+
 ---
 
 ## Related Documentation

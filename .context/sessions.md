@@ -4,7 +4,37 @@ This file tracks detailed session history for the CritiQit project. Each session
 
 ---
 
-## Session 17 - 2025-12-29 [IN PROGRESS]
+## Session 18 - 2025-12-30
+
+### Summary
+Comprehensive QA security audit of pgTAP test suite fixed three critical vulnerabilities in user profile and storage systems.
+
+### Accomplishments
+- **Supabase**: Optimized test infrastructure (renamed compose files, created Dockerfile.test for 3min→3sec test runs)
+- **Supabase**: Fixed avatar_url injection vulnerability in handle_new_user() trigger
+- **Supabase**: Added WITH CHECK to profiles UPDATE policy preventing ID tampering
+- **Supabase**: Fixed function permission vulnerability by explicitly revoking from unauthorized roles
+- **Supabase**: Added 12 new security tests (6 email-templates RLS, 6 function permissions), total 78 tests passing
+
+### Technical Decisions
+- **Test Performance**: Pre-built Docker image with pg_prove eliminates repeated dependency installation
+- **avatar_url Removal**: Users now set avatar via storage/preset post-signup rather than copying from OAuth
+- **Function Permissions**: Explicit revocation pattern (PUBLIC + named roles) required due to Supabase default grants
+- **Compose File Naming**: Standardized to compose.yml, compose.test.yml, compose.dev.yml for consistency
+
+### Lessons Learned
+- **Supabase Function Permissions**: REVOKE FROM PUBLIC doesn't affect named roles (anon, authenticated) - must revoke explicitly
+- **pgTAP Performance**: Docker layer caching with pre-installed dependencies dramatically reduces test iteration time
+- **WITH CHECK Defense**: Even with FK/PK constraints, WITH CHECK provides proper error messages and blocks ID tampering attempts
+
+### Next Steps
+- [ ] Continue building test coverage for database constraints and functions
+- [ ] Document security audit findings and resolution pattern
+- [ ] Test mobile profile flows on real devices
+
+---
+
+## Session 17 - 2025-12-29
 
 ### Summary
 Implemented pgTAP database testing infrastructure for RLS policies and discovered/fixed critical storage security vulnerability.

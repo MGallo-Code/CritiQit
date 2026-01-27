@@ -487,6 +487,14 @@ CritiQit uses specialized agents located in `.claude/agents/` for complex develo
 - Trade-off: Build step required, but consistency benefits outweigh complexity
 - Works for: API schemas, asset manifests, database types, build configurations
 
+**23. Docker Layer Caching for Test Performance (Session 18)**
+- Pre-built Docker images with test dependencies eliminate repeated installation overhead
+- Pattern: Create Dockerfile.test with pg_prove and dependencies → docker-compose.test.yml uses pre-built image
+- Reduced pgTAP test run time from ~3 minutes (with dependency install) to ~3 seconds (cached layers)
+- Trade-off: Additional Dockerfile to maintain, but 60x performance improvement justifies complexity
+- Docker layer caching works for: test runners, build tools, linters, code generators
+- Critical for tight feedback loops during TDD and security testing workflows
+
 ---
 
 ## Related Documentation
